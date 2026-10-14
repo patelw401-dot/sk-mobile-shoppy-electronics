@@ -1,0 +1,6 @@
+{
+  "name": "SK Mobile Shoppy and Electronic",
+  "description": "Premium mobile shop for phones, accessories, old phone buy & sell, and expert repair booking in Udgir.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

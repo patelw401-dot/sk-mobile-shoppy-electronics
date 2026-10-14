@@ -1,0 +1,161 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.get('admin', false) == true ||
+        (request.auth.token.get('email', '') in [
+          'skmobileshoppyandelectronics@gmail.com',
+          'patelw401@gmail.com',
+          'admin@skmobile.com',
+          'admin.skmobile@gmail.com'
+        ]) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        ('email' in request.auth.token && exists(/databases/$(database)/documents/admins/$(request.auth.token.email)))
+      );
+    }
+
+    // Admins Collection: Server-side authorization records
+    // Only pre-existing admins can read/write administrator documents
+    match /admins/{adminId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == adminId ||
+        ('email' in request.auth.token && request.auth.token.email == adminId) ||
+        isAdmin()
+      );
+      allow write: if isAdmin();
+    }
+
+    // Products: Public read; Only authenticated admins can write (create, update, delete)
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Categories: Public read; Only authenticated admins can write
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Reviews: Public read; Authenticated customers can submit reviews; Admin manage
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+        request.resource.data.author is string && request.resource.data.author.size() > 0 &&
+        request.resource.data.comment is string && request.resource.data.comment.size() > 0 &&
+        (!('rating' in request.resource.data) || (request.resource.data.rating is int && request.resource.data.rating >= 1 && request.resource.data.rating <= 5)) &&
+        (!('isApproved' in request.resource.data) || request.resource.data.isApproved == false);
+      allow update, delete: if isAdmin();
+    }
+
+    // Orders:
+    // 1. Only authenticated customers can create records associated with their own Firebase UID.
+    // 2. Strict validation of customerId == request.auth.uid, required fields, and permitted initial statuses.
+    // 3. Customers cannot read other customers' orders.
+    // 4. Customers CANNOT update or delete orders (payment status, order status, totals are protected).
+    // 5. Admins have full access.
+    match /orders/{orderId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      allow create: if isAdmin() || (
+        isAuthenticated() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.customerName is string && request.resource.data.customerName.size() > 0 &&
+        request.resource.data.phone is string && request.resource.data.phone.size() >= 10 &&
+        request.resource.data.address is string && request.resource.data.address.size() > 0 &&
+        request.resource.data.items is list && request.resource.data.items.size() > 0 &&
+        request.resource.data.total is int && request.resource.data.total >= 0 &&
+        request.resource.data.orderStatus in ['Pending', 'Order Confirmed', 'Processing'] &&
+        request.resource.data.paymentStatus in ['Pending', 'Paid']
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    // Repair Bookings:
+    // 1. Only authenticated customers can create repair bookings associated with their own Firebase UID.
+    // 2. Strict validation of customerId == request.auth.uid, required fields, and permitted initial statuses.
+    // 3. Customers can read only their own bookings.
+    // 4. Customers CANNOT update or delete bookings (repairStatus, estimatedCost, notes are protected).
+    // 5. Admins have full access.
+    match /repairBookings/{repairBookingId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      allow create: if isAdmin() || (
+        isAuthenticated() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.customerName is string && request.resource.data.customerName.size() > 0 &&
+        request.resource.data.phone is string && request.resource.data.phone.size() >= 10 &&
+        request.resource.data.brand is string && request.resource.data.brand.size() > 0 &&
+        request.resource.data.model is string && request.resource.data.model.size() > 0 &&
+        request.resource.data.problem is string && request.resource.data.problem.size() > 0 &&
+        request.resource.data.repairStatus in ['Requested', 'Submitted Successfully', 'Appointment Booked', 'Pickup Scheduled', 'Pending']
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    // Old Phone Requests:
+    // 1. Only authenticated customers can create valuation requests associated with their own Firebase UID.
+    // 2. Strict validation of customerId == request.auth.uid, required fields, and permitted initial statuses.
+    // 3. Customers can read only their own requests.
+    // 4. Customers CANNOT update or delete requests (status, admin valuations, and quotes are protected).
+    // 5. Admins have full access.
+    match /oldPhoneRequests/{oldPhoneRequestId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      allow create: if isAdmin() || (
+        isAuthenticated() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.customerName is string && request.resource.data.customerName.size() > 0 &&
+        request.resource.data.phone is string && request.resource.data.phone.size() >= 10 &&
+        request.resource.data.brand is string && request.resource.data.brand.size() > 0 &&
+        request.resource.data.model is string && request.resource.data.model.size() > 0 &&
+        request.resource.data.status in ['Valuation Generated', 'Pending', 'Submitted']
+      );
+      allow update, delete: if isAdmin();
+    }
+
+    // Customers:
+    // 1. User can read and update their own profile only.
+    // 2. Customers cannot modify another customer's document or set themselves as admin.
+    // 3. Customer documents can only be deleted by admins.
+    match /customers/{customerId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == customerId);
+      allow create, update: if isAdmin() || (
+        isAuthenticated() &&
+        request.auth.uid == customerId &&
+        (!('isAdmin' in request.resource.data) || request.resource.data.isAdmin == false) &&
+        (!('role' in request.resource.data) || request.resource.data.role != 'admin')
+      );
+      allow delete: if isAdmin();
+
+      // Notifications Subcollection:
+      // Customers can read, update (mark as read), and delete their own notifications.
+      // Admins have full access.
+      match /notifications/{notificationId} {
+        allow read, write: if isAdmin() || (isAuthenticated() && request.auth.uid == customerId);
+      }
+    }
+
+    // Root notifications collection (fallback matching)
+    match /notifications/{notificationId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      allow create: if isAdmin() || (isAuthenticated() && request.resource.data.customerId == request.auth.uid);
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+    }
+
+    // Store Settings: Public read; Only admins can modify store configurations
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Default deny for everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,188 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Store product item including smartphones, accessories, and repair parts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique product ID" },
+        "name": { "type": "string", "description": "Product display name" },
+        "brand": { "type": "string", "description": "Brand name" },
+        "category": { "type": "string", "description": "Category slug or enum" },
+        "description": { "type": "string", "description": "Product details" },
+        "price": { "type": "integer", "description": "Selling price in INR" },
+        "originalPrice": { "type": "integer", "description": "MRP in INR" },
+        "discount": { "type": "integer", "description": "Discount percentage" },
+        "stock": { "type": "integer", "description": "Available inventory" },
+        "sku": { "type": "string", "description": "Stock Keeping Unit code" },
+        "images": { "type": "array", "description": "List of image URLs" },
+        "specifications": { "type": "object", "description": "Key-value specs map" },
+        "rating": { "type": "number", "description": "Average review rating" },
+        "reviewCount": { "type": "integer", "description": "Number of reviews" },
+        "featured": { "type": "boolean", "description": "Whether featured on home" },
+        "active": { "type": "boolean", "description": "Active flag for visibility" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "name", "brand", "category", "price", "stock", "active"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase order for phones and accessories",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Order identifier" },
+        "customerId": { "type": "string", "description": "Customer UID or default" },
+        "customerName": { "type": "string", "description": "Name of the customer" },
+        "phone": { "type": "string", "description": "Customer phone number" },
+        "items": { "type": "array", "description": "Purchased cart items" },
+        "address": { "type": "string", "description": "Delivery address" },
+        "deliveryMethod": { "type": "string", "description": "Delivery method" },
+        "paymentMethod": { "type": "string", "description": "Payment mode e.g. COD, UPI" },
+        "paymentStatus": { "type": "string", "description": "Payment status" },
+        "orderStatus": { "type": "string", "description": "Order processing status" },
+        "subtotal": { "type": "integer", "description": "Cart items subtotal" },
+        "deliveryCharge": { "type": "integer", "description": "Delivery shipping charge" },
+        "total": { "type": "integer", "description": "Grand total in INR" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "customerName", "phone", "address", "items", "total", "orderStatus"]
+    },
+    "RepairBooking": {
+      "title": "RepairBooking",
+      "description": "Mobile service and repair appointment booking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Repair booking ID" },
+        "customerId": { "type": "string", "description": "Customer user ID" },
+        "customerName": { "type": "string", "description": "Customer full name" },
+        "phone": { "type": "string", "description": "Contact phone number" },
+        "brand": { "type": "string", "description": "Phone brand e.g. Apple, Samsung" },
+        "model": { "type": "string", "description": "Phone model" },
+        "problem": { "type": "string", "description": "Issue description" },
+        "pickupRequired": { "type": "boolean", "description": "Doorstep pickup required" },
+        "address": { "type": "string", "description": "Address for pickup" },
+        "preferredDate": { "type": "string", "description": "Preferred service date" },
+        "estimatedCost": { "type": "string", "description": "Estimated repair price" },
+        "repairStatus": { "type": "string", "description": "Status of the repair" },
+        "notes": { "type": "string", "description": "Technician or customer notes" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "customerName", "phone", "brand", "model", "problem", "repairStatus"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Store customer profile record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique customer ID" },
+        "name": { "type": "string", "description": "Customer name" },
+        "phone": { "type": "string", "description": "Customer phone" },
+        "email": { "type": "string", "description": "Customer email" },
+        "address": { "type": "string", "description": "Customer address" },
+        "totalOrders": { "type": "integer", "description": "Count of orders placed" },
+        "totalRepairs": { "type": "integer", "description": "Count of repair bookings" },
+        "totalSpent": { "type": "integer", "description": "Lifetime spent in INR" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Join timestamp" }
+      },
+      "required": ["id", "name", "phone"]
+    },
+    "OldPhoneRequest": {
+      "title": "OldPhoneRequest",
+      "description": "Refurbished/used phone buy or sell valuation request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Request identifier" },
+        "customerId": { "type": "string", "description": "Customer user ID" },
+        "customerName": { "type": "string", "description": "Customer name" },
+        "phone": { "type": "string", "description": "Contact phone" },
+        "brand": { "type": "string", "description": "Phone brand" },
+        "model": { "type": "string", "description": "Phone model" },
+        "storage": { "type": "string", "description": "Internal storage variant" },
+        "condition": { "type": "string", "description": "Device physical condition" },
+        "expectedPrice": { "type": "string", "description": "Expected valuation" },
+        "offeredPrice": { "type": "string", "description": "Admin offered price" },
+        "requestType": { "type": "string", "description": "SELL or BUY" },
+        "status": { "type": "string", "description": "Request review status" },
+        "address": { "type": "string", "description": "Pickup or delivery address" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "customerName", "phone", "brand", "model", "status"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Product category configuration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Category ID" },
+        "name": { "type": "string", "description": "Category title" },
+        "slug": { "type": "string", "description": "URL slug" },
+        "active": { "type": "boolean", "description": "Whether visible in app" },
+        "productCount": { "type": "integer", "description": "Number of products" }
+      },
+      "required": ["id", "name", "slug", "active"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Customer feedback and ratings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Review ID" },
+        "author": { "type": "string", "description": "Reviewer name" },
+        "rating": { "type": "integer", "description": "Rating out of 5" },
+        "date": { "type": "string", "description": "Review date text" },
+        "comment": { "type": "string", "description": "Review comment" },
+        "isApproved": { "type": "boolean", "description": "Admin approved flag" }
+      },
+      "required": ["id", "author", "rating", "comment"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized store administrator profile for server-side role verification",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "Admin email address" },
+        "role": { "type": "string", "description": "Role e.g. admin or superadmin" },
+        "isAdmin": { "type": "boolean", "description": "Admin privileges flag" },
+        "active": { "type": "boolean", "description": "Whether the admin account is active" },
+        "displayName": { "type": "string", "description": "Display name of administrator" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["email", "role", "isAdmin", "active"]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Server-side administrator authorization registry"
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "All catalog products for customer browsing and admin management"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders placed through the store"
+    },
+    "/repairBookings/{repairBookingId}": {
+      "schema": { "$ref": "#/entities/RepairBooking" },
+      "description": "Service and repair appointments"
+    },
+    "/customers/{customerId}": {
+      "schema": { "$ref": "#/entities/Customer" },
+      "description": "Customer directory records"
+    },
+    "/oldPhoneRequests/{oldPhoneRequestId}": {
+      "schema": { "$ref": "#/entities/OldPhoneRequest" },
+      "description": "Used phone buy and sell valuation inquiries"
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Store product categories"
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Customer testimonials and feedback"
+    }
+  }
+}
