@@ -9,7 +9,8 @@ import {
   Wrench, 
   Award, 
   CheckCircle2,
-  ChevronRight
+  ChevronRight,
+  Lock
 } from 'lucide-react';
 
 export default function Footer({ setActivePage }) {
@@ -119,6 +120,12 @@ export default function Footer({ setActivePage }) {
                   Store Location & Directions
                 </button>
               </li>
+              <li className="pt-1 border-t border-[#1C1C1C]">
+                <button onClick={() => handleNav('admin')} className="text-amber-400 hover:text-[#D4AF37] transition flex items-center gap-1 font-semibold">
+                  <ShieldCheck size={12} className="text-[#D4AF37]" />
+                  Store Admin Portal
+                </button>
+              </li>
             </ul>
           </div>
 
@@ -169,12 +176,22 @@ export default function Footer({ setActivePage }) {
           </div>
         </div>
 
-        {/* Bottom Copyright */}
+        {/* Bottom Copyright & Admin Access */}
         <div className="pt-6 border-t border-[#1C1C1C] flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-3">
           <p>© {new Date().getFullYear()} SK Mobile Shoppy and Electronic • All Rights Reserved.</p>
-          <p className="text-gray-400">
-            Nagar Parishad, Udgir, Maharashtra • ₹0 Budget Foundation Phase
-          </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => handleNav('admin')}
+              className="text-gray-400 hover:text-[#D4AF37] transition flex items-center gap-1 font-semibold"
+            >
+              <Lock size={11} className="text-[#D4AF37]" />
+              <span>Admin Portal</span>
+            </button>
+            <span className="text-gray-600">|</span>
+            <p className="text-gray-400">
+              Nagar Parishad, Udgir, Maharashtra
+            </p>
+          </div>
         </div>
       </div>
     </footer>

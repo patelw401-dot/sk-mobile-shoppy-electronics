@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { 
   getAuth, 
   onAuthStateChanged, 
@@ -237,3 +237,101 @@ export async function saveOldPhoneRequestToFirestore(requestData, currentUser) {
     request: payload
   };
 }
+
+/**
+ * Store Admin Authorization Allowlist
+ * Matches firestore.rules isAdmin() definition exactly.
+ */
+export const AUTHORIZED_ADMIN_EMAILS = [
+  'skmobileshoppyandelectronics@gmail.com',
+  'patelw401@gmail.com',
+  'admin@skmobile.com',
+  'admin.skmobile@gmail.com'
+];
+
+/**
+ * Check if a Firebase user is an authorized store administrator.
+ */
+export function isUserAdmin(user) {
+  if (!user || !user.email) return false;
+  return AUTHORIZED_ADMIN_EMAILS.some(
+    adminEmail => adminEmail.toLowerCase() === user.email.toLowerCase()
+  );
+}
+
+/**
+ * Fetch all repair bookings for Store Admin review.
+ */
+export async function fetchAdminRepairBookings() {
+  try {
+    const colRef = collection(db, 'repairBookings');
+    const snap = await getDocs(colRef);
+    const bookings = [];
+    snap.forEach((d) => {
+      bookings.push({ id: d.id, ...d.data() });
+    });
+    return bookings.sort((a, b) => {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
+      return timeB - timeA;
+    });
+  } catch (err) {
+    console.error("fetchAdminRepairBookings error:", err);
+    throw err;
+  }
+}
+
+/**
+ * Fetch all old phone buy/sell inquiries for Store Admin review.
+ */
+export async function fetchAdminOldPhoneRequests() {
+  try {
+    const colRef = collection(db, 'oldPhoneRequests');
+    const snap = await getDocs(colRef);
+    const requests = [];
+    snap.forEach((d) => {
+      requests.push({ id: d.id, ...d.data() });
+    });
+    return requests.sort((a, b) => {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
+      return timeB - timeA;
+    });
+  } catch (err) {
+    console.error("fetchAdminOldPhoneRequests error:", err);
+    throw err;
+  }
+}
+
+/**
+ * Update repair booking status (Admin only).
+ * Permitted statuses in firestore.rules:
+ * ['Requested', 'Submitted Successfully', 'Appointment Booked', 'Pickup Scheduled', 'Pending', 'In Progress', 'Completed']
+ */
+export async function updateAdminRepairBookingStatus(bookingId, newStatus, adminEmail) {
+  const docRef = doc(db, 'repairBookings', bookingId);
+  await updateDoc(docRef, {
+    repairStatus: newStatus,
+    status: newStatus,
+    lastUpdatedBy: adminEmail || 'Store Admin',
+    updatedAt: serverTimestamp()
+  });
+  return true;
+}
+
+/**
+ * Update old phone valuation status (Admin only).
+ */
+export async function updateAdminOldPhoneStatus(requestId, newStatus, adminNote) {
+  const docRef = doc(db, 'oldPhoneRequests', requestId);
+  const updates = {
+    status: newStatus,
+    updatedAt: serverTimestamp()
+  };
+  if (adminNote) {
+    updates.adminNote = adminNote;
+  }
+  await updateDoc(docRef, updates);
+  return true;
+}
+

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { STORE_INFO } from '../data/storeData';
-import { signInWithGooglePopup, logoutUser } from '../firebase';
+import { signInWithGooglePopup, logoutUser, isUserAdmin } from '../firebase';
 import { 
   Lock, 
   ShieldCheck, 
@@ -112,6 +112,17 @@ export default function LoginPage({ currentUser, setActivePage, onShowToast }) {
             </div>
 
             <div className="space-y-3">
+              {isUserAdmin(currentUser) && (
+                <button
+                  onClick={() => setActivePage?.('admin')}
+                  className="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition"
+                >
+                  <ShieldCheck size={18} />
+                  <span>Open Store Admin Dashboard</span>
+                  <ArrowRight size={16} />
+                </button>
+              )}
+
               <button
                 onClick={() => setActivePage?.('repairs')}
                 className="gold-btn w-full !py-3 !text-sm flex items-center justify-center gap-2"
@@ -242,6 +253,13 @@ export default function LoginPage({ currentUser, setActivePage, onShowToast }) {
             <KeyRound size={14} className="text-amber-400 shrink-0 mt-0.5" />
             <span>
               <strong>Authorized Store Admins:</strong> Restricted strictly to <code className="text-gray-300">skmobileshoppyandelectronics@gmail.com</code> and <code className="text-gray-300">patelw401@gmail.com</code>.
+              <button 
+                type="button"
+                onClick={() => setActivePage?.('admin')} 
+                className="text-amber-400 hover:underline font-semibold ml-1.5 inline-flex items-center"
+              >
+                Go to Admin Portal →
+              </button>
             </span>
           </div>
         </div>

@@ -11,6 +11,7 @@ import RepairBookingPage from './pages/RepairBookingPage';
 import OldPhonePage from './pages/OldPhonePage';
 import LoginPage from './pages/LoginPage';
 import ContactPage from './pages/ContactPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 export default function App() {
   const [activePage, setActivePage] = useState('home');
@@ -66,6 +67,14 @@ export default function App() {
         return (
           <ContactPage 
             currentUser={currentUser} 
+            onShowToast={showToast} 
+          />
+        );
+      case 'admin':
+        return (
+          <AdminDashboardPage 
+            currentUser={currentUser} 
+            setActivePage={setActivePage} 
             onShowToast={showToast} 
           />
         );

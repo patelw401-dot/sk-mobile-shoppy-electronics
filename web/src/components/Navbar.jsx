@@ -11,8 +11,10 @@ import {
   X, 
   User, 
   ShoppingBag,
-  Sparkles
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
+import { isUserAdmin } from '../firebase';
 
 export default function Navbar({ activePage, setActivePage, currentUser }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -138,6 +140,18 @@ export default function Navbar({ activePage, setActivePage, currentUser }) {
           )}
 
           <button
+            onClick={() => handleNavClick('admin')}
+            className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+              activePage === 'admin'
+                ? 'bg-amber-500 text-black border-amber-400 shadow-md shadow-amber-500/20'
+                : 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:border-amber-400 hover:bg-amber-500/20'
+            }`}
+          >
+            <ShieldCheck size={14} className="text-amber-400" />
+            <span>Admin Portal</span>
+          </button>
+
+          <button
             onClick={() => handleNavClick('repairs')}
             className="gold-btn !text-xs !py-2 !px-3.5 shadow-sm"
           >
@@ -188,6 +202,26 @@ export default function Navbar({ activePage, setActivePage, currentUser }) {
               </button>
             );
           })}
+
+          {/* Admin Portal Entry Point in Mobile Hamburger Menu */}
+          <div className="pt-2 border-t border-[#262626]">
+            <button
+              onClick={() => handleNavClick('admin')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-lg text-sm font-bold flex items-center justify-between transition-all ${
+                activePage === 'admin'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50'
+                  : 'bg-[#18150C] text-amber-400 border border-amber-500/30 hover:bg-amber-500/10'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck size={18} className="text-amber-400" />
+                <span>Store Admin Portal</span>
+              </div>
+              <span className="text-[10px] bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded font-extrabold border border-amber-400/30">
+                {isUserAdmin(currentUser) ? 'Verified' : 'Portal'}
+              </span>
+            </button>
+          </div>
 
           <div className="pt-2 border-t border-[#222222] flex flex-col gap-2">
             <button
