@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeliveryDining
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.ShoppingBag
@@ -29,6 +30,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,23 +41,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.ShopOrder
 import com.example.ui.components.ProductVisualBox
 import com.example.ui.components.formatInr
-import com.example.ui.theme.ShopOutlineLight
-import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
-import com.example.ui.theme.ShopSuccessGreen
-import com.example.ui.theme.ShopTextMuted
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
+import com.example.ui.theme.*
 
 @Composable
 fun OrderSuccessScreen(
     order: ShopOrder?,
     onContinueShopping: () -> Unit,
+    onTrackOrder: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     if (order == null) {
@@ -76,7 +74,7 @@ fun OrderSuccessScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF6F8FA))
+            .background(BlackBackground)
             .testTag("order_success_screen"),
         contentPadding = PaddingValues(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -88,13 +86,13 @@ fun OrderSuccessScreen(
                 modifier = Modifier
                     .size(72.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFDCFCE7)),
+                    .background(BlackSurfaceSecondary),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Success",
-                    tint = ShopSuccessGreen,
+                    tint = GoldPrimary,
                     modifier = Modifier.size(48.dp)
                 )
             }
@@ -112,7 +110,7 @@ fun OrderSuccessScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Thank you for shopping at SK Mobile Udgir.",
+                text = "Thank you for shopping at SK Mobile Shoppy and Electronic, Udgir.",
                 fontSize = 13.sp,
                 color = ShopTextSecondary,
                 textAlign = TextAlign.Center
@@ -126,7 +124,8 @@ fun OrderSuccessScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                border = BorderStroke(1.dp, BlackBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
@@ -253,7 +252,8 @@ fun OrderSuccessScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                border = BorderStroke(1.dp, BlackBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
@@ -341,28 +341,56 @@ fun OrderSuccessScreen(
             Spacer(modifier = Modifier.height(20.dp))
         }
 
-        // Continue Shopping Button
+        // Track Order & Continue Shopping Buttons
         item {
-            Button(
-                onClick = onContinueShopping,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .testTag("order_success_continue_shopping_btn"),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ShoppingBag,
-                    contentDescription = "Shop",
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Continue Shopping",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = { onTrackOrder(order.orderId) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .testTag("order_success_track_order_btn"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocalShipping,
+                        contentDescription = "Track",
+                        tint = Color.Black,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Track Order Progress",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onContinueShopping,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .testTag("order_success_continue_shopping_btn"),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, BlackBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextMain)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingBag,
+                        contentDescription = "Shop",
+                        tint = TextMain,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Continue Shopping",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

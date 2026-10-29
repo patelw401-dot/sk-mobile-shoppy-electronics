@@ -95,19 +95,19 @@ object MockData {
             originalPrice = 49900,
             rating = 4.8f,
             reviewCount = 142,
-            description = "Thoroughly inspected with SK Mobile 32-point quality check. 100% genuine components with pristine Super Retina XDR OLED display, A14 Bionic chip, and verified battery health.",
+            description = "Thoroughly inspected with SK Mobile Shoppy and Electronic 32-point quality check. 100% genuine components with pristine Super Retina XDR OLED display, A14 Bionic chip, and verified battery health.",
             specifications = mapOf(
                 "Condition" to "Grade A+ (Like New, zero scratches)",
                 "Battery Health" to "92% Original Apple Battery",
                 "Screen" to "6.1\" Super Retina XDR OLED True Tone",
                 "Chipset" to "Apple A14 Bionic 6-core",
-                "Included" to "Original Type-C Cable + SK Mobile 6-Month Warranty Card",
+                "Included" to "Original Type-C Cable + SK Mobile Shoppy and Electronic 6-Month Warranty Card",
                 "Inspection" to "32-Point Technician Passed (SK Certified)"
             ),
             isPreOwned = true,
             conditionGrade = "Grade A+ (Like New)",
             batteryHealth = "92%",
-            warranty = "6 Months SK Mobile Replacement Warranty",
+            warranty = "6 Months SK Mobile Shoppy and Electronic Replacement Warranty",
             isFeatured = true,
             highlightBadge = "Certified Refurbished"
         ),
@@ -120,18 +120,18 @@ object MockData {
             originalPrice = 64999,
             rating = 4.6f,
             reviewCount = 88,
-            description = "Hasselblad quad camera flagship with curved QHD+ 120Hz LTPO display. Completely sanitized, tested, and backed by SK Mobile warranty in Udgir.",
+            description = "Hasselblad quad camera flagship with curved QHD+ 120Hz LTPO display. Completely sanitized, tested, and backed by SK Mobile Shoppy and Electronic warranty in Udgir.",
             specifications = mapOf(
                 "Condition" to "Grade A (Minor cosmetic hairline, 100% functional)",
                 "Battery Health" to "89% Tested Battery",
                 "Display" to "6.7\" QHD+ 120Hz Fluid AMOLED LTPO",
                 "Processor" to "Snapdragon 888 5G",
-                "Warranty" to "6 Months Warranty at SK Mobile Udgir"
+                "Warranty" to "6 Months Warranty at SK Mobile Shoppy and Electronic Udgir"
             ),
             isPreOwned = true,
             conditionGrade = "Grade A (Clean)",
             batteryHealth = "89%",
-            warranty = "6 Months SK Mobile Shop Warranty"
+            warranty = "6 Months SK Mobile Shoppy and Electronic Shop Warranty"
         ),
         Product(
             id = "old-3",
@@ -389,7 +389,7 @@ object MockData {
             originalPrice = 499,
             rating = 4.9f,
             reviewCount = 920,
-            description = "9H hardness shatterproof glass with oleophobic anti-fingerprint coating and curved black borders. Free professional bubble-free installation at SK Mobile Udgir shop.",
+            description = "9H hardness shatterproof glass with oleophobic anti-fingerprint coating and curved black borders. Free professional bubble-free installation at SK Mobile Shoppy and Electronic Udgir shop.",
             specifications = mapOf(
                 "Hardness" to "9H Scratch Resistant Japanese Asahi Glass",
                 "Coating" to "Nano Oleophobic Anti-smudge Layer",
@@ -479,7 +479,7 @@ object MockData {
             location = "Nagar Parishad Road, Udgir",
             rating = 5,
             date = "Yesterday",
-            comment = "My OnePlus display was completely shattered. SK Mobile technicians replaced it in just 45 minutes with genuine display at a fraction of the showroom price! Honest people, highly recommended in Udgir.",
+            comment = "My OnePlus display was completely shattered. SK Mobile Shoppy and Electronic technicians replaced it in just 45 minutes with genuine display at a fraction of the showroom price! Honest people, highly recommended in Udgir.",
             serviceOrProduct = "Display Replacement"
         ),
         CustomerReview(
@@ -488,7 +488,7 @@ object MockData {
             location = "Shivaji Chowk, Udgir",
             rating = 5,
             date = "3 days ago",
-            comment = "Bought an iPhone 12 certified pre-owned from SK Mobile. The condition is like brand new with 92% battery health, bill, and warranty. Best place in Udgir to buy second hand phones.",
+            comment = "Bought an iPhone 12 certified pre-owned from SK Mobile Shoppy and Electronic. The condition is like brand new with 92% battery health, bill, and warranty. Best place in Udgir to buy second hand phones.",
             serviceOrProduct = "iPhone 12 (Certified Old Phone)"
         ),
         CustomerReview(
@@ -512,4 +512,75 @@ object MockData {
     )
 
     val popularBrands = listOf("Apple", "Samsung", "OnePlus", "Xiaomi", "Realme", "Vivo", "Oppo", "Motorola", "boAt", "Noise")
+
+    val defaultReels = listOf(
+        ReelItem(
+            id = "reel-1",
+            title = "OnePlus Nord CE4 5G Unboxing & 100W Charging Test!",
+            caption = "⚡ Watch the 100W SUPERVOOC blast from 1% to 100% in under 30 minutes! Available in store now with official brand warranty & instant store discounts at SK Mobile Shoppy & Electronic Udgir.",
+            videoUrl = "raw://videoplayback",
+            thumbnailUrl = "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&q=80",
+            productId = "mob-1",
+            productName = "OnePlus Nord CE4 (8GB RAM, 128GB)",
+            productPrice = 24999,
+            productImage = "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&q=80",
+            likesCount = 142,
+            sharesCount = 38,
+            viewsCount = 1250,
+            isPublished = true,
+            uploadedAt = System.currentTimeMillis() - 86400000L * 2,
+            durationSeconds = 25
+        ),
+        ReelItem(
+            id = "reel-2",
+            title = "Samsung Galaxy M35 5G - Monster 6000mAh Battery!",
+            caption = "🔋 Heavy gaming & non-stop YouTube streaming! The 6000mAh battery handles it with ease. Knox security + 120Hz Super AMOLED screen. Come check it out in store!",
+            videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+            thumbnailUrl = "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&q=80",
+            productId = "mob-2",
+            productName = "Samsung Galaxy M35 5G (6GB, 128GB)",
+            productPrice = 16999,
+            productImage = "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&q=80",
+            likesCount = 210,
+            sharesCount = 54,
+            viewsCount = 1890,
+            isPublished = true,
+            uploadedAt = System.currentTimeMillis() - 86400000L * 3,
+            durationSeconds = 15
+        ),
+        ReelItem(
+            id = "reel-3",
+            title = "iPhone 13 / 14 Display Replacement in 30 Minutes!",
+            caption = "🛠️ Broken or flickering screen? Our certified repair engineers in Udgir replace authentic OEM displays with 90-day warranty. Doorstep pickup & delivery available!",
+            videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+            thumbnailUrl = "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=800&q=80",
+            productId = null,
+            productName = null,
+            productPrice = null,
+            productImage = null,
+            likesCount = 328,
+            sharesCount = 89,
+            viewsCount = 3400,
+            isPublished = true,
+            uploadedAt = System.currentTimeMillis() - 86400000L * 5,
+            durationSeconds = 15
+        ),
+        ReelItem(
+            id = "reel-4",
+            title = "GaN 65W Fast Charger - Charge 3 Devices At Once!",
+            caption = "🚀 Laptop, Tablet, and Smartphone all charging super fast from a single pocket-sized adapter. Smart heat protection. Special discount price this week only!",
+            videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+            thumbnailUrl = "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&q=80",
+            productId = "chg-1",
+            productName = "65W GaN Triple Port Fast Charger",
+            productPrice = 1999,
+            productImage = "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800&q=80",
+            likesCount = 95,
+            sharesCount = 21,
+            viewsCount = 820,
+            isPublished = true,
+            uploadedAt = System.currentTimeMillis() - 86400000L * 7,
+            durationSeconds = 20
+        )
+    )
 }

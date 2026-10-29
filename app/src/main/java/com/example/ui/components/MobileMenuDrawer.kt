@@ -22,10 +22,12 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -46,15 +48,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.ShopAccentAmber
-import com.example.ui.theme.ShopOutlineLight
-import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
-import com.example.ui.theme.ShopSuccessGreen
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
+import com.example.ui.theme.*
 import com.example.viewmodel.AppScreen
 
 @Composable
@@ -72,17 +69,18 @@ fun MobileMenuDrawerSheet(
         modifier = modifier
             .width(310.dp)
             .fillMaxHeight(),
-        drawerContainerColor = Color.White
+        drawerContainerColor = BlackSurface
     ) {
         Column(
             modifier = Modifier
                 .fillMaxHeight()
                 .padding(bottom = 20.dp)
         ) {
-            // Header with SK Mobile branding & Close Button
+            // Header with SK Mobile Shoppy and Electronic branding & Close Button
             Surface(
-                color = ShopPrimaryBlue,
-                modifier = Modifier.fillMaxWidth()
+                color = BlackSurfaceSecondary,
+                modifier = Modifier.fillMaxWidth(),
+                border = androidx.compose.foundation.BorderStroke(1.dp, BlackBorder)
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Row(
@@ -95,36 +93,36 @@ fun MobileMenuDrawerSheet(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.White),
+                                    .background(GoldPrimary),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = "SK",
                                     fontWeight = FontWeight.Black,
                                     fontSize = 18.sp,
-                                    color = ShopPrimaryBlue
+                                    color = BlackBackground
                                 )
                             }
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = "SK Mobile",
-                                        color = Color.White,
+                                        text = "SK Mobile Shoppy and Electronic",
+                                        color = TextMain,
                                         fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 17.sp
+                                        fontSize = 14.sp
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(
                                         imageVector = Icons.Default.Verified,
                                         contentDescription = "Verified",
-                                        tint = ShopAccentAmber,
+                                        tint = GoldHighlight,
                                         modifier = Modifier.size(15.dp)
                                     )
                                 }
                                 Text(
                                     text = "Nagar Parishad, Udgir",
-                                    color = Color.White.copy(alpha = 0.85f),
+                                    color = TextSecondary,
                                     fontSize = 11.sp
                                 )
                             }
@@ -134,7 +132,7 @@ fun MobileMenuDrawerSheet(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close Menu",
-                                tint = Color.White
+                                tint = TextMain
                             )
                         }
                     }
@@ -186,6 +184,8 @@ fun MobileMenuDrawerSheet(
             // Navigation Menu Items
             val menuItems = listOf(
                 NavigationItem("Home", Icons.Default.Home, AppScreen.HOME),
+                NavigationItem("My Orders & Tracking", Icons.Default.LocalShipping, AppScreen.MY_ORDERS),
+                NavigationItem("SK Reels & Videos", Icons.Default.PlayCircle, AppScreen.REELS),
                 NavigationItem("All Products & Shop", Icons.Default.ShoppingBag, AppScreen.PRODUCTS),
                 NavigationItem("Mobile Repair Booking", Icons.Default.Build, AppScreen.REPAIR_BOOKING),
                 NavigationItem("Buy Certified Old Phones", Icons.Default.PhoneAndroid, AppScreen.OLD_PHONE_BUY),
@@ -213,7 +213,8 @@ fun MobileMenuDrawerSheet(
                             }
                             .testTag("drawer_item_${item.screen.name}"),
                         shape = RoundedCornerShape(10.dp),
-                        color = if (isSelected) ShopPrimaryLightBlue else Color.Transparent
+                        color = if (isSelected) BlackSurfaceSecondary else Color.Transparent,
+                        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, GoldPrimary.copy(alpha = 0.5f)) else null
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 11.dp),
@@ -224,7 +225,7 @@ fun MobileMenuDrawerSheet(
                                 Icon(
                                     imageVector = item.icon,
                                     contentDescription = item.label,
-                                    tint = if (isSelected) ShopPrimaryBlue else ShopTextSecondary,
+                                    tint = if (isSelected) GoldHighlight else ShopTextSecondary,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
@@ -232,18 +233,19 @@ fun MobileMenuDrawerSheet(
                                     text = item.label,
                                     fontSize = 14.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) ShopPrimaryBlue else ShopTextPrimary
+                                    color = if (isSelected) GoldHighlight else ShopTextPrimary
                                 )
                             }
 
-                            if (item.hasBadge && cartCount > 0) {
+                            val badgeCount = if (item.screen == AppScreen.CART) cartCount else if (item.screen == AppScreen.NOTIFICATIONS) unreadNotificationCount else 0
+                            if (item.hasBadge && badgeCount > 0) {
                                 Surface(
-                                    color = ShopAccentAmber,
+                                    color = GoldHighlight,
                                     shape = CircleShape
                                 ) {
                                     Text(
-                                        text = "$cartCount",
-                                        color = Color.Black,
+                                        text = "$badgeCount",
+                                        color = Color(0xFF0B0B0B),
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)

@@ -13,6 +13,7 @@ import com.example.model.MockData
 import com.example.model.NotificationType
 import com.example.model.Product
 import com.example.model.ProductCategory
+import com.example.model.ReelItem
 import com.example.model.RepairBooking
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
@@ -42,6 +43,7 @@ class LocalStorageManager(private val context: Context? = null) {
     private var cachedSellRequests: MutableList<SellRequest>? = null
     private var cachedCart: MutableList<CartItem>? = null
     private var cachedSettings: ShopSettings? = null
+    private var cachedReels: MutableList<ReelItem>? = null
 
     // ==========================================
     // PRODUCTS
@@ -301,7 +303,7 @@ class LocalStorageManager(private val context: Context? = null) {
             try {
                 val obj = JSONObject(jsonString)
                 val s = ShopSettings(
-                    shopName = obj.optString("shopName", "SK Mobile"),
+                    shopName = obj.optString("shopName", "SK Mobile Shoppy and Electronic"),
                     address = obj.optString("address", "Nagar Parishad, Udgir, Maharashtra - 413517"),
                     phoneNumber = obj.optString("phoneNumber", "+91 98765 43210"),
                     whatsappNumber = obj.optString("whatsappNumber", "+91 98765 43210"),
@@ -621,7 +623,7 @@ class LocalStorageManager(private val context: Context? = null) {
                 city = "Udgir",
                 state = "Maharashtra",
                 pinCode = "413517",
-                deliveryOption = "Store Pickup at SK Mobile",
+                deliveryOption = "Store Pickup at SK Mobile Shoppy and Electronic",
                 paymentMethod = "Online Payment",
                 orderDate = "Yesterday, 04:45 PM",
                 status = "Delivered"
@@ -829,6 +831,98 @@ class LocalStorageManager(private val context: Context? = null) {
         )
     }
 
+    // ==========================================
+    // REELS
+    // ==========================================
+    @Synchronized
+    fun loadReels(): List<ReelItem> {
+        cachedReels?.let { return it.toList() }
+
+        val jsonString = prefs?.getString(KEY_REELS, null)
+        if (!jsonString.isNullOrEmpty()) {
+            try {
+                val array = JSONArray(jsonString)
+                val list = mutableListOf<ReelItem>()
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    list.add(jsonToReel(obj))
+                }
+                cachedReels = list
+                return list.toList()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse stored reels: ${e.message}")
+            }
+        }
+
+        // Initialize with default reels from MockData
+        val initial = MockData.defaultReels
+        saveReels(initial)
+        return initial
+    }
+
+    @Synchronized
+    fun saveReels(reels: List<ReelItem>) {
+        cachedReels = reels.toMutableList()
+        try {
+            val array = JSONArray()
+            for (r in reels) {
+                array.put(reelToJson(r))
+            }
+            prefs?.edit()?.putString(KEY_REELS, array.toString())?.apply()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save reels to prefs: ${e.message}")
+        }
+    }
+
+    private fun reelToJson(r: ReelItem): JSONObject {
+        return JSONObject().apply {
+            put("id", r.id)
+            put("title", r.title)
+            put("caption", r.caption)
+            put("videoUrl", r.videoUrl)
+            put("thumbnailUrl", r.thumbnailUrl)
+            put("productId", r.productId ?: "")
+            put("productName", r.productName ?: "")
+            put("productPrice", r.productPrice ?: -1)
+            put("productImage", r.productImage ?: "")
+            put("likesCount", r.likesCount)
+            put("sharesCount", r.sharesCount)
+            put("viewsCount", r.viewsCount)
+            put("isPublished", r.isPublished)
+            put("uploadedAt", r.uploadedAt)
+            put("uploadedBy", r.uploadedBy)
+            put("durationSeconds", r.durationSeconds)
+            put("isLikedByMe", r.isLikedByMe)
+        }
+    }
+
+    private fun jsonToReel(obj: JSONObject): ReelItem {
+        val prodId = obj.optString("productId", "").ifBlank { null }
+        val prodName = obj.optString("productName", "").ifBlank { null }
+        val prodPrice = obj.optInt("productPrice", -1).let { if (it >= 0) it else null }
+        val prodImg = obj.optString("productImage", "").ifBlank { null }
+
+        return ReelItem(
+            id = obj.getString("id"),
+            title = obj.optString("title", ""),
+            caption = obj.optString("caption", ""),
+            videoUrl = obj.optString("videoUrl", ""),
+            thumbnailUrl = obj.optString("thumbnailUrl", ""),
+            productId = prodId,
+            productName = prodName,
+            productPrice = prodPrice,
+            productImage = prodImg,
+            likesCount = obj.optInt("likesCount", 0),
+            sharesCount = obj.optInt("sharesCount", 0),
+            viewsCount = obj.optInt("viewsCount", 0),
+            isPublished = obj.optBoolean("isPublished", true),
+            uploadedAt = obj.optLong("uploadedAt", System.currentTimeMillis()),
+            uploadedBy = obj.optString("uploadedBy", "skmobileshoppyandelectronics@gmail.com"),
+            durationSeconds = obj.optInt("durationSeconds", 15),
+            isLikedByMe = obj.optBoolean("isLikedByMe", false)
+        )
+    }
+
     companion object {
         private const val TAG = "LocalStorageManager"
         private const val PREFS_NAME = "sk_mobile_prefs"
@@ -839,6 +933,7 @@ class LocalStorageManager(private val context: Context? = null) {
         private const val KEY_CART = "key_cart"
         private const val KEY_SETTINGS = "key_settings"
         private const val KEY_NOTIFICATIONS_PREFIX = "key_notif_"
+        private const val KEY_REELS = "key_reels"
 
         // Singleton instance
         @Volatile

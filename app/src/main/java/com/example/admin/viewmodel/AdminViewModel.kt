@@ -17,11 +17,16 @@ import com.example.model.CustomerReview
 import com.example.model.MockData
 import com.example.model.Product
 import com.example.model.ProductCategory
+import com.example.model.ReelItem
 import com.example.model.RepairBooking
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
+import android.app.Activity
+import android.util.Log
+import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.OAuthProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,7 +49,10 @@ data class AdminUiState(
     val payments: List<PaymentRecord> = emptyList(),
     val settings: ShopSettings = ShopSettings(),
     val selectedReportFilter: String = "30 Days",
-    val toastMessage: String? = null
+    val toastMessage: String? = null,
+    val reels: List<ReelItem> = MockData.defaultReels,
+    val isUploadingReel: Boolean = false,
+    val uploadReelProgress: Int = 0
 ) {
     val totalOrdersCount: Int get() = orders.size
     val pendingOrdersCount: Int get() = orders.count { it.status == "Pending" || it.status == "Confirmed" }
@@ -167,6 +175,13 @@ class AdminViewModel(
             }
         }
 
+        // Collect all reels from DataService
+        viewModelScope.launch {
+            dataService.observeReels().collect { reels ->
+                _uiState.update { it.copy(reels = reels) }
+            }
+        }
+
         // Observe Firebase Auth state and verify administrator authorization
         try {
             auth?.addAuthStateListener { fbAuth ->
@@ -203,9 +218,22 @@ class AdminViewModel(
         } catch (e: Exception) {
             // Safe fallback
         }
+
+        // Check for pending Web OAuth results in case Activity was recreated
+        try {
+            auth?.pendingAuthResult?.let { pending ->
+                Log.i("AdminViewModel", "Found pendingAuthResult during ViewModel initialization; attaching listener")
+                pending.addOnSuccessListener { result ->
+                    Log.i("AdminViewModel", "pendingAuthResult on init succeeded for user: ${result.user?.email}")
+                    handleAuthResult(result) { _, _ -> }
+                }.addOnFailureListener { error ->
+                    Log.w("AdminViewModel", "pendingAuthResult on init failed: ${error.javaClass.simpleName} - ${error.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("AdminViewModel", "Error checking pendingAuthResult on init: ${e.message}")
+        }
     }
-
-
 
     /**
      * Authenticate Administrator using Google Sign-In with CredentialManager.
@@ -213,56 +241,110 @@ class AdminViewModel(
      */
     fun signInWithGoogleToken(idToken: String, onComplete: (Boolean, String?) -> Unit) {
         val fbAuth = auth ?: run {
+            Log.e("AdminViewModel", "Firebase Auth is null in signInWithGoogleToken")
             onComplete(false, "Firebase Authentication is currently unavailable.")
             return
         }
 
         _uiState.update { it.copy(isAuthenticating = true) }
+        Log.i("AdminViewModel", "Authenticating Firebase with Google ID token credential")
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         fbAuth.signInWithCredential(credential)
             .addOnSuccessListener { result ->
-                val user = result.user
-                if (user == null) {
-                    _uiState.update { it.copy(isAuthenticating = false) }
-                    onComplete(false, "Authentication failed. No user profile returned.")
-                    return@addOnSuccessListener
-                }
-
-                // Verify server-side authorization (Requirement 7)
-                viewModelScope.launch {
-                    val isAuthorized = AdminAuthService.verifyAdminAuthorization(user)
-                    _uiState.update { it.copy(isAuthenticating = false) }
-
-                    if (isAuthorized) {
-                        _uiState.update {
-                            it.copy(
-                                isAuthenticated = true,
-                                adminEmail = user.email ?: user.displayName ?: "Admin",
-                                toastMessage = "Welcome, ${user.displayName ?: "Administrator"}!"
-                            )
-                        }
-                        onComplete(true, null)
-                    } else {
-                        // Customer or unauthorized account
-                        fbAuth.signOut()
-                        _uiState.update {
-                            it.copy(
-                                isAuthenticated = false,
-                                adminEmail = null
-                            )
-                        }
-                        onComplete(
-                            false,
-                            "Access Denied: Google Account '${user.email}' is not registered as an authorized store administrator."
-                        )
-                    }
-                }
+                Log.i("AdminViewModel", "Firebase signInWithCredential succeeded for user: ${result.user?.email}")
+                handleAuthResult(result, onComplete)
             }
             .addOnFailureListener { error ->
                 _uiState.update { it.copy(isAuthenticating = false) }
                 val errorMsg = AdminAuthService.parseAuthError(error)
+                Log.e("AdminViewModel", "Firebase signInWithCredential failed: ${error.javaClass.simpleName} ($errorMsg)", error)
                 onComplete(false, errorMsg)
             }
+    }
+
+    /**
+     * Authenticate Administrator using Firebase OAuthProvider with Activity flow.
+     * This web OAuth flow leverages the authorized Firebase Web Client ID and does NOT
+     * require manual SHA-1 fingerprint registration in Firebase Console.
+     */
+    fun signInWithGoogleProvider(activity: Activity, onComplete: (Boolean, String?) -> Unit) {
+        val fbAuth = auth ?: run {
+            Log.e("AdminViewModel", "Firebase Auth is null in signInWithGoogleProvider")
+            onComplete(false, "Firebase Authentication is currently unavailable.")
+            return
+        }
+
+        _uiState.update { it.copy(isAuthenticating = true) }
+        val provider = OAuthProvider.newBuilder("google.com").apply {
+            addCustomParameter("prompt", "select_account")
+        }.build()
+
+        val pending = fbAuth.pendingAuthResult
+        if (pending != null) {
+            Log.i("AdminViewModel", "Found existing pendingAuthResult; attaching callbacks")
+            pending.addOnSuccessListener { result ->
+                Log.i("AdminViewModel", "Pending auth succeeded for user: ${result.user?.email}")
+                handleAuthResult(result, onComplete)
+            }.addOnFailureListener { error ->
+                _uiState.update { it.copy(isAuthenticating = false) }
+                val errorMsg = AdminAuthService.parseAuthError(error, activity)
+                Log.e("AdminViewModel", "Pending auth failed: ${error.javaClass.simpleName} ($errorMsg)", error)
+                onComplete(false, errorMsg)
+            }
+            return
+        }
+
+        Log.i("AdminViewModel", "Launching startActivityForSignInWithProvider on activity: ${activity.localClassName}")
+        fbAuth.startActivityForSignInWithProvider(activity, provider)
+            .addOnSuccessListener { result ->
+                Log.i("AdminViewModel", "startActivityForSignInWithProvider succeeded for user: ${result.user?.email}")
+                handleAuthResult(result, onComplete)
+            }
+            .addOnFailureListener { error ->
+                _uiState.update { it.copy(isAuthenticating = false) }
+                val errorMsg = AdminAuthService.parseAuthError(error, activity)
+                Log.e("AdminViewModel", "startActivityForSignInWithProvider failed: ${error.javaClass.simpleName} ($errorMsg)", error)
+                onComplete(false, errorMsg)
+            }
+    }
+
+    private fun handleAuthResult(result: AuthResult, onComplete: (Boolean, String?) -> Unit) {
+        val user = result.user
+        if (user == null) {
+            _uiState.update { it.copy(isAuthenticating = false) }
+            onComplete(false, "Authentication failed. No user profile returned.")
+            return
+        }
+
+        // Verify server-side authorization (Requirement 7)
+        viewModelScope.launch {
+            val isAuthorized = AdminAuthService.verifyAdminAuthorization(user)
+            _uiState.update { it.copy(isAuthenticating = false) }
+
+            if (isAuthorized) {
+                _uiState.update {
+                    it.copy(
+                        isAuthenticated = true,
+                        adminEmail = user.email ?: user.displayName ?: "Admin",
+                        toastMessage = "Welcome, ${user.displayName ?: "Administrator"}!"
+                    )
+                }
+                onComplete(true, null)
+            } else {
+                // Customer or unauthorized account
+                auth?.signOut()
+                _uiState.update {
+                    it.copy(
+                        isAuthenticated = false,
+                        adminEmail = null
+                    )
+                }
+                onComplete(
+                    false,
+                    "Access Denied: Google Account '${user.email}' is not registered as an authorized store administrator."
+                )
+            }
+        }
     }
 
     fun logout() {
@@ -351,15 +433,28 @@ class AdminViewModel(
     }
 
     // Order actions
-    fun updateOrderStatus(orderId: String, newStatus: String) {
+    fun updateOrderStatus(orderId: String, newStatus: String, note: String = "") {
+        val adminIdentity = _uiState.value.adminEmail ?: "Admin"
         viewModelScope.launch {
-            dataService.updateOrderStatus(orderId, newStatus)
-            _uiState.update { state ->
-                val updated = state.orders.map {
-                    if (it.orderId == orderId) it.copy(status = newStatus) else it
+            val result = dataService.updateOrderStatusWithHistory(
+                id = orderId,
+                status = newStatus,
+                note = note,
+                updatedBy = adminIdentity
+            )
+            result.fold(
+                onSuccess = { updatedOrder ->
+                    _uiState.update { state ->
+                        val updated = state.orders.map {
+                            if (it.orderId == orderId) updatedOrder else it
+                        }
+                        state.copy(orders = updated, toastMessage = "Order $orderId status updated to $newStatus")
+                    }
+                },
+                onFailure = { err ->
+                    _uiState.update { it.copy(toastMessage = "Failed: ${err.message}") }
                 }
-                state.copy(orders = updated, toastMessage = "Order $orderId status updated to $newStatus")
-            }
+            )
         }
     }
 
@@ -449,6 +544,49 @@ class AdminViewModel(
             dataService.saveSettings(newSettings)
             _uiState.update { it.copy(settings = newSettings, toastMessage = "Shop settings saved successfully!") }
         }
+    }
+
+    // Reel Management actions
+    fun createReel(reel: ReelItem) {
+        viewModelScope.launch {
+            val result = dataService.createReel(reel)
+            if (result.isSuccess) {
+                _uiState.update { it.copy(toastMessage = "Reel '${reel.title}' published successfully!") }
+            } else {
+                _uiState.update { it.copy(toastMessage = "Reel saved: ${result.exceptionOrNull()?.message ?: "Local fallback active"}") }
+            }
+        }
+    }
+
+    fun updateReel(reel: ReelItem) {
+        viewModelScope.launch {
+            val result = dataService.updateReel(reel)
+            if (result.isSuccess) {
+                _uiState.update { it.copy(toastMessage = "Reel '${reel.title}' updated!") }
+            } else {
+                _uiState.update { it.copy(toastMessage = "Reel updated locally") }
+            }
+        }
+    }
+
+    fun toggleReelPublish(reel: ReelItem) {
+        val updated = reel.copy(isPublished = !reel.isPublished)
+        updateReel(updated)
+    }
+
+    fun deleteReel(reelId: String) {
+        viewModelScope.launch {
+            val result = dataService.deleteReel(reelId)
+            if (result.isSuccess) {
+                _uiState.update { it.copy(toastMessage = "Reel deleted successfully!") }
+            } else {
+                _uiState.update { it.copy(toastMessage = "Could not delete reel: ${result.exceptionOrNull()?.message}") }
+            }
+        }
+    }
+
+    fun setUploadingProgress(isUploading: Boolean, progress: Int = 0) {
+        _uiState.update { it.copy(isUploadingReel = isUploading, uploadReelProgress = progress) }
     }
 
     fun dismissToast() {

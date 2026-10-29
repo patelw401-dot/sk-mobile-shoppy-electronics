@@ -76,9 +76,9 @@ fun ProductCard(
             .clickable(onClick = onClick)
             .testTag("product_card_${product.id}"),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.BlackSurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(ShopOutlineLight, ShopOutlineLight)))
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder)
     ) {
         Column(
             modifier = Modifier
@@ -265,6 +265,7 @@ fun ProductCard(
                         .testTag("add_to_cart_btn_${product.id}"),
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, ShopPrimaryBlue),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = ShopPrimaryBlue
                     )
@@ -287,13 +288,14 @@ fun ProductCard(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ShopPrimaryBlue,
-                        contentColor = Color.White
+                        contentColor = Color(0xFF0B0B0B)
                     )
                 ) {
                     Text(
                         text = "Buy Now",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0B0B0B),
                         maxLines = 1
                     )
                 }

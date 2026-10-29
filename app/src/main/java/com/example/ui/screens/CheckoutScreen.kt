@@ -46,14 +46,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.CartItem
 import com.example.ui.components.formatInr
-import com.example.ui.theme.ShopOutlineLight
-import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
+import com.example.ui.theme.*
 
 @Composable
 fun CheckoutScreen(
@@ -98,12 +96,12 @@ fun CheckoutScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF6F8FA))
+            .background(BlackBackground)
             .testTag("checkout_screen")
     ) {
         // Header
         Surface(
-            color = Color.White,
+            color = BlackSurface,
             shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -141,7 +139,8 @@ fun CheckoutScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                    border = BorderStroke(1.dp, BlackBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -193,7 +192,8 @@ fun CheckoutScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                    border = BorderStroke(1.dp, BlackBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -263,7 +263,8 @@ fun CheckoutScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                    border = BorderStroke(1.dp, BlackBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -278,8 +279,8 @@ fun CheckoutScreen(
 
                         val deliveryOptions = listOf(
                             "Standard Free Delivery in Udgir" to "Delivered to your doorstep within 4-6 hours (Free)",
-                            "Express 2-Hour Delivery in Udgir" to "Priority dispatch from SK Mobile store (Free promo)",
-                            "Store Pickup at SK Mobile" to "Collect directly from Nagar Parishad store in 30 mins"
+                            "Express 2-Hour Delivery in Udgir" to "Priority dispatch from SK Mobile Shoppy and Electronic store (Free promo)",
+                            "Store Pickup at SK Mobile Shoppy and Electronic" to "Collect directly from SK Mobile Shoppy and Electronic Nagar Parishad store in 30 mins"
                         )
 
                         deliveryOptions.forEach { (title, subtitle) ->
@@ -312,7 +313,8 @@ fun CheckoutScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                    border = BorderStroke(1.dp, BlackBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -375,7 +377,8 @@ fun CheckoutScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                    border = BorderStroke(1.dp, BlackBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -417,7 +420,7 @@ fun CheckoutScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = "Total Payable Amount", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Total Payable Amount", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextMain)
                             Text(
                                 text = formatInr(total + deliveryFee),
                                 fontSize = 18.sp,
@@ -432,14 +435,14 @@ fun CheckoutScreen(
 
         // Bottom Place Order Bar
         Surface(
-            color = Color.White,
+            color = BlackSurface,
             shadowElevation = 8.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
                 if (!isCustomerAuthenticated) {
                     Surface(
-                        color = Color(0xFFFEF2F2),
+                        color = BlackSurfaceSecondary,
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -454,12 +457,12 @@ fun CheckoutScreen(
                                 text = "Sign in with Google required to place order",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFFDC2626),
+                                color = ColorError,
                                 modifier = Modifier.weight(1f)
                             )
                             Button(
                                 onClick = onSignInRequired,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A)),
+                                colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = BlackBackground),
                                 shape = RoundedCornerShape(6.dp),
                                 modifier = Modifier.testTag("checkout_signin_google_btn")
                             ) {

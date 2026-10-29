@@ -41,13 +41,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.admin.model.AdminTab
 import com.example.admin.viewmodel.AdminUiState
 import com.example.ui.components.formatInr
-import com.example.ui.theme.ShopOutlineLight
-import com.example.ui.theme.ShopPrimaryBlue
+import com.example.ui.theme.*
 
 @Composable
 fun AdminDashboardHome(
@@ -58,7 +58,7 @@ fun AdminDashboardHome(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF1F5F9))
+            .background(BlackBackground)
             .testTag("admin_dashboard_home"),
         contentPadding = PaddingValues(16.dp)
     ) {
@@ -67,7 +67,8 @@ fun AdminDashboardHome(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                border = BorderStroke(1.dp, BlackBorder)
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Row(
@@ -77,25 +78,26 @@ fun AdminDashboardHome(
                     ) {
                         Column {
                             Text(
-                                text = "SK Mobile Business Overview",
-                                fontSize = 18.sp,
+                                text = "SK Mobile Shoppy and Electronic Overview",
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color.White
+                                color = TextMain
                             )
                             Text(
                                 text = "Nagar Parishad, Udgir Store • Real-time Operations",
                                 fontSize = 12.sp,
-                                color = Color(0xFF94A3B8)
+                                color = TextSecondary
                             )
                         }
 
                         Surface(
-                            color = Color(0xFF10B981),
-                            shape = RoundedCornerShape(8.dp)
+                            color = BlackSurfaceSecondary,
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, GoldPrimary)
                         ) {
                             Text(
                                 text = "Store Open",
-                                color = Color.White,
+                                color = GoldPrimary,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -113,22 +115,22 @@ fun AdminDashboardHome(
                 text = "Key Business Metrics",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+                color = TextMain
             )
 
             Spacer(modifier = Modifier.height(10.dp))
 
             val metrics = listOf(
-                MetricItem("Total Orders", "${uiState.totalOrdersCount}", Icons.Default.ShoppingBag, Color(0xFF0284C7), Color(0xFFE0F2FE), AdminTab.ORDERS),
-                MetricItem("Pending Orders", "${uiState.pendingOrdersCount}", Icons.Default.PendingActions, Color(0xFFEA580C), Color(0xFFFFEDD5), AdminTab.ORDERS),
-                MetricItem("Repair Jobs", "${uiState.totalRepairsCount}", Icons.Default.Build, Color(0xFFD97706), Color(0xFFFEF3C7), AdminTab.REPAIRS),
-                MetricItem("Completed Repairs", "${uiState.completedRepairsCount}", Icons.Default.CheckCircle, Color(0xFF16A34A), Color(0xFFDCFCE7), AdminTab.REPAIRS),
-                MetricItem("Old Phones Purchased", "${uiState.oldPhonesPurchasedCount}", Icons.Default.PhoneAndroid, Color(0xFF7C3AED), Color(0xFFEDE9FE), AdminTab.OLD_PHONE_BUY),
-                MetricItem("Pending Requests", "${uiState.oldPhonesPendingCount}", Icons.Default.PhoneAndroid, Color(0xFF8B5CF6), Color(0xFFF3E8FF), AdminTab.SELL_REQUESTS),
-                MetricItem("Active Products", "${uiState.products.size}", Icons.Default.Inventory2, Color(0xFF0D9488), Color(0xFFCCFBF1), AdminTab.PRODUCTS),
-                MetricItem("Registered Customers", "${uiState.totalCustomersCount}", Icons.Default.People, Color(0xFF6366F1), Color(0xFFEEF2FF), AdminTab.CUSTOMERS),
-                MetricItem("Total Sales", formatInr(uiState.totalSalesAmount), Icons.Default.AttachMoney, Color(0xFF2563EB), Color(0xFFDBEAFE), AdminTab.REPORTS),
-                MetricItem("Estimated Profit", formatInr(uiState.estimatedProfitAmount), Icons.Default.TrendingUp, Color(0xFF059669), Color(0xFFD1FAE5), AdminTab.REPORTS)
+                MetricItem("Total Orders", "${uiState.totalOrdersCount}", Icons.Default.ShoppingBag, GoldPrimary, BlackSurfaceSecondary, AdminTab.ORDERS),
+                MetricItem("Pending Orders", "${uiState.pendingOrdersCount}", Icons.Default.PendingActions, GoldHighlight, BlackSurfaceSecondary, AdminTab.ORDERS),
+                MetricItem("Repair Jobs", "${uiState.totalRepairsCount}", Icons.Default.Build, GoldPrimary, BlackSurfaceSecondary, AdminTab.REPAIRS),
+                MetricItem("Completed Repairs", "${uiState.completedRepairsCount}", Icons.Default.CheckCircle, ColorSuccess, BlackSurfaceSecondary, AdminTab.REPAIRS),
+                MetricItem("Old Phones Purchased", "${uiState.oldPhonesPurchasedCount}", Icons.Default.PhoneAndroid, GoldPrimary, BlackSurfaceSecondary, AdminTab.OLD_PHONE_BUY),
+                MetricItem("Pending Requests", "${uiState.oldPhonesPendingCount}", Icons.Default.PhoneAndroid, GoldHighlight, BlackSurfaceSecondary, AdminTab.SELL_REQUESTS),
+                MetricItem("Active Products", "${uiState.products.size}", Icons.Default.Inventory2, GoldPrimary, BlackSurfaceSecondary, AdminTab.PRODUCTS),
+                MetricItem("Registered Customers", "${uiState.totalCustomersCount}", Icons.Default.People, GoldHighlight, BlackSurfaceSecondary, AdminTab.CUSTOMERS),
+                MetricItem("Total Sales", formatInr(uiState.totalSalesAmount), Icons.Default.AttachMoney, GoldPrimary, BlackSurfaceSecondary, AdminTab.REPORTS),
+                MetricItem("Estimated Profit", formatInr(uiState.estimatedProfitAmount), Icons.Default.TrendingUp, ColorSuccess, BlackSurfaceSecondary, AdminTab.REPORTS)
             )
 
             val chunkedMetrics = metrics.chunked(2)
@@ -157,7 +159,7 @@ fun AdminDashboardHome(
                 text = "Performance Charts & Visual Summaries",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
+                color = TextMain
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -166,7 +168,8 @@ fun AdminDashboardHome(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                border = BorderStroke(1.dp, BlackBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -174,12 +177,12 @@ fun AdminDashboardHome(
                         text = "Daily Sales Trend (Last 7 Days)",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
+                        color = TextMain
                     )
                     Text(
                         text = "Average daily revenue in Udgir store: ₹18,400",
                         fontSize = 11.sp,
-                        color = Color(0xFF64748B)
+                        color = TextSecondary
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -205,7 +208,7 @@ fun AdminDashboardHome(
                                     text = "₹${amount / 1000}k",
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF0284C7)
+                                    color = GoldHighlight
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Box(
@@ -213,14 +216,14 @@ fun AdminDashboardHome(
                                         .width(22.dp)
                                         .height((90 * heightRatio).dp)
                                         .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                                        .background(Color(0xFF0284C7))
+                                        .background(GoldPrimary)
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = day,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF64748B)
+                                    color = TextSecondary
                                 )
                             }
                         }
@@ -234,7 +237,8 @@ fun AdminDashboardHome(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                border = BorderStroke(1.dp, BlackBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -242,22 +246,22 @@ fun AdminDashboardHome(
                         text = "Orders vs. Mobile Repairs Distribution",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
+                        color = TextMain
                     )
                     Text(
                         text = "High demand for mobile repair and fast accessories",
                         fontSize = 11.sp,
-                        color = Color(0xFF64748B)
+                        color = TextSecondary
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
 
                     // Progress bar comparisons
-                    DistributionBar(title = "Phone & Accessories Sales", count = "${uiState.orders.size} Orders", percentage = 0.65f, barColor = Color(0xFF0284C7))
+                    DistributionBar(title = "Phone & Accessories Sales", count = "${uiState.orders.size} Orders", percentage = 0.65f, barColor = GoldPrimary)
                     Spacer(modifier = Modifier.height(10.dp))
-                    DistributionBar(title = "Screen & Hardware Repairs", count = "${uiState.repairs.size} Jobs", percentage = 0.85f, barColor = Color(0xFFD97706))
+                    DistributionBar(title = "Screen & Hardware Repairs", count = "${uiState.repairs.size} Jobs", percentage = 0.85f, barColor = GoldHighlight)
                     Spacer(modifier = Modifier.height(10.dp))
-                    DistributionBar(title = "Pre-Owned Buy / Sell Exchanges", count = "${uiState.sellRequests.size} Trades", percentage = 0.45f, barColor = Color(0xFF7C3AED))
+                    DistributionBar(title = "Pre-Owned Buy / Sell Exchanges", count = "${uiState.sellRequests.size} Trades", percentage = 0.45f, barColor = GoldDark)
                 }
             }
 
@@ -269,7 +273,8 @@ fun AdminDashboardHome(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                border = BorderStroke(1.dp, BlackBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -282,13 +287,13 @@ fun AdminDashboardHome(
                             text = "Recent Store Orders",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A)
+                            color = TextMain
                         )
                         Text(
                             text = "View All",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopPrimaryBlue,
+                            color = GoldPrimary,
                             modifier = Modifier.clickable { onNavigateTab(AdminTab.ORDERS) }
                         )
                     }
@@ -308,12 +313,12 @@ fun AdminDashboardHome(
                                     text = "${order.orderId} • ${order.customerName}",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF0F172A)
+                                    color = TextMain
                                 )
                                 Text(
                                     text = "${order.items.size} item(s) • ${order.orderDate}",
                                     fontSize = 11.sp,
-                                    color = Color(0xFF64748B)
+                                    color = TextSecondary
                                 )
                             }
                             Column(horizontalAlignment = Alignment.End) {
@@ -321,17 +326,17 @@ fun AdminDashboardHome(
                                     text = formatInr(order.totalAmount),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = ShopPrimaryBlue
+                                    color = GoldPrimary
                                 )
                                 Text(
                                     text = order.status,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF166534)
+                                    color = ColorSuccess
                                 )
                             }
                         }
-                        HorizontalDivider(color = Color(0xFFF1F5F9))
+                        HorizontalDivider(color = BlackBorder)
                     }
                 }
             }
@@ -350,7 +355,8 @@ private fun MetricCard(
             .clickable(onClick = onClick)
             .testTag("metric_${metric.title}"),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = BlackSurface),
+        border = BorderStroke(1.dp, BlackBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -381,7 +387,7 @@ private fun MetricCard(
                 text = metric.value,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF0F172A)
+                color = TextMain
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -390,7 +396,7 @@ private fun MetricCard(
                 text = metric.title,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFF64748B)
+                color = TextSecondary
             )
         }
     }
@@ -408,8 +414,8 @@ private fun DistributionBar(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = title, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFF334155))
-            Text(text = count, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+            Text(text = title, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextSecondary)
+            Text(text = count, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextMain)
         }
         Spacer(modifier = Modifier.height(4.dp))
         Box(
@@ -417,7 +423,7 @@ private fun DistributionBar(
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(Color(0xFFE2E8F0))
+                .background(BlackSurfaceSecondary)
         ) {
             Box(
                 modifier = Modifier

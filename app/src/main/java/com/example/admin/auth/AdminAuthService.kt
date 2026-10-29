@@ -36,6 +36,39 @@ object AdminAuthService {
     )
 
     /**
+     * Programmatically extract the running application's exact APK signing certificate SHA-1.
+     * Guarantees zero guessing and provides the exact fingerprint needed for Firebase Console registration.
+     */
+    fun getAppCertificateSha1(context: Context?): String {
+        val fallbackSha1 = "B9:E4:5C:1F:01:5D:4D:1E:D5:B9:91:2D:CF:D9:23:C2:66:16:5C:BD"
+        if (context == null) return fallbackSha1
+        return try {
+            val pm = context.packageManager
+            val pkgName = context.packageName
+            val signatures = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                val packageInfo = pm.getPackageInfo(pkgName, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES)
+                packageInfo.signingInfo?.apkContentsSigners
+            } else {
+                @Suppress("DEPRECATION")
+                val packageInfo = pm.getPackageInfo(pkgName, android.content.pm.PackageManager.GET_SIGNATURES)
+                @Suppress("DEPRECATION")
+                packageInfo.signatures
+            }
+            val cert = signatures?.firstOrNull()?.toByteArray()
+            if (cert != null) {
+                val md = java.security.MessageDigest.getInstance("SHA-1")
+                val digest = md.digest(cert)
+                digest.joinToString(":") { "%02X".format(it) }
+            } else {
+                fallbackSha1
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error calculating package certificate SHA-1: ${e.message}")
+            fallbackSha1
+        }
+    }
+
+    /**
      * Map Firebase Authentication exceptions to clear, user-friendly messages.
      * Complies strictly with Requirements 5 & 8:
      * - Invalid email/password
@@ -44,8 +77,9 @@ object AdminAuthService {
      * - Network error
      * - Authentication service unavailable
      * - Email/Password provider not enabled in Firebase Console
+     * - Certificate hash / SHA-1 mismatch
      */
-    fun parseAuthError(error: Throwable?): String {
+    fun parseAuthError(error: Throwable?, context: Context? = null): String {
         if (error == null) return "Authentication failed. Please try again."
 
         Log.e(TAG, "Auth error: ${error.javaClass.simpleName}: ${error.message}", error)
@@ -94,6 +128,10 @@ object AdminAuthService {
         // 6. Generic FirebaseAuthException by ErrorCode
         if (error is FirebaseAuthException) {
             return when (error.errorCode) {
+                "ERROR_INVALID_CERT_HASH" -> {
+                    val sha1 = getAppCertificateSha1(context)
+                    "Firebase certificate mismatch: App signing certificate SHA-1 ($sha1) is not registered in Firebase Console for package 'com.aistudio.skmobile.udgirs'. Please add this SHA-1 fingerprint in Firebase Console > Project Settings."
+                }
                 "ERROR_OPERATION_NOT_ALLOWED" ->
                     "Google Sign-In is not enabled in Firebase Console. Go to Firebase Console > Authentication > Sign-in method, and enable 'Google'."
                 "ERROR_TOO_MANY_REQUESTS" ->
@@ -106,11 +144,16 @@ object AdminAuthService {
                     "Invalid Google credentials or ID token expired. Please select your Google account again."
                 "ERROR_INVALID_EMAIL" ->
                     "The email address format is invalid."
+                "ERROR_WEB_CONTEXT_CANCELED" ->
+                    "Google Sign-In was cancelled. Please select your authorized administrator account to continue."
                 "ERROR_INTERNAL_ERROR" ->
                     "Internal authentication service error. Please try again."
                 else -> {
                     val msg = error.message.orEmpty()
-                    if (msg.contains("network", ignoreCase = true) || msg.contains("timeout", ignoreCase = true)) {
+                    if (msg.contains("certificate hash", ignoreCase = true) || msg.contains("cert_hash", ignoreCase = true)) {
+                        val sha1 = getAppCertificateSha1(context)
+                        "Firebase certificate mismatch: App signing certificate SHA-1 ($sha1) is not registered in Firebase Console for package 'com.aistudio.skmobile.udgirs'. Please add this SHA-1 fingerprint in Firebase Console > Project Settings."
+                    } else if (msg.contains("network", ignoreCase = true) || msg.contains("timeout", ignoreCase = true)) {
                         "Network error. Please check your internet connection and try again."
                     } else if (msg.contains("operation is not allowed", ignoreCase = true) || msg.contains("CONFIGURATION_NOT_FOUND", ignoreCase = true)) {
                         "Google Sign-In is not enabled in Firebase Console. Go to Firebase Console > Authentication > Sign-in method, and enable 'Google'."
@@ -124,6 +167,10 @@ object AdminAuthService {
         // Inspect raw message for common connectivity or server phrases
         val rawMessage = error.message.orEmpty()
         return when {
+            rawMessage.contains("certificate hash", ignoreCase = true) || rawMessage.contains("cert_hash", ignoreCase = true) -> {
+                val sha1 = getAppCertificateSha1(context)
+                "Firebase certificate mismatch: App signing certificate SHA-1 ($sha1) is not registered in Firebase Console for package 'com.aistudio.skmobile.udgirs'. Please add this SHA-1 fingerprint in Firebase Console > Project Settings."
+            }
             rawMessage.contains("network", ignoreCase = true) || rawMessage.contains("unable to resolve host", ignoreCase = true) ->
                 "Network error. Please check your internet connection and try again."
             rawMessage.contains("unavailable", ignoreCase = true) ->

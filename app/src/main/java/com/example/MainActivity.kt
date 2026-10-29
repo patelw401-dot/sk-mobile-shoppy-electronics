@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -16,16 +17,16 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.admin.ui.AdminDashboardLayout
 import com.example.admin.ui.AdminLoginScreen
 import com.example.admin.viewmodel.AdminViewModel
-import com.example.data.service.DataServiceLocator
+import com.example.model.ProductCategory
 import com.example.ui.components.AppBottomNavBar
 import com.example.ui.components.AppHeader
 import com.example.ui.components.MobileMenuDrawerSheet
@@ -34,13 +35,16 @@ import com.example.ui.screens.CartScreen
 import com.example.ui.screens.CheckoutScreen
 import com.example.ui.screens.ContactScreen
 import com.example.ui.screens.HomeScreen
+import com.example.ui.screens.MyOrdersScreen
+import com.example.ui.screens.NotificationCenterScreen
 import com.example.ui.screens.OldPhoneScreen
+import com.example.ui.screens.OrderDetailScreen
 import com.example.ui.screens.OrderSuccessScreen
 import com.example.ui.screens.ProductDetailScreen
-import com.example.notification.PushNotificationHelper
-import com.example.ui.screens.NotificationCenterScreen
 import com.example.ui.screens.ProductsScreen
+import com.example.ui.screens.ReelsScreen
 import com.example.ui.screens.RepairBookingScreen
+import com.example.ui.theme.BlackBackground
 import com.example.ui.theme.MyApplicationTheme
 import com.example.viewmodel.AppScreen
 import com.example.viewmodel.ShopViewModel
@@ -49,8 +53,6 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        DataServiceLocator.initialize(this)
-        PushNotificationHelper.createNotificationChannels(this)
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
@@ -65,198 +67,191 @@ fun SKMobileApp(
     shopViewModel: ShopViewModel = viewModel(),
     adminViewModel: AdminViewModel = viewModel()
 ) {
-    val uiState by shopViewModel.uiState.collectAsStateWithLifecycle()
-    val adminUiState by adminViewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val shopUiState by shopViewModel.uiState.collectAsState()
+    val adminUiState by adminViewModel.uiState.collectAsState()
+    val currentScreen = shopUiState.currentScreen
+
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    // Sync drawer open state with viewModel
-    LaunchedEffect(uiState.isMobileMenuOpen) {
-        if (uiState.isMobileMenuOpen) {
-            drawerState.open()
-        } else {
-            drawerState.close()
-        }
-    }
-
-    LaunchedEffect(drawerState.isOpen) {
-        if (!drawerState.isOpen && uiState.isMobileMenuOpen) {
-            shopViewModel.toggleMobileMenu(false)
-        }
-    }
-
-    // Display Toast / Notification when state message arrives
-    LaunchedEffect(uiState.toastMessage) {
-        uiState.toastMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
+    LaunchedEffect(shopUiState.toastMessage) {
+        shopUiState.toastMessage?.let {
+            snackbarHostState.showSnackbar(it)
             shopViewModel.dismissToast()
         }
     }
 
-    // Hardware / Gesture Back Handling
-    BackHandler(enabled = drawerState.isOpen || uiState.currentScreen != AppScreen.HOME) {
-        if (drawerState.isOpen) {
-            coroutineScope.launch { drawerState.close() }
-            shopViewModel.toggleMobileMenu(false)
+    // Back handling: pop customer screen stack or return to store
+    BackHandler(enabled = currentScreen != AppScreen.HOME) {
+        if (currentScreen == AppScreen.ADMIN_DASHBOARD || currentScreen == AppScreen.ADMIN_LOGIN) {
+            shopViewModel.navigateTo(AppScreen.HOME)
         } else {
             shopViewModel.navigateBack()
         }
+    }
+
+    // Automatically navigate to Admin Dashboard when authenticated as an authorized administrator
+    LaunchedEffect(currentScreen, adminUiState.isAuthenticated) {
+        if (currentScreen == AppScreen.ADMIN_LOGIN && adminUiState.isAuthenticated) {
+            shopViewModel.navigateTo(AppScreen.ADMIN_DASHBOARD)
+        }
+    }
+
+    if (currentScreen == AppScreen.ADMIN_DASHBOARD) {
+        AdminDashboardLayout(
+            adminViewModel = adminViewModel,
+            uiState = adminUiState,
+            onReturnToStore = { shopViewModel.navigateTo(AppScreen.HOME) }
+        )
+        return
+    }
+
+    if (currentScreen == AppScreen.ADMIN_LOGIN) {
+        AdminLoginScreen(
+            onLoginSuccess = { shopViewModel.navigateTo(AppScreen.ADMIN_DASHBOARD) },
+            onBackToStore = { shopViewModel.navigateTo(AppScreen.HOME) },
+            onGoogleSignIn = { idToken, onComplete ->
+                adminViewModel.signInWithGoogleToken(idToken, onComplete)
+            },
+            onGoogleSignInProvider = { activity, onComplete ->
+                adminViewModel.signInWithGoogleProvider(activity, onComplete)
+            }
+        )
+        return
     }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             MobileMenuDrawerSheet(
-                currentScreen = uiState.currentScreen,
-                cartCount = uiState.cartItemCount,
-                userName = uiState.userName,
-                unreadNotificationCount = uiState.unreadNotificationCount,
+                currentScreen = currentScreen,
+                cartCount = shopUiState.cartItemCount,
+                userName = shopUiState.userName,
+                unreadNotificationCount = shopUiState.unreadNotificationCount,
                 onNavigate = { screen ->
-                    shopViewModel.navigateTo(screen)
                     coroutineScope.launch { drawerState.close() }
+                    shopViewModel.navigateTo(screen)
                 },
                 onProfileClick = {
+                    coroutineScope.launch { drawerState.close() }
                     shopViewModel.setLoginSheetVisible(true)
                 },
                 onClose = {
                     coroutineScope.launch { drawerState.close() }
-                    shopViewModel.toggleMobileMenu(false)
                 }
             )
         }
     ) {
         Scaffold(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BlackBackground),
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
-                if (uiState.currentScreen != AppScreen.ADMIN_LOGIN && uiState.currentScreen != AppScreen.ADMIN_DASHBOARD) {
-                    // Sticky Header on mobile and desktop
+                if (currentScreen != AppScreen.REELS) {
                     AppHeader(
-                        cartCount = uiState.cartItemCount,
-                        searchQuery = uiState.searchQuery,
-                        notificationCount = uiState.unreadNotificationCount,
-                        onNotificationClick = {
-                            shopViewModel.navigateTo(AppScreen.NOTIFICATIONS)
-                        },
-                        onSearchChange = { query ->
-                            shopViewModel.updateSearchQuery(query)
-                            if (query.isNotEmpty() && uiState.currentScreen != AppScreen.PRODUCTS) {
-                                shopViewModel.navigateTo(AppScreen.PRODUCTS)
-                            }
-                        },
-                        onSearchSubmit = {
-                            shopViewModel.navigateTo(AppScreen.PRODUCTS)
-                        },
-                        onCartClick = {
-                            shopViewModel.navigateTo(AppScreen.CART)
-                        },
-                        onProfileClick = {
-                            shopViewModel.setLoginSheetVisible(true)
-                        },
-                        onLogoClick = {
-                            shopViewModel.navigateTo(AppScreen.HOME)
-                        },
-                        onMenuClick = {
-                            coroutineScope.launch {
-                                drawerState.open()
-                                shopViewModel.toggleMobileMenu(true)
-                            }
-                        }
+                        cartCount = shopUiState.cartItemCount,
+                        searchQuery = shopUiState.searchQuery,
+                        onSearchChange = { shopViewModel.updateSearchQuery(it) },
+                        onSearchSubmit = { shopViewModel.navigateTo(AppScreen.PRODUCTS) },
+                        onCartClick = { shopViewModel.navigateTo(AppScreen.CART) },
+                        onProfileClick = { shopViewModel.setLoginSheetVisible(true) },
+                        onLogoClick = { shopViewModel.navigateTo(AppScreen.HOME) },
+                        onMenuClick = { coroutineScope.launch { drawerState.open() } },
+                        notificationCount = shopUiState.unreadNotificationCount,
+                        onNotificationClick = { shopViewModel.navigateTo(AppScreen.NOTIFICATIONS) }
                     )
                 }
             },
             bottomBar = {
-                if (uiState.currentScreen != AppScreen.ADMIN_LOGIN && uiState.currentScreen != AppScreen.ADMIN_DASHBOARD) {
-                    AppBottomNavBar(
-                        currentScreen = uiState.currentScreen,
-                        cartCount = uiState.cartItemCount,
-                        onNavigate = { screen ->
-                            shopViewModel.navigateTo(screen)
-                        }
-                    )
-                }
-            },
-            snackbarHost = { SnackbarHost(snackbarHostState) }
+                AppBottomNavBar(
+                    currentScreen = currentScreen,
+                    cartCount = shopUiState.cartItemCount,
+                    onNavigate = { screen -> shopViewModel.navigateTo(screen) }
+                )
+            }
         ) { innerPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                when (uiState.currentScreen) {
+                when (currentScreen) {
                     AppScreen.HOME -> {
                         HomeScreen(
-                            featuredProducts = uiState.products,
-                            repairServices = uiState.repairServices,
-                            customerReviews = uiState.reviews,
-                            onSelectProduct = { product ->
-                                shopViewModel.selectProduct(product)
+                            featuredProducts = shopUiState.products,
+                            repairServices = shopUiState.repairServices,
+                            customerReviews = shopUiState.reviews,
+                            onSelectProduct = { prod ->
+                                shopViewModel.selectProduct(prod)
+                                shopViewModel.navigateTo(AppScreen.PRODUCT_DETAIL)
                             },
-                            onAddToCart = { product ->
-                                shopViewModel.addToCart(product)
+                            onAddToCart = { prod -> shopViewModel.addToCart(prod) },
+                            onBuyNow = { prod ->
+                                shopViewModel.buyNow(prod)
+                                shopViewModel.navigateTo(AppScreen.CHECKOUT)
                             },
-                            onBuyNow = { product ->
-                                shopViewModel.buyNow(product)
+                            onCategoryClick = { cat ->
+                                shopViewModel.filterByCategory(cat)
+                                shopViewModel.navigateTo(AppScreen.PRODUCTS)
                             },
-                            onCategoryClick = { category ->
-                                shopViewModel.filterByCategory(category)
-                            },
-                            onNavigate = { screen ->
-                                shopViewModel.navigateTo(screen)
-                            },
-                            onBookRepairProblem = { problem ->
-                                shopViewModel.bookRepairWithProblem(problem)
+                            onNavigate = { screen -> shopViewModel.navigateTo(screen) },
+                            onBookRepairProblem = { prob ->
+                                shopViewModel.bookRepairWithProblem(prob)
+                                shopViewModel.navigateTo(AppScreen.REPAIR_BOOKING)
                             }
                         )
                     }
 
                     AppScreen.PRODUCTS -> {
                         ProductsScreen(
-                            products = uiState.products,
-                            selectedCategory = uiState.selectedCategory,
-                            searchQuery = uiState.searchQuery,
-                            sortOption = uiState.sortOption,
-                            onCategorySelect = { category ->
-                                shopViewModel.filterByCategory(category)
+                            products = shopUiState.filteredProducts,
+                            selectedCategory = shopUiState.selectedCategory,
+                            searchQuery = shopUiState.searchQuery,
+                            sortOption = shopUiState.sortOption,
+                            onCategorySelect = { shopViewModel.filterByCategory(it) },
+                            onSortSelect = { shopViewModel.updateSortOption(it) },
+                            onClearSearch = { shopViewModel.updateSearchQuery("") },
+                            onSelectProduct = { prod ->
+                                shopViewModel.selectProduct(prod)
+                                shopViewModel.navigateTo(AppScreen.PRODUCT_DETAIL)
                             },
-                            onSortSelect = { sort ->
-                                shopViewModel.updateSortOption(sort)
+                            onAddToCart = { prod -> shopViewModel.addToCart(prod) },
+                            onBuyNow = { prod ->
+                                shopViewModel.buyNow(prod)
+                                shopViewModel.navigateTo(AppScreen.CHECKOUT)
                             },
-                            onClearSearch = {
-                                shopViewModel.updateSearchQuery("")
-                            },
-                            onSelectProduct = { product ->
-                                shopViewModel.selectProduct(product)
-                            },
-                            onAddToCart = { product ->
-                                shopViewModel.addToCart(product)
-                            },
-                            onBuyNow = { product ->
-                                shopViewModel.buyNow(product)
-                            },
-                            onBack = {
-                                shopViewModel.navigateBack()
-                            }
+                            onBack = { shopViewModel.navigateBack() }
+                        )
+                    }
+
+                    AppScreen.REELS -> {
+                        ReelsScreen(
+                            reels = shopUiState.reels,
+                            isMuted = shopUiState.isReelMuted,
+                            onToggleMute = { shopViewModel.toggleReelMute() },
+                            onLikeClick = { reelId -> shopViewModel.toggleReelLike(reelId) },
+                            onShareClick = { reelId -> shopViewModel.shareReel(reelId) },
+                            onShopNowClick = { productId -> shopViewModel.openReelProduct(productId) },
+                            onBack = { shopViewModel.navigateBack() }
                         )
                     }
 
                     AppScreen.PRODUCT_DETAIL -> {
-                        uiState.selectedProduct?.let { product ->
+                        shopUiState.selectedProduct?.let { product ->
                             ProductDetailScreen(
                                 product = product,
-                                relatedProducts = uiState.products.filter { it.category == product.category },
-                                onAddToCart = { item ->
-                                    shopViewModel.addToCart(item)
+                                relatedProducts = shopUiState.products.filter { it.category == product.category && it.id != product.id },
+                                onAddToCart = { prod -> shopViewModel.addToCart(prod) },
+                                onBuyNow = { prod ->
+                                    shopViewModel.buyNow(prod)
+                                    shopViewModel.navigateTo(AppScreen.CHECKOUT)
                                 },
-                                onBuyNow = { item ->
-                                    shopViewModel.buyNow(item)
+                                onSelectRelatedProduct = { prod ->
+                                    shopViewModel.selectProduct(prod)
                                 },
-                                onSelectRelatedProduct = { item ->
-                                    shopViewModel.selectProduct(item)
-                                },
-                                onBack = {
-                                    shopViewModel.navigateBack()
-                                }
+                                onBack = { shopViewModel.navigateBack() }
                             )
                         } ?: run {
                             shopViewModel.navigateTo(AppScreen.PRODUCTS)
@@ -265,258 +260,198 @@ fun SKMobileApp(
 
                     AppScreen.CART -> {
                         CartScreen(
-                            cartItems = uiState.cartItems,
-                            subtotal = uiState.cartSubtotal,
-                            total = uiState.cartTotal,
-                            totalSavings = uiState.cartTotalSavings,
-                            deliveryFee = uiState.deliveryFee,
-                            onIncreaseQuantity = { id ->
-                                shopViewModel.updateCartQuantity(id, 1)
-                            },
-                            onDecreaseQuantity = { id ->
-                                shopViewModel.updateCartQuantity(id, -1)
-                            },
-                            onRemoveItem = { id ->
-                                shopViewModel.removeFromCart(id)
-                            },
-                            onContinueShopping = {
-                                shopViewModel.navigateTo(AppScreen.PRODUCTS)
-                            },
-                            onProceedToCheckout = {
-                                if (!uiState.isCustomerAuthenticated) {
-                                    shopViewModel.setCustomerAuthError("Please sign in with your Google account to proceed to checkout.")
-                                    shopViewModel.setLoginSheetVisible(true)
-                                } else {
-                                    shopViewModel.navigateTo(AppScreen.CHECKOUT)
-                                }
-                            },
-                            onBack = {
-                                shopViewModel.navigateBack()
-                            }
+                            cartItems = shopUiState.cartItems,
+                            subtotal = shopUiState.cartSubtotal,
+                            total = shopUiState.cartTotal,
+                            totalSavings = shopUiState.cartTotalSavings,
+                            deliveryFee = shopUiState.deliveryFee,
+                            onIncreaseQuantity = { id -> shopViewModel.updateCartQuantity(id, 1) },
+                            onDecreaseQuantity = { id -> shopViewModel.updateCartQuantity(id, -1) },
+                            onRemoveItem = { id -> shopViewModel.removeFromCart(id) },
+                            onContinueShopping = { shopViewModel.navigateTo(AppScreen.PRODUCTS) },
+                            onProceedToCheckout = { shopViewModel.navigateTo(AppScreen.CHECKOUT) },
+                            onBack = { shopViewModel.navigateBack() }
                         )
                     }
 
                     AppScreen.CHECKOUT -> {
                         CheckoutScreen(
-                            cartItems = uiState.cartItems,
-                            subtotal = uiState.cartSubtotal,
-                            total = uiState.cartTotal,
-                            totalSavings = uiState.cartTotalSavings,
-                            deliveryFee = uiState.deliveryFee,
-                            defaultName = uiState.userName,
-                            defaultPhone = uiState.userPhone,
-                            defaultAddress = uiState.userAddress,
-                            isCustomerAuthenticated = uiState.isCustomerAuthenticated,
-                            onSignInRequired = {
-                                shopViewModel.setCustomerAuthError("Please sign in with your Google account to complete your order.")
-                                shopViewModel.setLoginSheetVisible(true)
+                            cartItems = shopUiState.cartItems,
+                            subtotal = shopUiState.cartSubtotal,
+                            total = shopUiState.cartTotal,
+                            totalSavings = shopUiState.cartTotalSavings,
+                            deliveryFee = shopUiState.deliveryFee,
+                            defaultName = shopUiState.userName,
+                            defaultPhone = shopUiState.userPhone,
+                            defaultAddress = shopUiState.userAddress,
+                            isCustomerAuthenticated = shopUiState.isCustomerAuthenticated,
+                            onSignInRequired = { shopViewModel.setLoginSheetVisible(true) },
+                            onPlaceOrder = { name, phone, address, city, state, pin, delivery, payment ->
+                                shopViewModel.placeOrder(name, phone, address, city, state, pin, delivery, payment)
                             },
-                            onPlaceOrder = { name, phone, address, city, state, pin, delivOpt, payMethod ->
-                                shopViewModel.placeOrder(name, phone, address, city, state, pin, delivOpt, payMethod)
-                            },
-                            onBack = {
-                                shopViewModel.navigateBack()
-                            }
+                            onBack = { shopViewModel.navigateBack() }
                         )
                     }
 
                     AppScreen.ORDER_SUCCESS -> {
                         OrderSuccessScreen(
-                            order = uiState.lastConfirmedOrder,
+                            order = shopUiState.lastConfirmedOrder,
                             onContinueShopping = {
+                                shopViewModel.clearConfirmedOrder()
                                 shopViewModel.navigateTo(AppScreen.HOME)
+                            },
+                            onTrackOrder = { orderId ->
+                                shopViewModel.navigateToOrderTracking(orderId)
                             }
+                        )
+                    }
+
+                    AppScreen.MY_ORDERS -> {
+                        MyOrdersScreen(
+                            orders = if (shopUiState.customerOrders.isNotEmpty()) shopUiState.customerOrders else shopUiState.pastOrders,
+                            isLoading = shopUiState.isOrdersLoading,
+                            errorMessage = shopUiState.ordersErrorMessage,
+                            onSelectOrder = { order -> shopViewModel.selectOrderForDetail(order) },
+                            onRefresh = { shopViewModel.refreshCustomerOrders() },
+                            onBrowseShop = { shopViewModel.navigateTo(AppScreen.PRODUCTS) },
+                            onBack = { shopViewModel.navigateBack() }
+                        )
+                    }
+
+                    AppScreen.ORDER_DETAIL -> {
+                        OrderDetailScreen(
+                            order = shopUiState.selectedOrder ?: shopUiState.lastConfirmedOrder,
+                            onCancelOrder = { orderId, reason ->
+                                shopViewModel.cancelCustomerOrder(orderId, reason)
+                            },
+                            onBack = { shopViewModel.navigateBack() }
                         )
                     }
 
                     AppScreen.REPAIR_BOOKING -> {
                         RepairBookingScreen(
-                            initialProblem = uiState.preselectedRepairProblem,
-                            initialBrand = uiState.preselectedRepairBrand,
-                            defaultName = uiState.userName,
-                            defaultPhone = uiState.userPhone,
-                            defaultAddress = uiState.userAddress,
-                            activeBookings = uiState.activeRepairBookings,
-                            lastConfirmedBooking = uiState.lastConfirmedBooking,
-                            isCustomerAuthenticated = uiState.isCustomerAuthenticated,
-                            onSubmitBooking = { name, phone, brand, model, problem, pickup, address, date, details ->
-                                if (!uiState.isCustomerAuthenticated) {
-                                    shopViewModel.setCustomerAuthError("Please sign in with your Google account to book a phone repair.")
-                                    shopViewModel.setLoginSheetVisible(true)
-                                } else {
-                                    shopViewModel.submitRepairBooking(
-                                        name, phone, brand, model, problem, pickup, address, date, details
-                                    )
+                            initialProblem = shopUiState.preselectedRepairProblem,
+                            initialBrand = shopUiState.preselectedRepairBrand,
+                            defaultName = shopUiState.userName,
+                            defaultPhone = shopUiState.userPhone,
+                            defaultAddress = shopUiState.userAddress,
+                            activeBookings = shopUiState.activeRepairBookings,
+                            lastConfirmedBooking = shopUiState.lastConfirmedBooking,
+                            isCustomerAuthenticated = shopUiState.isCustomerAuthenticated,
+                            isSubmitting = shopUiState.isSubmittingRepair,
+                            onSubmitBooking = { name, phone, brand, model, prob, pickup, addr, date, details ->
+                                shopViewModel.submitRepairBooking(name, phone, brand, model, prob, pickup, addr, date, details)
+                            },
+                            onDismissConfirmDialog = { shopViewModel.clearConfirmedBooking() },
+                            onBack = { shopViewModel.navigateBack() }
+                        )
+                    }
+
+                    AppScreen.OLD_PHONE_BUY, AppScreen.SELL_OLD_PHONE -> {
+                        val initialTab = if (currentScreen == AppScreen.SELL_OLD_PHONE) 1 else 0
+                        OldPhoneScreen(
+                            initialTab = initialTab,
+                            preOwnedProducts = shopUiState.products.filter { it.category == ProductCategory.OLD_PHONES },
+                            defaultName = shopUiState.userName,
+                            defaultPhone = shopUiState.userPhone,
+                            defaultAddress = shopUiState.userAddress,
+                            activeSellRequests = shopUiState.activeSellRequests,
+                            lastConfirmedSellRequest = shopUiState.lastConfirmedSellRequest,
+                            onSelectProduct = { prod ->
+                                shopViewModel.selectProduct(prod)
+                                shopViewModel.navigateTo(AppScreen.PRODUCT_DETAIL)
+                            },
+                            onAddToCart = { prod -> shopViewModel.addToCart(prod) },
+                            onBuyNow = { prod ->
+                                shopViewModel.buyNow(prod)
+                                shopViewModel.navigateTo(AppScreen.CHECKOUT)
+                            },
+                            onSubmitSellRequest = { name, phone, brand, model, storage, cond, price, addr ->
+                                shopViewModel.submitSellRequest(name, phone, brand, model, storage, cond, price, addr)
+                            },
+                            onDismissSellDialog = { shopViewModel.clearConfirmedSellRequest() },
+                            onBack = { shopViewModel.navigateBack() }
+                        )
+                    }
+
+                    AppScreen.NOTIFICATIONS -> {
+                        NotificationCenterScreen(
+                            notifications = shopUiState.notifications,
+                            unreadCount = shopUiState.unreadNotificationCount,
+                            onMarkAsRead = { shopViewModel.markNotificationAsRead(it) },
+                            onMarkAllAsRead = { shopViewModel.markAllNotificationsAsRead() },
+                            onClearAll = { shopViewModel.clearNotifications() },
+                            onNotificationClick = { notif ->
+                                when (notif.type) {
+                                    com.example.model.NotificationType.ORDER -> shopViewModel.navigateTo(AppScreen.HOME)
+                                    com.example.model.NotificationType.REPAIR -> shopViewModel.navigateTo(AppScreen.REPAIR_BOOKING)
+                                    com.example.model.NotificationType.SYSTEM -> shopViewModel.navigateTo(AppScreen.HOME)
                                 }
                             },
-                            onDismissConfirmDialog = {
-                                shopViewModel.clearConfirmedBooking()
-                            },
-                            onBack = {
-                                shopViewModel.navigateBack()
-                            }
-                        )
-                    }
-
-                    AppScreen.OLD_PHONE_BUY -> {
-                        OldPhoneScreen(
-                            initialTab = 0,
-                            preOwnedProducts = uiState.products,
-                            defaultName = uiState.userName,
-                            defaultPhone = uiState.userPhone,
-                            defaultAddress = uiState.userAddress,
-                            activeSellRequests = uiState.activeSellRequests,
-                            lastConfirmedSellRequest = uiState.lastConfirmedSellRequest,
-                            onSelectProduct = { product ->
-                                shopViewModel.selectProduct(product)
-                            },
-                            onAddToCart = { product ->
-                                shopViewModel.addToCart(product)
-                            },
-                            onBuyNow = { product ->
-                                shopViewModel.buyNow(product)
-                            },
-                            onSubmitSellRequest = { name, phone, brand, model, storage, cond, price, address ->
-                                shopViewModel.submitSellRequest(
-                                    name, phone, brand, model, storage, cond, price, address
-                                )
-                            },
-                            onDismissSellDialog = {
-                                shopViewModel.clearConfirmedSellRequest()
-                            },
-                            onBack = {
-                                shopViewModel.navigateBack()
-                            }
-                        )
-                    }
-
-                    AppScreen.SELL_OLD_PHONE -> {
-                        OldPhoneScreen(
-                            initialTab = 1,
-                            preOwnedProducts = uiState.products,
-                            defaultName = uiState.userName,
-                            defaultPhone = uiState.userPhone,
-                            defaultAddress = uiState.userAddress,
-                            activeSellRequests = uiState.activeSellRequests,
-                            lastConfirmedSellRequest = uiState.lastConfirmedSellRequest,
-                            onSelectProduct = { product ->
-                                shopViewModel.selectProduct(product)
-                            },
-                            onAddToCart = { product ->
-                                shopViewModel.addToCart(product)
-                            },
-                            onBuyNow = { product ->
-                                shopViewModel.buyNow(product)
-                            },
-                            onSubmitSellRequest = { name, phone, brand, model, storage, cond, price, address ->
-                                shopViewModel.submitSellRequest(
-                                    name, phone, brand, model, storage, cond, price, address
-                                )
-                            },
-                            onDismissSellDialog = {
-                                shopViewModel.clearConfirmedSellRequest()
-                            },
-                            onBack = {
-                                shopViewModel.navigateBack()
-                            }
+                            onBack = { shopViewModel.navigateBack() }
                         )
                     }
 
                     AppScreen.CONTACT -> {
                         ContactScreen(
-                            onBack = {
-                                shopViewModel.navigateBack()
-                            }
+                            onBack = { shopViewModel.navigateBack() }
                         )
                     }
 
-                    AppScreen.ADMIN_LOGIN -> {
-                        AdminLoginScreen(
-                            onLoginSuccess = {
-                                shopViewModel.navigateTo(AppScreen.ADMIN_DASHBOARD)
+                    else -> {
+                        HomeScreen(
+                            featuredProducts = shopUiState.products,
+                            repairServices = shopUiState.repairServices,
+                            customerReviews = shopUiState.reviews,
+                            onSelectProduct = { prod ->
+                                shopViewModel.selectProduct(prod)
+                                shopViewModel.navigateTo(AppScreen.PRODUCT_DETAIL)
                             },
-                            onBackToStore = {
-                                shopViewModel.navigateTo(AppScreen.HOME)
+                            onAddToCart = { prod -> shopViewModel.addToCart(prod) },
+                            onBuyNow = { prod ->
+                                shopViewModel.buyNow(prod)
+                                shopViewModel.navigateTo(AppScreen.CHECKOUT)
                             },
-                            onGoogleSignIn = { idToken, onComplete ->
-                                adminViewModel.signInWithGoogleToken(idToken, onComplete)
-                            }
-                        )
-                    }
-
-                    AppScreen.ADMIN_DASHBOARD -> {
-                        if (!adminUiState.isAuthenticated) {
-                            // Protected route: Redirect unauthenticated users to login screen
-                            AdminLoginScreen(
-                                onLoginSuccess = {
-                                    shopViewModel.navigateTo(AppScreen.ADMIN_DASHBOARD)
-                                },
-                                onBackToStore = {
-                                    shopViewModel.navigateTo(AppScreen.HOME)
-                                },
-                                onGoogleSignIn = { idToken, onComplete ->
-                                    adminViewModel.signInWithGoogleToken(idToken, onComplete)
-                                }
-                            )
-                        } else {
-                            AdminDashboardLayout(
-                                adminViewModel = adminViewModel,
-                                uiState = adminUiState,
-                                onReturnToStore = {
-                                    shopViewModel.navigateTo(AppScreen.HOME)
-                                }
-                            )
-                        }
-                    }
-
-                    AppScreen.NOTIFICATIONS -> {
-                        NotificationCenterScreen(
-                            notifications = uiState.notifications,
-                            unreadCount = uiState.unreadNotificationCount,
-                            onMarkAsRead = { notifId ->
-                                shopViewModel.markNotificationAsRead(notifId)
+                            onCategoryClick = { cat ->
+                                shopViewModel.filterByCategory(cat)
+                                shopViewModel.navigateTo(AppScreen.PRODUCTS)
                             },
-                            onMarkAllAsRead = {
-                                shopViewModel.markAllNotificationsAsRead()
-                            },
-                            onClearAll = {
-                                shopViewModel.clearNotifications()
-                            },
-                            onNotificationClick = { notif ->
-                                shopViewModel.markNotificationAsRead(notif.id)
-                            },
-                            onBack = {
-                                shopViewModel.navigateBack()
+                            onNavigate = { screen -> shopViewModel.navigateTo(screen) },
+                            onBookRepairProblem = { prob ->
+                                shopViewModel.bookRepairWithProblem(prob)
+                                shopViewModel.navigateTo(AppScreen.REPAIR_BOOKING)
                             }
                         )
                     }
                 }
             }
-
-            // Profile / Login Sheet
-            if (uiState.isLoginSheetVisible) {
-                ProfileSheet(
-                    uiState = uiState,
-                    onGoogleSignIn = { idToken, onComplete ->
-                        shopViewModel.signInCustomerWithGoogle(idToken, onComplete)
-                    },
-                    onLogout = {
-                        shopViewModel.logoutCustomer()
-                    },
-                    onClearAuthError = {
-                        shopViewModel.setCustomerAuthError(null)
-                    },
-                    onUpdateProfile = { name, phone, address ->
-                        shopViewModel.updateUserProfile(name, phone, address)
-                    },
-                    onOpenAdmin = {
-                        shopViewModel.navigateTo(AppScreen.ADMIN_LOGIN)
-                    },
-                    onDismiss = {
-                        shopViewModel.setLoginSheetVisible(false)
-                    }
-                )
-            }
         }
+    }
+
+    if (shopUiState.isLoginSheetVisible) {
+        ProfileSheet(
+            uiState = shopUiState,
+            onGoogleSignIn = { idToken, onComplete ->
+                shopViewModel.signInCustomerWithGoogle(idToken, onComplete)
+            },
+            onLogout = { shopViewModel.logoutCustomer() },
+            onClearAuthError = { shopViewModel.setCustomerAuthError(null) },
+            onUpdateProfile = { name, phone, addr ->
+                shopViewModel.updateUserProfile(name, phone, addr)
+            },
+            onViewOrders = {
+                shopViewModel.setLoginSheetVisible(false)
+                shopViewModel.navigateTo(AppScreen.MY_ORDERS)
+            },
+            onTrackOrder = { order ->
+                shopViewModel.setLoginSheetVisible(false)
+                shopViewModel.selectOrderForDetail(order)
+            },
+            onOpenAdmin = {
+                shopViewModel.setLoginSheetVisible(false)
+                shopViewModel.navigateTo(AppScreen.ADMIN_LOGIN)
+            },
+            onDismiss = { shopViewModel.setLoginSheetVisible(false) }
+        )
     }
 }

@@ -2,48 +2,40 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// SK Mobile Shoppy and Electronic - Premium Black + Gold Color Palette
-// Core Palette specified in User Request
-val BlackBackground = Color(0xFF0B0B0B)        // Primary background: #0B0B0B
-val BlackSurface = Color(0xFF171717)           // Surface/cards: #171717
-val BlackSurfaceSecondary = Color(0xFF222222)  // Secondary surface: #222222
-val GoldPrimary = Color(0xFFD4AF37)            // Gold primary/accent: #D4AF37
-val GoldHighlight = Color(0xFFF5D76E)          // Gold highlight: #F5D76E
-val TextMain = Color(0xFFFFFFFF)               // Main text: #FFFFFF
-val TextSecondary = Color(0xFFC5C5C5)          // Secondary text: #C5C5C5
-val BlackBorder = Color(0xFF383838)            // Borders/dividers: #383838
-val ColorError = Color(0xFFCF6679)             // Error color: #CF6679
+// Default M3 palette
+val Purple80 = Color(0xFFD0BCFF)
+val PurpleGrey80 = Color(0xFFCCC2DC)
+val Pink80 = Color(0xFFEFB8C8)
+val Purple40 = Color(0xFF6650a4)
+val PurpleGrey40 = Color(0xFF625b71)
+val Pink40 = Color(0xFF7D5260)
 
-// Complementary Accent Colors
-val GoldDark = Color(0xFFA68523)
-val TextMuted = Color(0xFF888888)
-val ColorSuccess = Color(0xFF4ADE80)
-val GoldBadgeBg = Color(0xFF2E2714)
+// Black & Gold Luxury Theme Palette
+val BlackBackground = Color(0xFF0F0F0F)
+val BlackSurface = Color(0xFF1A1A1A)
+val BlackSurfaceSecondary = Color(0xFF262626)
+val BlackBorder = Color(0xFF333333)
 
-// Backward-compatible mappings for existing UI components
-val ShopPrimaryBlue = GoldPrimary              // #D4AF37 Gold primary
-val ShopPrimaryDarkBlue = GoldDark             // #A68523 Deep Gold
-val ShopPrimaryLightBlue = BlackSurfaceSecondary // #222222 Secondary Surface
+val GoldPrimary = Color(0xFFD4AF37)
+val GoldHighlight = Color(0xFFF3E5AB)
+val GoldDark = Color(0xFFA67C00)
+val GoldBorder = Color(0xFF7A601B)
 
-val ShopAccentCyan = GoldPrimary               // #D4AF37
-val ShopAccentAmber = GoldHighlight            // #F5D76E Gold Highlight
-val ShopSuccessGreen = ColorSuccess            // #4ADE80
-val ShopDiscountGreen = GoldHighlight          // #F5D76E
-val ShopDiscountBadgeBg = GoldBadgeBg          // #2E2714 Subtle Gold Tint
+val TextMain = Color(0xFFFFFFFF)
+val TextSecondary = Color(0xFF9E9E9E)
+val TextMuted = Color(0xFF757575)
 
-val ShopBackgroundLight = BlackBackground      // #0B0B0B Primary Background
-val ShopSurfaceLight = BlackSurface            // #171717 Surface/Cards
-val ShopSurfaceVariantLight = BlackSurfaceSecondary // #222222 Secondary Surface
-val ShopOutlineLight = BlackBorder             // #383838 Borders/Dividers
+val ColorSuccess = Color(0xFF10B981)
+val ColorError = Color(0xFFEF4444)
 
-val ShopTextPrimary = TextMain                 // #FFFFFF Main Text
-val ShopTextSecondary = TextSecondary          // #C5C5C5 Secondary Text
-val ShopTextMuted = TextMuted                  // #888888 Muted Text
-
-// Dark Theme Variants (fully aligned with Black + Gold palette)
-val ShopPrimaryBlueDark = GoldPrimary
-val ShopBackgroundDark = BlackBackground
-val ShopSurfaceDark = BlackSurface
-val ShopSurfaceVariantDark = BlackSurfaceSecondary
-val ShopTextPrimaryDark = TextMain
-val ShopTextSecondaryDark = TextSecondary
+// Shop Accent & Utility Palette
+val ShopPrimaryBlue = Color(0xFF2563EB)
+val ShopPrimaryLightBlue = Color(0xFF1E3A8A)
+val ShopAccentAmber = Color(0xFFF59E0B)
+val ShopSuccessGreen = Color(0xFF16A34A)
+val ShopDiscountGreen = Color(0xFF22C55E)
+val ShopDiscountBadgeBg = Color(0xFF14532D)
+val ShopOutlineLight = Color(0xFF374151)
+val ShopTextPrimary = Color(0xFFF3F4F6)
+val ShopTextSecondary = Color(0xFF9CA3AF)
+val ShopTextMuted = Color(0xFF6B7280)

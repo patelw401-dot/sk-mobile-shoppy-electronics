@@ -17,6 +17,7 @@ enum class AdminTab(val displayName: String, val iconName: String) {
     CUSTOMERS("Customers", "customers"),
     CATEGORIES("Categories", "categories"),
     REVIEWS("Reviews", "reviews"),
+    REELS("Reels & Videos", "reels"),
     PAYMENTS("Payments", "payments"),
     REPORTS("Reports", "reports"),
     SETTINGS("Settings", "settings")
@@ -66,7 +67,7 @@ data class AdminReviewRecord(
 )
 
 data class ShopSettings(
-    val shopName: String = "SK Mobile",
+    val shopName: String = "SK Mobile Shoppy and Electronic",
     val address: String = "Nagar Parishad, Udgir, Maharashtra - 413517",
     val phoneNumber: String = "+91 98765 43210",
     val whatsappNumber: String = "+91 98765 43210",

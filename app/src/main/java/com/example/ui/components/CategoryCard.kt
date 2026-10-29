@@ -124,9 +124,10 @@ fun CategoryCardItem(
             .testTag("category_chip_${categoryMeta.category.name}"),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) Color(0xFFE8F3FF) else Color.White
+            containerColor = if (isSelected) com.example.ui.theme.BlackSurfaceSecondary else com.example.ui.theme.BlackSurface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp),
+        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, com.example.ui.theme.GoldPrimary) else androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -156,7 +157,7 @@ fun CategoryCardItem(
                 text = categoryMeta.title,
                 fontSize = 11.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) ShopPrimaryBlue else Color(0xFF1E293B),
+                color = if (isSelected) com.example.ui.theme.GoldHighlight else com.example.ui.theme.TextMain,
                 textAlign = TextAlign.Center,
                 lineHeight = 13.sp,
                 maxLines = 2

@@ -10,12 +10,14 @@ import com.example.model.CustomerReview
 import com.example.model.MockData
 import com.example.model.Product
 import com.example.model.ProductCategory
+import com.example.model.ReelItem
 import com.example.model.RepairBooking
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -33,6 +35,7 @@ class LocalDataService(
     private val _ordersFlow = MutableStateFlow<List<ShopOrder>>(emptyList())
     private val _repairsFlow = MutableStateFlow<List<RepairBooking>>(emptyList())
     private val _sellRequestsFlow = MutableStateFlow<List<SellRequest>>(emptyList())
+    private val _reelsFlow = MutableStateFlow<List<ReelItem>>(emptyList())
 
     private var categoriesCache = mutableListOf(
         CategoryRecord("CAT-1", "Mobile Phones", "mobile-phones", ProductCategory.MOBILE_PHONES, true, 4),
@@ -51,6 +54,7 @@ class LocalDataService(
         _ordersFlow.value = storage.loadOrders()
         _repairsFlow.value = storage.loadRepairBookings()
         _sellRequestsFlow.value = storage.loadSellRequests()
+        _reelsFlow.value = storage.loadReels()
     }
 
     // --- PRODUCTS ---
@@ -107,8 +111,24 @@ class LocalDataService(
     // --- ORDERS ---
     override fun observeOrders(): Flow<List<ShopOrder>> = _ordersFlow.asStateFlow()
 
+    override fun observeCustomerOrders(customerId: String): Flow<List<ShopOrder>> {
+        return _ordersFlow.map { allOrders ->
+            if (customerId.isBlank()) allOrders else allOrders.filter {
+                it.customerUid.equals(customerId, ignoreCase = true) ||
+                it.customerId.equals(customerId, ignoreCase = true)
+            }
+        }
+    }
+
     override suspend fun getOrders(): List<ShopOrder> = mutex.withLock {
         _ordersFlow.value
+    }
+
+    override suspend fun getCustomerOrders(customerId: String): List<ShopOrder> = mutex.withLock {
+        if (customerId.isBlank()) _ordersFlow.value else _ordersFlow.value.filter {
+            it.customerUid.equals(customerId, ignoreCase = true) ||
+            it.customerId.equals(customerId, ignoreCase = true)
+        }
     }
 
     override suspend fun getOrderById(id: String): ShopOrder? = mutex.withLock {
@@ -123,17 +143,57 @@ class LocalDataService(
             return Result.failure(IllegalArgumentException("Customer name and phone number are required"))
         }
 
-        val updated = listOf(order) + _ordersFlow.value
+        val initialHistory = if (order.statusHistory.isEmpty()) {
+            listOf(
+                com.example.model.OrderStatusHistoryEntry(
+                    status = order.status.ifBlank { "Order Placed" },
+                    timestamp = System.currentTimeMillis(),
+                    note = "Order placed successfully by customer",
+                    updatedBy = "Customer"
+                )
+            )
+        } else {
+            order.statusHistory
+        }
+
+        val enrichedOrder = order.copy(
+            statusHistory = initialHistory,
+            lastUpdated = System.currentTimeMillis()
+        )
+
+        val updated = listOf(enrichedOrder) + _ordersFlow.value
         _ordersFlow.value = updated
         storage.saveOrders(updated)
-        Result.success(order)
+        Result.success(enrichedOrder)
     }
 
-    override suspend fun updateOrderStatus(id: String, status: String): Result<ShopOrder> = mutex.withLock {
+    override suspend fun updateOrderStatus(id: String, status: String): Result<ShopOrder> {
+        return updateOrderStatusWithHistory(id, status, note = "", updatedBy = "Admin")
+    }
+
+    override suspend fun updateOrderStatusWithHistory(
+        id: String,
+        status: String,
+        note: String,
+        updatedBy: String
+    ): Result<ShopOrder> = mutex.withLock {
         val order = _ordersFlow.value.find { it.orderId == id }
             ?: return Result.failure(NoSuchElementException("Order with id '$id' not found"))
 
-        val updatedOrder = order.copy(status = status)
+        val newHistoryEntry = com.example.model.OrderStatusHistoryEntry(
+            status = status,
+            timestamp = System.currentTimeMillis(),
+            note = note.ifBlank { "Order status updated to $status" },
+            updatedBy = updatedBy
+        )
+
+        val updatedHistory = order.statusHistory + newHistoryEntry
+        val updatedOrder = order.copy(
+            status = status,
+            statusHistory = updatedHistory,
+            lastUpdated = System.currentTimeMillis()
+        )
+
         val updatedList = _ordersFlow.value.map { if (it.orderId == id) updatedOrder else it }
         _ordersFlow.value = updatedList
         storage.saveOrders(updatedList)
@@ -148,6 +208,55 @@ class LocalDataService(
             )
             createNotificationInternal(notif)
         }
+        Result.success(updatedOrder)
+    }
+
+    override suspend fun cancelOrder(id: String, reason: String, customerId: String): Result<ShopOrder> = mutex.withLock {
+        val order = _ordersFlow.value.find { it.orderId == id }
+            ?: return Result.failure(NoSuchElementException("Order with id '$id' not found"))
+
+        // Authorization check: only order owner or admin can cancel
+        val isOwner = order.customerUid.equals(customerId, ignoreCase = true) ||
+                      order.customerId.equals(customerId, ignoreCase = true)
+        if (!isOwner && customerId != "ADMIN") {
+            return Result.failure(IllegalStateException("Unauthorized: You can only cancel your own orders."))
+        }
+
+        // State check: cannot cancel already delivered orders
+        if (order.isDelivered) {
+            return Result.failure(IllegalStateException("Delivered orders cannot be cancelled."))
+        }
+
+        val newHistoryEntry = com.example.model.OrderStatusHistoryEntry(
+            status = "Cancelled",
+            timestamp = System.currentTimeMillis(),
+            note = if (reason.isNotBlank()) "Cancelled by customer: $reason" else "Cancelled by customer",
+            updatedBy = if (isOwner) "Customer" else "Admin"
+        )
+
+        val updatedHistory = order.statusHistory + newHistoryEntry
+        val updatedOrder = order.copy(
+            status = "Cancelled",
+            cancellationReason = reason,
+            statusHistory = updatedHistory,
+            lastUpdated = System.currentTimeMillis()
+        )
+
+        val updatedList = _ordersFlow.value.map { if (it.orderId == id) updatedOrder else it }
+        _ordersFlow.value = updatedList
+        storage.saveOrders(updatedList)
+
+        val custId = updatedOrder.customerUid.ifBlank { updatedOrder.customerId }
+        if (custId.isNotBlank()) {
+            val notif = AppNotification.createOrderNotification(
+                orderId = updatedOrder.orderId,
+                customerId = custId,
+                status = "Cancelled",
+                orderDate = updatedOrder.orderDate
+            )
+            createNotificationInternal(notif)
+        }
+
         Result.success(updatedOrder)
     }
 
@@ -371,6 +480,74 @@ class LocalDataService(
             getOrCreateNotifFlow(customerId).value = emptyList()
         }
         Result.success(success)
+    }
+
+    // --- REELS ---
+    override fun observeReels(): Flow<List<ReelItem>> = _reelsFlow.asStateFlow()
+
+    override suspend fun getReels(): List<ReelItem> = mutex.withLock {
+        storage.loadReels()
+    }
+
+    override suspend fun createReel(reel: ReelItem): Result<ReelItem> = mutex.withLock {
+        val list = storage.loadReels().toMutableList()
+        val existingIndex = list.indexOfFirst { it.id == reel.id }
+        if (existingIndex >= 0) {
+            list[existingIndex] = reel
+        } else {
+            list.add(0, reel)
+        }
+        storage.saveReels(list)
+        _reelsFlow.value = list
+        Result.success(reel)
+    }
+
+    override suspend fun updateReel(reel: ReelItem): Result<ReelItem> = mutex.withLock {
+        val list = storage.loadReels().toMutableList()
+        val index = list.indexOfFirst { it.id == reel.id }
+        if (index >= 0) {
+            list[index] = reel
+            storage.saveReels(list)
+            _reelsFlow.value = list
+            Result.success(reel)
+        } else {
+            Result.failure(NoSuchElementException("Reel not found: ${reel.id}"))
+        }
+    }
+
+    override suspend fun deleteReel(id: String): Result<Boolean> = mutex.withLock {
+        val list = storage.loadReels().toMutableList()
+        val removed = list.removeAll { it.id == id }
+        if (removed) {
+            storage.saveReels(list)
+            _reelsFlow.value = list
+        }
+        Result.success(removed)
+    }
+
+    override suspend fun toggleReelLike(id: String, increment: Boolean): Result<Unit> = mutex.withLock {
+        val list = storage.loadReels().toMutableList()
+        val index = list.indexOfFirst { it.id == id }
+        if (index >= 0) {
+            val item = list[index]
+            val newCount = if (increment) item.likesCount + 1 else maxOf(0, item.likesCount - 1)
+            list[index] = item.copy(likesCount = newCount, isLikedByMe = increment)
+            storage.saveReels(list)
+            _reelsFlow.value = list
+        }
+        Result.success(Unit)
+    }
+
+    override suspend fun incrementReelShare(id: String): Result<Unit> = mutex.withLock {
+        val list = storage.loadReels().toMutableList()
+        val index = list.indexOfFirst { it.id == id }
+        if (index >= 0) {
+            val item = list[index]
+            list[index] = item.copy(sharesCount = item.sharesCount + 1)
+            storage.saveReels(list)
+            _reelsFlow.value = list
+        }
+        Result.success(Unit)
     }
 
     companion object {

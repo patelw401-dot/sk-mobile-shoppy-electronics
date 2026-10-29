@@ -44,6 +44,17 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Reels: Public read for published reels; Admins can create, update, delete
+    // Customers can increment likesCount and sharesCount
+    match /reels/{reelId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isAuthenticated() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'sharesCount', 'viewsCount'])
+      );
+    }
+
     // Reviews: Public read; Authenticated customers can submit reviews; Admin manage
     match /reviews/{reviewId} {
       allow read: if true;
@@ -59,7 +70,7 @@ service cloud.firestore {
     // 1. Only authenticated customers can create records associated with their own Firebase UID.
     // 2. Strict validation of customerId == request.auth.uid, required fields, and permitted initial statuses.
     // 3. Customers cannot read other customers' orders.
-    // 4. Customers CANNOT update or delete orders (payment status, order status, totals are protected).
+    // 4. Customers can cancel their own active orders before delivery, but cannot modify items, totals, or payment statuses.
     // 5. Admins have full access.
     match /orders/{orderId} {
       allow read: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
@@ -71,10 +82,18 @@ service cloud.firestore {
         request.resource.data.address is string && request.resource.data.address.size() > 0 &&
         request.resource.data.items is list && request.resource.data.items.size() > 0 &&
         request.resource.data.total is int && request.resource.data.total >= 0 &&
-        request.resource.data.orderStatus in ['Pending', 'Order Confirmed', 'Processing'] &&
+        request.resource.data.orderStatus in ['Pending', 'Order Confirmed', 'Processing', 'Order Placed'] &&
         request.resource.data.paymentStatus in ['Pending', 'Paid']
       );
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isAuthenticated() &&
+        resource.data.customerId == request.auth.uid &&
+        request.resource.data.orderStatus == 'Cancelled' &&
+        resource.data.orderStatus != 'Delivered' &&
+        resource.data.orderStatus != 'Cancelled' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['orderStatus', 'cancellationReason', 'updatedAt', 'statusHistory'])
+      );
+      allow delete: if isAdmin();
     }
 
     // Repair Bookings:

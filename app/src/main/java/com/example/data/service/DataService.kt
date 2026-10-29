@@ -28,10 +28,19 @@ interface DataService {
 
     // --- ORDERS ---
     fun observeOrders(): Flow<List<ShopOrder>>
+    fun observeCustomerOrders(customerId: String): Flow<List<ShopOrder>>
     suspend fun getOrders(): List<ShopOrder>
+    suspend fun getCustomerOrders(customerId: String): List<ShopOrder>
     suspend fun getOrderById(id: String): ShopOrder?
     suspend fun createOrder(order: ShopOrder): Result<ShopOrder>
     suspend fun updateOrderStatus(id: String, status: String): Result<ShopOrder>
+    suspend fun updateOrderStatusWithHistory(
+        id: String,
+        status: String,
+        note: String = "",
+        updatedBy: String = "Admin"
+    ): Result<ShopOrder>
+    suspend fun cancelOrder(id: String, reason: String, customerId: String): Result<ShopOrder>
 
     // --- REPAIRS ---
     fun observeRepairBookings(): Flow<List<RepairBooking>>
@@ -70,4 +79,13 @@ interface DataService {
     suspend fun markNotificationAsRead(id: String, customerId: String): Result<Boolean>
     suspend fun markAllNotificationsAsRead(customerId: String): Result<Boolean>
     suspend fun clearNotifications(customerId: String): Result<Boolean>
+
+    // --- REELS ---
+    fun observeReels(): Flow<List<com.example.model.ReelItem>>
+    suspend fun getReels(): List<com.example.model.ReelItem>
+    suspend fun createReel(reel: com.example.model.ReelItem): Result<com.example.model.ReelItem>
+    suspend fun updateReel(reel: com.example.model.ReelItem): Result<com.example.model.ReelItem>
+    suspend fun deleteReel(id: String): Result<Boolean>
+    suspend fun toggleReelLike(id: String, increment: Boolean): Result<Unit>
+    suspend fun incrementReelShare(id: String): Result<Unit>
 }

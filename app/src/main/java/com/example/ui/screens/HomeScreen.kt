@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Power
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Smartphone
@@ -72,6 +73,7 @@ import com.example.model.CustomerReview
 import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.model.RepairService
+import com.example.ui.theme.*
 import com.example.ui.components.CategoryData
 import com.example.ui.components.ProductCard
 import com.example.ui.components.formatInr
@@ -103,7 +105,7 @@ fun HomeScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF6F8FA))
+            .background(com.example.ui.theme.BlackBackground)
             .testTag("home_screen_list"),
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
@@ -163,6 +165,80 @@ fun HomeScreen(
             }
         }
 
+        // SK Reels Showcase Banner
+        item {
+            Spacer(modifier = Modifier.height(18.dp))
+            Surface(
+                color = BlackSurface,
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, GoldBorder.copy(alpha = 0.5f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clickable { onNavigate(AppScreen.REELS) }
+                    .testTag("home_reels_banner")
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(GoldPrimary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayCircle,
+                            contentDescription = "Watch Reels",
+                            tint = Color.Black,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                color = GoldHighlight,
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = "NEW",
+                                    color = Color.Black,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "SK Reels & Video Showcase",
+                                color = TextMain,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Swipe through unboxings, repair tutorials & smartphone camera tests!",
+                            color = TextSecondary,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Open Reels",
+                        tint = GoldPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+
         // 3. Featured Mobile Phones & Deals Section
         item {
             Spacer(modifier = Modifier.height(20.dp))
@@ -196,7 +272,7 @@ fun HomeScreen(
         item {
             Spacer(modifier = Modifier.height(20.dp))
             SectionHeader(
-                title = "Best Sellers at SK Mobile",
+                title = "Best Sellers at SK Mobile Shoppy and Electronic",
                 subtitle = "Top customer favorites and hot sellers in Udgir",
                 onSeeAll = { onNavigate(AppScreen.PRODUCTS) }
             )
@@ -324,26 +400,27 @@ fun PromoHeroBanner(
             .testTag("promo_hero_banner"),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.GoldPrimary.copy(alpha = 0.35f))
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color(0xFF0F2B5C), Color(0xFF0A192F))
+                        listOf(Color(0xFF221E14), com.example.ui.theme.BlackBackground)
                     )
                 )
         ) {
             // Background Artwork
             Image(
                 painter = painterResource(id = R.drawable.img_hero_banner_1791267089819),
-                contentDescription = "SK Mobile Banner Artwork",
+                contentDescription = "SK Mobile Shoppy and Electronic Banner Artwork",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(210.dp),
                 contentScale = ContentScale.Crop,
-                alpha = 0.40f
+                alpha = 0.30f
             )
 
             // Content Overlay
@@ -358,7 +435,7 @@ fun PromoHeroBanner(
                 ) {
                     Text(
                         text = "UDGIR'S #1 TRUSTED STORE",
-                        color = Color.Black,
+                        color = Color(0xFF0B0B0B),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Black,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -391,7 +468,7 @@ fun PromoHeroBanner(
                         onClick = onShopNow,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = ShopPrimaryBlue,
-                            contentColor = Color.White
+                            contentColor = Color(0xFF0B0B0B)
                         ),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.testTag("hero_shop_now_button")
@@ -399,14 +476,16 @@ fun PromoHeroBanner(
                         Text(
                             text = "Shop Now",
                             fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0B0B0B),
                             fontSize = 13.sp
                         )
                     }
 
                     OutlinedButton(
                         onClick = onBookRepair,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, ShopPrimaryBlue),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color.White
+                            contentColor = ShopPrimaryBlue
                         ),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.testTag("hero_book_repair_button")
@@ -414,6 +493,7 @@ fun PromoHeroBanner(
                         Text(
                             text = "Book Repair",
                             fontWeight = FontWeight.Bold,
+                            color = ShopPrimaryBlue,
                             fontSize = 13.sp
                         )
                     }
@@ -551,8 +631,9 @@ fun RepairSectionCard(
 
             // Doorstep pickup note
             Surface(
-                color = Color(0xFFF0FDF4),
+                color = Color(0xFF14241B),
                 shape = RoundedCornerShape(10.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1F432B)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -569,7 +650,7 @@ fun RepairSectionCard(
                     Text(
                         text = "Free home pickup & drop available across Udgir city",
                         fontSize = 12.sp,
-                        color = Color(0xFF166534),
+                        color = Color(0xFF4ADE80),
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -599,8 +680,8 @@ fun RepairGridItem(
             .clickable(onClick = onClick)
             .testTag("repair_service_card_${service.id}"),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
-        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(ShopOutlineLight, ShopOutlineLight)))
+        colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.BlackSurface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -612,7 +693,7 @@ fun RepairGridItem(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(ShopPrimaryLightBlue),
+                    .background(com.example.ui.theme.BlackSurfaceSecondary),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -658,8 +739,9 @@ fun OldMobilesBannerSection(
             .padding(horizontal = 16.dp)
             .testTag("buy_sell_old_mobiles_section"),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.BlackSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder)
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -688,7 +770,7 @@ fun OldMobilesBannerSection(
 
             Text(
                 text = "Upgrade your phone with maximum exchange value or choose certified pre-owned phones with 6 months shop warranty.",
-                color = Color(0xFFCBD5E1),
+                color = com.example.ui.theme.TextSecondary,
                 fontSize = 12.sp,
                 lineHeight = 17.sp
             )
@@ -704,10 +786,10 @@ fun OldMobilesBannerSection(
                     modifier = Modifier
                         .weight(1f)
                         .testTag("buy_old_phone_btn"),
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color(0xFF0B0B0B)),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Buy Old Phone", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Buy Old Phone", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0B0B0B))
                 }
 
                 Button(
@@ -734,7 +816,7 @@ fun WhyChooseUsSection() {
             .testTag("why_choose_sk_mobile_section")
     ) {
         Text(
-            text = "Why Choose SK Mobile?",
+            text = "Why Choose SK Mobile Shoppy and Electronic?",
             fontSize = 17.sp,
             fontWeight = FontWeight.Bold,
             color = ShopTextPrimary
@@ -761,8 +843,8 @@ fun WhyChooseUsSection() {
                     .fillMaxWidth()
                     .padding(vertical = 4.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(ShopOutlineLight, ShopOutlineLight)))
+                colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.BlackSurface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder)
             ) {
                 Row(
                     modifier = Modifier.padding(12.dp),
@@ -772,7 +854,7 @@ fun WhyChooseUsSection() {
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(ShopPrimaryLightBlue),
+                            .background(com.example.ui.theme.BlackSurfaceSecondary),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -826,7 +908,7 @@ fun CustomerReviewsSection(reviews: List<CustomerReview>) {
                     color = ShopTextPrimary
                 )
                 Text(
-                    text = "What Udgir locals say about SK Mobile",
+                    text = "What Udgir locals say about SK Mobile Shoppy and Electronic",
                     fontSize = 12.sp,
                     color = ShopTextSecondary
                 )
@@ -858,8 +940,9 @@ fun CustomerReviewsSection(reviews: List<CustomerReview>) {
                         .width(260.dp)
                         .testTag("review_card_${review.id}"),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.BlackSurface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Row(
@@ -897,7 +980,7 @@ fun CustomerReviewsSection(reviews: List<CustomerReview>) {
                         Text(
                             text = "\"${review.comment}\"",
                             fontSize = 11.sp,
-                            color = Color(0xFF334155),
+                            color = com.example.ui.theme.TextSecondary,
                             lineHeight = 15.sp,
                             maxLines = 4,
                             overflow = TextOverflow.Ellipsis
@@ -906,7 +989,7 @@ fun CustomerReviewsSection(reviews: List<CustomerReview>) {
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Surface(
-                            color = ShopPrimaryLightBlue,
+                            color = com.example.ui.theme.BlackSurfaceSecondary,
                             shape = RoundedCornerShape(4.dp)
                         ) {
                             Text(
@@ -931,7 +1014,8 @@ fun ShopFooterSection(
     onWhatsApp: () -> Unit
 ) {
     Surface(
-        color = Color(0xFF0F172A),
+        color = com.example.ui.theme.BlackSurface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder),
         modifier = Modifier
             .fillMaxWidth()
             .testTag("home_footer_section")
@@ -939,10 +1023,10 @@ fun ShopFooterSection(
         Column(modifier = Modifier.padding(20.dp)) {
             // Brand & Location
             Text(
-                text = "SK Mobile",
-                fontSize = 20.sp,
+                text = "SK Mobile Shoppy and Electronic",
+                fontSize = 18.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.White
+                color = com.example.ui.theme.TextMain
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -958,7 +1042,7 @@ fun ShopFooterSection(
                 Text(
                     text = "Nagar Parishad, Udgir, Maharashtra - 413517",
                     fontSize = 12.sp,
-                    color = Color(0xFFCBD5E1)
+                    color = com.example.ui.theme.TextSecondary
                 )
             }
 
@@ -967,7 +1051,7 @@ fun ShopFooterSection(
             Text(
                 text = "Opening Hours: 9:30 AM – 9:30 PM (All 7 Days Open)",
                 fontSize = 11.sp,
-                color = Color(0xFF94A3B8)
+                color = com.example.ui.theme.TextMuted
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -979,15 +1063,15 @@ fun ShopFooterSection(
             ) {
                 Button(
                     onClick = onCall,
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color(0xFF0B0B0B)),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .weight(1f)
                         .testTag("footer_call_btn")
                 ) {
-                    Icon(imageVector = Icons.Default.Call, contentDescription = "Call", modifier = Modifier.size(16.dp))
+                    Icon(imageVector = Icons.Default.Call, contentDescription = "Call", tint = Color(0xFF0B0B0B), modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Call Shop", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "Call Shop", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0B0B0B))
                 }
 
                 Button(
@@ -1005,7 +1089,7 @@ fun ShopFooterSection(
             }
 
             Spacer(modifier = Modifier.height(18.dp))
-            HorizontalDivider(color = Color(0xFF334155))
+            HorizontalDivider(color = com.example.ui.theme.BlackBorder)
             Spacer(modifier = Modifier.height(14.dp))
 
             // Quick Links
@@ -1029,7 +1113,7 @@ fun ShopFooterSection(
                 Text(
                     text = "• $label",
                     fontSize = 12.sp,
-                    color = Color(0xFF94A3B8),
+                    color = com.example.ui.theme.TextSecondary,
                     modifier = Modifier
                         .padding(vertical = 3.dp)
                         .clickable { onNavigate(screen) }
@@ -1037,7 +1121,7 @@ fun ShopFooterSection(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = Color(0xFF334155))
+            HorizontalDivider(color = com.example.ui.theme.BlackBorder)
             Spacer(modifier = Modifier.height(14.dp))
 
             // Legal & Copyright
@@ -1048,21 +1132,21 @@ fun ShopFooterSection(
                 Text(
                     text = "Terms & Conditions",
                     fontSize = 11.sp,
-                    color = Color(0xFF64748B)
+                    color = com.example.ui.theme.TextMuted
                 )
                 Text(
                     text = "Privacy Policy",
                     fontSize = 11.sp,
-                    color = Color(0xFF64748B)
+                    color = com.example.ui.theme.TextMuted
                 )
             }
 
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "© 2026 SK Mobile Udgir. All Rights Reserved. Designed for Udgir mobile shoppers.",
+                text = "© 2026 SK Mobile Shoppy and Electronic, Udgir. All Rights Reserved. Designed for Udgir mobile shoppers.",
                 fontSize = 10.sp,
-                color = Color(0xFF475569)
+                color = com.example.ui.theme.TextMuted
             )
         }
     }

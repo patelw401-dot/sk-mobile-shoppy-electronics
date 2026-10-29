@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-dark: #0A0A0A;
+  --bg-card: #141414;
+  --bg-card-secondary: #1F1F1F;
+  --bg-card-hover: #262626;
+  --border-color: #2D2D2D;
+  --border-gold: #7A601B;
+  --gold-primary: #D4AF37;
+  --gold-light: #F3E5AB;
+  --gold-dark: #A67C00;
+  --text-primary: #F5F5F7;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+  --accent-blue: #3B82F6;
+  --accent-green: #10B981;
+  --accent-red: #EF4444;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Cinzel', serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0d0d0d;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-dark);
+}
+
+/* Gold Gradient utilities */
+.gold-text {
+  background: linear-gradient(135deg, #FFF2B2 0%, #D4AF37 50%, #B8860B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-gradient-bg {
+  background: linear-gradient(135deg, #E5C158 0%, #D4AF37 50%, #9E7405 100%);
+  color: #0A0A0A;
+}
+
+.gold-border {
+  border: 1px solid rgba(212, 175, 55, 0.35);
+}
+
+.gold-border:hover {
+  border-color: rgba(212, 175, 55, 0.7);
+}
+
+.gold-glow {
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.15);
+}
+
+.gold-btn {
+  background: linear-gradient(135deg, #E5C158 0%, #D4AF37 60%, #B8860B 100%);
+  color: #0A0A0A;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.gold-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+}
+
+.gold-btn:active {
+  transform: translateY(0);
+}
+
+.gold-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+.outline-gold-btn {
+  background: transparent;
+  color: var(--gold-primary);
+  border: 1px solid var(--gold-primary);
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.outline-gold-btn:hover {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: var(--gold-light);
+  color: var(--gold-light);
+}
+
+/* Card Container */
+.luxury-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 20px;
+  transition: all 0.25s ease;
+}
+
+.luxury-card:hover {
+  border-color: rgba(212, 175, 55, 0.35);
+  background: #171717;
+  transform: translateY(-2px);
+}
+
+/* Layout container */
+.container {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* Responsive Grid helpers */
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .grid-cards {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}

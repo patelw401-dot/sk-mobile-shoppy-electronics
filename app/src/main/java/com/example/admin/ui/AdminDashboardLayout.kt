@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Settings
@@ -62,14 +63,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.admin.model.AdminTab
 import com.example.admin.viewmodel.AdminUiState
 import com.example.admin.viewmodel.AdminViewModel
 import com.example.model.Product
-import com.example.ui.theme.ShopOutlineLight
-import com.example.ui.theme.ShopPrimaryBlue
+import com.example.ui.theme.*
 import kotlinx.coroutines.launch
 
 @Composable
@@ -134,8 +135,9 @@ fun AdminDashboardLayout(
             topBar = {
                 // Top Admin Navigation Bar
                 Surface(
-                    color = Color(0xFF0F172A),
+                    color = BlackSurface,
                     shadowElevation = 4.dp,
+                    border = BorderStroke(1.dp, BlackBorder),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -158,7 +160,7 @@ fun AdminDashboardLayout(
                                 Icon(
                                     imageVector = Icons.Default.Menu,
                                     contentDescription = "Sidebar Menu",
-                                    tint = Color.White,
+                                    tint = GoldPrimary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -168,13 +170,13 @@ fun AdminDashboardLayout(
                             Column {
                                 Text(
                                     text = uiState.currentTab.displayName,
-                                    color = Color.White,
+                                    color = TextMain,
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "SK Mobile Admin • Udgir",
-                                    color = Color(0xFF94A3B8),
+                                    text = "SK Mobile Shoppy and Electronic Admin • Udgir",
+                                    color = TextSecondary,
                                     fontSize = 11.sp
                                 )
                             }
@@ -183,8 +185,9 @@ fun AdminDashboardLayout(
                         // Right actions: Customer Store & Logout
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Surface(
-                                color = Color.White.copy(alpha = 0.12f),
+                                color = BlackSurfaceSecondary,
                                 shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, BlackBorder),
                                 modifier = Modifier
                                     .clickable(onClick = onReturnToStore)
                                     .testTag("admin_exit_to_store_btn")
@@ -196,13 +199,13 @@ fun AdminDashboardLayout(
                                     Icon(
                                         imageVector = Icons.Default.Store,
                                         contentDescription = "Customer Store",
-                                        tint = Color(0xFF38BDF8),
+                                        tint = GoldPrimary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "Customer Store",
-                                        color = Color.White,
+                                        color = TextMain,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold
                                     )
@@ -257,7 +260,7 @@ fun AdminDashboardLayout(
                     AdminTab.ORDERS -> {
                         AdminOrdersScreen(
                             orders = uiState.orders,
-                            onUpdateOrderStatus = { id, status -> adminViewModel.updateOrderStatus(id, status) }
+                            onUpdateOrderStatus = { id, status, note -> adminViewModel.updateOrderStatus(id, status, note) }
                         )
                     }
 
@@ -295,6 +298,16 @@ fun AdminDashboardLayout(
                         AdminReviewsScreen(
                             reviews = uiState.reviews,
                             onToggleApproval = { id -> adminViewModel.toggleReviewApproval(id) }
+                        )
+                    }
+
+                    AdminTab.REELS -> {
+                        AdminReelsScreen(
+                            reels = uiState.reels,
+                            products = uiState.products,
+                            isUploading = uiState.isUploadingReel,
+                            uploadProgress = uiState.uploadReelProgress,
+                            adminViewModel = adminViewModel
                         )
                     }
 
@@ -338,7 +351,7 @@ fun AdminSidebarSheet(
         modifier = modifier
             .width(300.dp)
             .fillMaxHeight(),
-        drawerContainerColor = Color(0xFF0F172A)
+        drawerContainerColor = BlackSurface
     ) {
         Column(
             modifier = Modifier
@@ -347,7 +360,8 @@ fun AdminSidebarSheet(
         ) {
             // Sidebar Header
             Surface(
-                color = Color(0xFF1E293B),
+                color = BlackSurfaceSecondary,
+                border = BorderStroke(1.dp, BlackBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -362,13 +376,13 @@ fun AdminSidebarSheet(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF0284C7)),
+                                .background(GoldPrimary),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AdminPanelSettings,
                                 contentDescription = "Admin",
-                                tint = Color.White,
+                                tint = Color(0xFF0B0B0B),
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -377,21 +391,22 @@ fun AdminSidebarSheet(
 
                         Column {
                             Text(
-                                text = "SK Mobile Admin",
-                                color = Color.White,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
+                                text = "SK Mobile Shoppy and Electronic Admin",
+                                color = TextMain,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
                             )
                             Text(
                                 text = "Store Manager • Udgir",
-                                color = Color(0xFF94A3B8),
+                                color = TextSecondary,
                                 fontSize = 11.sp
                             )
                         }
                     }
 
                     IconButton(onClick = onClose) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextMain)
                     }
                 }
             }
@@ -416,7 +431,8 @@ fun AdminSidebarSheet(
                                 .clickable { onSelectTab(tab) }
                                 .testTag("admin_nav_${tab.name}"),
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) Color(0xFF0284C7) else Color.Transparent
+                            color = if (isSelected) GoldPrimary else Color.Transparent,
+                            border = if (isSelected) BorderStroke(1.dp, GoldHighlight) else null
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -427,13 +443,13 @@ fun AdminSidebarSheet(
                                     Icon(
                                         imageVector = icon,
                                         contentDescription = tab.displayName,
-                                        tint = if (isSelected) Color.White else Color(0xFF94A3B8),
+                                        tint = if (isSelected) Color(0xFF0B0B0B) else TextSecondary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Text(
                                         text = tab.displayName,
-                                        color = if (isSelected) Color.White else Color(0xFFE2E8F0),
+                                        color = if (isSelected) Color(0xFF0B0B0B) else TextMain,
                                         fontSize = 13.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                     )
@@ -441,12 +457,12 @@ fun AdminSidebarSheet(
 
                                 if (tab == AdminTab.ORDERS && pendingOrders > 0) {
                                     Surface(
-                                        color = Color(0xFFEA580C),
+                                        color = if (isSelected) Color(0xFF0B0B0B) else GoldHighlight,
                                         shape = CircleShape
                                     ) {
                                         Text(
                                             text = "$pendingOrders",
-                                            color = Color.White,
+                                            color = if (isSelected) GoldHighlight else Color(0xFF0B0B0B),
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -454,12 +470,12 @@ fun AdminSidebarSheet(
                                     }
                                 } else if (tab == AdminTab.REPAIRS && repairJobs > 0) {
                                     Surface(
-                                        color = Color(0xFFD97706),
+                                        color = if (isSelected) Color(0xFF0B0B0B) else GoldPrimary,
                                         shape = CircleShape
                                     ) {
                                         Text(
                                             text = "$repairJobs",
-                                            color = Color.White,
+                                            color = if (isSelected) GoldPrimary else Color(0xFF0B0B0B),
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -472,7 +488,7 @@ fun AdminSidebarSheet(
                 }
             }
 
-            HorizontalDivider(color = Color(0xFF334155), modifier = Modifier.padding(horizontal = 14.dp))
+            HorizontalDivider(color = BlackBorder, modifier = Modifier.padding(horizontal = 14.dp))
             Spacer(modifier = Modifier.height(10.dp))
 
             // Bottom Buttons: Back to Store and Logout
@@ -482,15 +498,16 @@ fun AdminSidebarSheet(
                         .fillMaxWidth()
                         .clickable(onClick = onReturnToStore),
                     shape = RoundedCornerShape(8.dp),
-                    color = Color.White.copy(alpha = 0.08f)
+                    color = BlackSurfaceSecondary,
+                    border = BorderStroke(1.dp, BlackBorder)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(imageVector = Icons.Default.Store, contentDescription = "Store", tint = Color(0xFF38BDF8), modifier = Modifier.size(18.dp))
+                        Icon(imageVector = Icons.Default.Store, contentDescription = "Store", tint = GoldPrimary, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text(text = "Customer Store View", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text(text = "Customer Store View", color = TextMain, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
 
@@ -507,9 +524,9 @@ fun AdminSidebarSheet(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout", tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout", tint = ColorError, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text(text = "Logout Admin", color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text(text = "Logout Admin", color = ColorError, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -528,6 +545,7 @@ private fun getTabIcon(tab: AdminTab): ImageVector {
         AdminTab.CUSTOMERS -> Icons.Default.People
         AdminTab.CATEGORIES -> Icons.Default.Category
         AdminTab.REVIEWS -> Icons.Default.RateReview
+        AdminTab.REELS -> Icons.Default.PlayCircle
         AdminTab.PAYMENTS -> Icons.Default.AttachMoney
         AdminTab.REPORTS -> Icons.Default.TrendingUp
         AdminTab.SETTINGS -> Icons.Default.Settings

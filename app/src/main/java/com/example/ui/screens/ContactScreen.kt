@@ -46,15 +46,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.ShopAccentAmber
-import com.example.ui.theme.ShopOutlineLight
-import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
-import com.example.ui.theme.ShopSuccessGreen
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
+import com.example.ui.theme.*
 
 @Composable
 fun ContactScreen(
@@ -66,12 +61,12 @@ fun ContactScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF6F8FA))
+            .background(BlackBackground)
             .testTag("contact_screen")
     ) {
         // Top App Bar
         Surface(
-            color = Color.White,
+            color = BlackSurface,
             shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -90,7 +85,7 @@ fun ContactScreen(
                 }
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Contact SK Mobile",
+                    text = "Contact SK Mobile Shoppy and Electronic",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = ShopTextPrimary
@@ -109,7 +104,8 @@ fun ContactScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                    border = BorderStroke(1.dp, BlackBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
@@ -131,8 +127,8 @@ fun ContactScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "SK Mobile",
-                                    fontSize = 20.sp,
+                                    text = "SK Mobile Shoppy and Electronic",
+                                    fontSize = 18.sp,
                                     fontWeight = FontWeight.Black,
                                     color = ShopPrimaryBlue
                                 )
@@ -270,7 +266,8 @@ fun ContactScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                    border = BorderStroke(1.dp, BlackBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -283,7 +280,7 @@ fun ContactScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "How to Reach SK Mobile",
+                                text = "How to Reach SK Mobile Shoppy and Electronic",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = ShopTextPrimary
@@ -298,7 +295,7 @@ fun ContactScreen(
                                 .fillMaxWidth()
                                 .height(140.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFE2E8F0)),
+                                .background(BlackSurfaceSecondary),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -318,7 +315,7 @@ fun ContactScreen(
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "SK Mobile • Nagar Parishad Road, Udgir",
+                                    text = "SK Mobile Shoppy and Electronic • Nagar Parishad Road, Udgir",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = ShopTextPrimary
@@ -340,12 +337,13 @@ fun ContactScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                    border = BorderStroke(1.dp, BlackBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Services Available at SK Mobile",
+                            text = "Services Available at SK Mobile Shoppy and Electronic",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = ShopTextPrimary
@@ -392,7 +390,8 @@ fun ContactScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                    border = BorderStroke(1.dp, BlackBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {

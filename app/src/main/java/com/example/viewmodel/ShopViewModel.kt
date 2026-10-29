@@ -15,6 +15,7 @@ import com.example.model.CustomerReview
 import com.example.model.MockData
 import com.example.model.Product
 import com.example.model.ProductCategory
+import com.example.model.ReelItem
 import com.example.model.RepairBooking
 import com.example.model.RepairService
 import com.example.model.SellRequest
@@ -37,10 +38,13 @@ import java.util.Locale
 enum class AppScreen {
     HOME,
     PRODUCTS,
+    REELS,
     PRODUCT_DETAIL,
     CART,
     CHECKOUT,
     ORDER_SUCCESS,
+    MY_ORDERS,
+    ORDER_DETAIL,
     REPAIR_BOOKING,
     OLD_PHONE_BUY,
     SELL_OLD_PHONE,
@@ -74,6 +78,10 @@ data class ShopUiState(
     val activeRepairBookings: List<RepairBooking> = emptyList(),
     val activeSellRequests: List<SellRequest> = emptyList(),
     val pastOrders: List<ShopOrder> = emptyList(),
+    val customerOrders: List<ShopOrder> = emptyList(),
+    val selectedOrder: ShopOrder? = null,
+    val isOrdersLoading: Boolean = false,
+    val ordersErrorMessage: String? = null,
     val lastConfirmedBooking: RepairBooking? = null,
     val lastConfirmedSellRequest: SellRequest? = null,
     val lastConfirmedOrder: ShopOrder? = null,
@@ -103,7 +111,10 @@ data class ShopUiState(
     val userCity: String = "Udgir",
     val userState: String = "Maharashtra",
     val userPin: String = "413517",
-    val notifications: List<AppNotification> = emptyList()
+    val notifications: List<AppNotification> = emptyList(),
+    val reels: List<ReelItem> = MockData.defaultReels,
+    val currentReelIndex: Int = 0,
+    val isReelMuted: Boolean = false
 ) {
     val unreadNotificationCount: Int
         get() = notifications.count { !it.isRead }
@@ -160,6 +171,7 @@ class ShopViewModel(
     val uiState: StateFlow<ShopUiState> = _uiState.asStateFlow()
 
     private var notifsJob: kotlinx.coroutines.Job? = null
+    private var customerOrdersJob: kotlinx.coroutines.Job? = null
     private val notifiedTransitions = mutableSetOf<String>()
 
     fun observeCustomerNotifications(uid: String?) {
@@ -175,11 +187,49 @@ class ShopViewModel(
         }
     }
 
+    fun observeCustomerOrders(uid: String?) {
+        customerOrdersJob?.cancel()
+        if (uid.isNullOrBlank()) {
+            _uiState.update { it.copy(customerOrders = emptyList()) }
+            return
+        }
+        customerOrdersJob = viewModelScope.launch {
+            _uiState.update { it.copy(isOrdersLoading = true, ordersErrorMessage = null) }
+            try {
+                dataService.observeCustomerOrders(uid).collect { orders ->
+                    _uiState.update { current ->
+                        current.copy(
+                            customerOrders = orders,
+                            pastOrders = orders,
+                            isOrdersLoading = false,
+                            ordersErrorMessage = null
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("ShopViewModel", "Error observing customer orders: ${e.message}", e)
+                _uiState.update { it.copy(isOrdersLoading = false, ordersErrorMessage = e.message) }
+            }
+        }
+    }
+
     init {
         // Collect products continuously from DataService (reflects admin changes in real time)
         viewModelScope.launch {
             dataService.observeProducts().collect { products ->
                 _uiState.update { it.copy(products = products) }
+            }
+        }
+
+        // Collect published reels continuously from DataService
+        viewModelScope.launch {
+            dataService.observeReels().collect { allReels ->
+                val published = allReels.filter { it.isPublished }
+                _uiState.update { state ->
+                    state.copy(
+                        reels = if (published.isNotEmpty()) published else MockData.defaultReels
+                    )
+                }
             }
         }
 
@@ -285,6 +335,7 @@ class ShopViewModel(
                         )
                     }
                     observeCustomerNotifications(user.uid)
+                    observeCustomerOrders(user.uid)
                 } else {
                     _uiState.update { current ->
                         current.copy(
@@ -296,10 +347,13 @@ class ShopViewModel(
                             isGoogleLinked = false,
                             isPhoneLinked = false,
                             notifications = emptyList(),
+                            customerOrders = emptyList(),
+                            selectedOrder = null,
                             customerAuthError = null
                         )
                     }
                     observeCustomerNotifications(null)
+                    observeCustomerOrders(null)
                 }
             }
         } catch (e: Exception) {
@@ -477,50 +531,79 @@ class ShopViewModel(
         address: String,
         preferredDate: String,
         additionalDetails: String
-    ): RepairBooking {
+    ): kotlinx.coroutines.Job {
         if (_uiState.value.isSubmittingRepair) {
-            _uiState.value.lastConfirmedBooking?.let { return it }
+            Log.w("ShopViewModel", "submitRepairBooking skipped: duplicate submission prevented")
+            return kotlinx.coroutines.Job().apply { complete() }
         }
+
+        val trimmedName = customerName.trim()
+        val trimmedPhone = mobileNumber.trim()
+        val trimmedModel = model.trim()
+
+        if (trimmedName.isBlank() || trimmedPhone.isBlank() || trimmedModel.isBlank()) {
+            val err = "Please enter customer name, phone number, and device model."
+            _uiState.update { it.copy(isSubmittingRepair = false, toastMessage = err) }
+            return kotlinx.coroutines.Job().apply { complete() }
+        }
+
         _uiState.update { it.copy(isSubmittingRepair = true) }
 
-        val nextNumber = 1000 + _uiState.value.activeRepairBookings.size + repairCounter.getAndIncrement()
-        val bookingId = "SKM-REP-$nextNumber"
-        val currentUid = try {
-            FirebaseConfig.getAuth().currentUser?.uid
-        } catch (e: Exception) {
-            null
-        } ?: _uiState.value.customerUid.orEmpty()
-        val booking = RepairBooking(
-            bookingId = bookingId,
-            customerName = customerName,
-            mobileNumber = mobileNumber,
-            brand = brand,
-            model = model,
-            problem = problem,
-            pickupRequired = pickupRequired,
-            address = address,
-            preferredDate = preferredDate,
-            additionalDetails = additionalDetails,
-            status = if (pickupRequired) "Pickup Scheduled" else "Appointment Booked",
-            customerUid = currentUid
-        )
-
-        _uiState.update { state ->
-            state.copy(
-                isSubmittingRepair = false,
-                activeRepairBookings = listOf(booking) + state.activeRepairBookings,
-                lastConfirmedBooking = booking,
-                toastMessage = "Your repair request ($bookingId) has been submitted successfully."
-            )
-        }
-        viewModelScope.launch {
+        return viewModelScope.launch {
             try {
-                dataService.createRepairBooking(booking)
+                val nextNumber = 1000 + _uiState.value.activeRepairBookings.size + repairCounter.getAndIncrement()
+                val bookingId = "SKM-REP-$nextNumber"
+                val currentUid = try {
+                    FirebaseConfig.getAuth().currentUser?.uid
+                } catch (e: Exception) {
+                    null
+                } ?: _uiState.value.customerUid.orEmpty()
+
+                val booking = RepairBooking(
+                    bookingId = bookingId,
+                    customerName = trimmedName,
+                    mobileNumber = trimmedPhone,
+                    brand = brand.trim(),
+                    model = trimmedModel,
+                    problem = problem.trim(),
+                    pickupRequired = pickupRequired,
+                    address = address.trim(),
+                    preferredDate = preferredDate.trim(),
+                    additionalDetails = additionalDetails.trim(),
+                    status = if (pickupRequired) "Pickup Scheduled" else "Appointment Booked",
+                    customerUid = currentUid
+                )
+
+                val result = dataService.createRepairBooking(booking)
+                result.fold(
+                    onSuccess = { createdBooking ->
+                        _uiState.update { state ->
+                            val updatedList = listOf(createdBooking) + state.activeRepairBookings.filterNot { it.bookingId == createdBooking.bookingId }
+                            state.copy(
+                                activeRepairBookings = updatedList,
+                                lastConfirmedBooking = createdBooking,
+                                toastMessage = "Your repair request ($bookingId) has been booked successfully."
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        val errMsg = error.message ?: "Failed to book repair. Please try again."
+                        Log.e("ShopViewModel", "createRepairBooking failed: $errMsg", error)
+                        _uiState.update { state ->
+                            state.copy(toastMessage = errMsg)
+                        }
+                    }
+                )
             } catch (e: Exception) {
-                Log.w("ShopViewModel", "Repair booking offline or network fallback: ${e.message}")
+                val errMsg = e.message ?: "An unexpected error occurred while booking repair."
+                Log.e("ShopViewModel", "submitRepairBooking error", e)
+                _uiState.update { state ->
+                    state.copy(toastMessage = errMsg)
+                }
+            } finally {
+                _uiState.update { it.copy(isSubmittingRepair = false) }
             }
         }
-        return booking
     }
 
     fun submitSellRequest(
@@ -655,7 +738,9 @@ class ShopViewModel(
             current.copy(
                 isSubmittingOrder = false,
                 pastOrders = listOf(order) + current.pastOrders,
+                customerOrders = listOf(order) + current.customerOrders,
                 lastConfirmedOrder = order,
+                selectedOrder = order,
                 cartItems = emptyList(),
                 currentScreen = AppScreen.ORDER_SUCCESS,
                 screenStack = current.screenStack + AppScreen.ORDER_SUCCESS,
@@ -843,7 +928,7 @@ class ShopViewModel(
                     _uiState.update {
                         it.copy(
                             phoneVerificationId = null,
-                            toastMessage = "Phone verified successfully! Welcome to SK Mobile."
+                            toastMessage = "Phone verified successfully! Welcome to SK Mobile Shoppy and Electronic."
                         )
                     }
                     onComplete(true, null)
@@ -897,6 +982,7 @@ class ShopViewModel(
     fun logoutCustomer() {
         CustomerAuthService.signOut()
         observeCustomerNotifications(null)
+        observeCustomerOrders(null)
         notifiedTransitions.clear()
         _uiState.update {
             it.copy(
@@ -912,6 +998,8 @@ class ShopViewModel(
                 userName = "Guest Customer",
                 userPhone = "",
                 pastOrders = emptyList(),
+                customerOrders = emptyList(),
+                selectedOrder = null,
                 activeRepairBookings = emptyList(),
                 activeSellRequests = emptyList(),
                 notifications = emptyList(),
@@ -971,6 +1059,144 @@ class ShopViewModel(
                     customDeliveryAddress = address
                 )
             }
+        }
+    }
+
+    fun toggleReelLike(reelId: String) {
+        val currentReels = _uiState.value.reels
+        val reel = currentReels.find { it.id == reelId } ?: return
+        val newLiked = !reel.isLikedByMe
+        val newLikesCount = if (newLiked) reel.likesCount + 1 else (reel.likesCount - 1).coerceAtLeast(0)
+        _uiState.update { state ->
+            state.copy(
+                reels = state.reels.map {
+                    if (it.id == reelId) it.copy(isLikedByMe = newLiked, likesCount = newLikesCount) else it
+                }
+            )
+        }
+        viewModelScope.launch {
+            dataService.toggleReelLike(reelId, newLiked)
+        }
+    }
+
+    fun shareReel(reelId: String) {
+        _uiState.update { state ->
+            state.copy(
+                reels = state.reels.map {
+                    if (it.id == reelId) it.copy(sharesCount = it.sharesCount + 1) else it
+                }
+            )
+        }
+        viewModelScope.launch {
+            dataService.incrementReelShare(reelId)
+        }
+    }
+
+    fun toggleReelMute() {
+        _uiState.update { it.copy(isReelMuted = !it.isReelMuted) }
+    }
+
+    fun setCurrentReelIndex(index: Int) {
+        _uiState.update { it.copy(currentReelIndex = index) }
+    }
+
+    fun openReelProduct(productId: String) {
+        val product = _uiState.value.products.find { it.id == productId }
+        if (product != null) {
+            selectProduct(product)
+            navigateTo(AppScreen.PRODUCT_DETAIL)
+        } else {
+            navigateTo(AppScreen.PRODUCTS)
+        }
+    }
+
+    fun showToast(message: String) {
+        _uiState.update { it.copy(toastMessage = message) }
+    }
+
+    // --- CUSTOMER ORDER TRACKING ---
+
+    fun selectOrderForDetail(order: ShopOrder) {
+        _uiState.update { it.copy(selectedOrder = order) }
+        navigateTo(AppScreen.ORDER_DETAIL)
+    }
+
+    fun navigateToOrderTracking(orderId: String) {
+        val found = _uiState.value.customerOrders.find { it.orderId == orderId }
+            ?: _uiState.value.pastOrders.find { it.orderId == orderId }
+        if (found != null) {
+            selectOrderForDetail(found)
+        } else {
+            viewModelScope.launch {
+                val order = dataService.getOrderById(orderId)
+                if (order != null) {
+                    selectOrderForDetail(order)
+                } else {
+                    showToast("Order #$orderId not found")
+                }
+            }
+        }
+    }
+
+    fun refreshCustomerOrders() {
+        val uid = _uiState.value.customerUid
+        viewModelScope.launch {
+            _uiState.update { it.copy(isOrdersLoading = true, ordersErrorMessage = null) }
+            try {
+                val orders = if (!uid.isNullOrBlank()) {
+                    dataService.getCustomerOrders(uid)
+                } else {
+                    val currentPhone = _uiState.value.userPhone
+                    val currentName = _uiState.value.userName
+                    dataService.getOrders().filter {
+                        (currentPhone.isNotBlank() && it.mobileNumber == currentPhone) ||
+                        (currentName.isNotBlank() && it.customerName.equals(currentName, ignoreCase = true))
+                    }
+                }
+                _uiState.update {
+                    it.copy(
+                        customerOrders = orders,
+                        pastOrders = orders,
+                        isOrdersLoading = false,
+                        ordersErrorMessage = null
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w("ShopViewModel", "refreshCustomerOrders error", e)
+                _uiState.update {
+                    it.copy(
+                        isOrdersLoading = false,
+                        ordersErrorMessage = e.message ?: "Failed to refresh orders"
+                    )
+                }
+            }
+        }
+    }
+
+    fun cancelCustomerOrder(orderId: String, reason: String) {
+        val uid = _uiState.value.customerUid ?: "CUSTOMER"
+        viewModelScope.launch {
+            _uiState.update { it.copy(isOrdersLoading = true) }
+            val result = dataService.cancelOrder(orderId, reason, uid)
+            result.fold(
+                onSuccess = { cancelledOrder ->
+                    showToast("Order #${cancelledOrder.orderId} cancelled.")
+                    _uiState.update { current ->
+                        val updatedList = current.customerOrders.map { if (it.orderId == orderId) cancelledOrder else it }
+                        val currentSelected = if (current.selectedOrder?.orderId == orderId) cancelledOrder else current.selectedOrder
+                        current.copy(
+                            customerOrders = updatedList,
+                            pastOrders = updatedList,
+                            selectedOrder = currentSelected,
+                            isOrdersLoading = false
+                        )
+                    }
+                },
+                onFailure = { err ->
+                    showToast(err.message ?: "Failed to cancel order")
+                    _uiState.update { it.copy(isOrdersLoading = false) }
+                }
+            )
         }
     }
 }

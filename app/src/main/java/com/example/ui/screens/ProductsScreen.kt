@@ -123,12 +123,13 @@ fun ProductsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF6F8FA))
+            .background(com.example.ui.theme.BlackBackground)
             .testTag("products_catalog_screen")
     ) {
         // Top Action Bar
         Surface(
-            color = Color.White,
+            color = com.example.ui.theme.BlackSurface,
+            border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder),
             shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -264,9 +265,15 @@ fun ProductsScreen(
                             },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = ShopPrimaryBlue,
-                                selectedLabelColor = Color.White,
-                                containerColor = Color.White,
+                                selectedLabelColor = Color(0xFF0B0B0B),
+                                containerColor = com.example.ui.theme.BlackSurfaceSecondary,
                                 labelColor = ShopTextPrimary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = com.example.ui.theme.BlackBorder,
+                                selectedBorderColor = ShopPrimaryBlue
                             ),
                             shape = RoundedCornerShape(16.dp)
                         )

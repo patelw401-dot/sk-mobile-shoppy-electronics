@@ -100,8 +100,13 @@ dependencies {
   implementation(libs.coil.compose)
   implementation(libs.converter.moshi)
   implementation(libs.firebase.ai)
-  // Firestore:
+  // Firestore & Storage:
   implementation(libs.firebase.firestore)
+  implementation(libs.firebase.storage)
+
+  // Media3 ExoPlayer for Reels playback:
+  implementation(libs.media3.exoplayer)
+  implementation(libs.media3.ui)
 
   // Firebase Auth and Google Sign-In via Credential Manager:
   implementation(libs.firebase.auth)

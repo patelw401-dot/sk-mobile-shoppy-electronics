@@ -1,6 +1,8 @@
 package com.example.ui.components
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -76,16 +78,23 @@ import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
 import coil.compose.AsyncImage
 import com.example.R
+import androidx.compose.foundation.BorderStroke
 import com.example.model.RepairBooking
 import com.example.model.ShopOrder
-import com.example.ui.theme.ShopAccentAmber
-import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
-import com.example.ui.theme.ShopSuccessGreen
+import com.example.ui.theme.*
 import com.example.viewmodel.ShopUiState
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
+
+private fun Context.findActivity(): Activity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,6 +104,8 @@ fun ProfileSheet(
     onLogout: () -> Unit,
     onClearAuthError: () -> Unit,
     onUpdateProfile: (name: String, phone: String, address: String) -> Unit,
+    onViewOrders: () -> Unit = {},
+    onTrackOrder: (ShopOrder) -> Unit = {},
     onOpenAdmin: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
@@ -124,7 +135,8 @@ fun ProfileSheet(
         isGoogleLoading = true
         coroutineScope.launch {
             try {
-                val credentialManager = CredentialManager.create(context)
+                val hostActivity = context.findActivity() ?: (context as? Activity) ?: context
+                val credentialManager = CredentialManager.create(hostActivity)
                 val googleIdOption = GetSignInWithGoogleOption.Builder(webClientId)
                     .build()
 
@@ -134,7 +146,7 @@ fun ProfileSheet(
 
                 val result = credentialManager.getCredential(
                     request = request,
-                    context = context
+                    context = hostActivity
                 )
 
                 val credential = result.credential
@@ -159,7 +171,7 @@ fun ProfileSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color.White
+        containerColor = BlackSurface
     ) {
         Column(
             modifier = Modifier
@@ -209,20 +221,20 @@ fun ProfileSheet(
                             text = if (editMode) "Edit Account Info" else uiState.userName,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A)
+                            color = TextMain
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = if (uiState.isCustomerAuthenticated) Icons.Default.CheckCircle else Icons.Default.AccountCircle,
                                 contentDescription = "Status",
-                                tint = if (uiState.isCustomerAuthenticated) ShopSuccessGreen else Color(0xFF94A3B8),
+                                tint = if (uiState.isCustomerAuthenticated) ShopSuccessGreen else TextSecondary,
                                 modifier = Modifier.size(13.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = if (uiState.isCustomerAuthenticated) "Verified Customer • Udgir" else "Guest Mode • Public Browsing",
                                 fontSize = 11.sp,
-                                color = if (uiState.isCustomerAuthenticated) ShopSuccessGreen else Color(0xFF64748B),
+                                color = if (uiState.isCustomerAuthenticated) ShopSuccessGreen else TextSecondary,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -230,7 +242,7 @@ fun ProfileSheet(
                 }
 
                 IconButton(onClick = onDismiss) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextMain)
                 }
             }
 
@@ -239,8 +251,9 @@ fun ProfileSheet(
             // Error Banner
             if (uiState.customerAuthError != null) {
                 Surface(
-                    color = Color(0xFFFEF2F2),
+                    color = BlackSurfaceSecondary,
                     shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, ColorError),
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                 ) {
                     Row(
@@ -250,19 +263,19 @@ fun ProfileSheet(
                         Icon(
                             imageVector = Icons.Default.Shield,
                             contentDescription = "Error",
-                            tint = Color(0xFFDC2626),
+                            tint = ColorError,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = uiState.customerAuthError,
-                            color = Color(0xFFDC2626),
+                            color = ColorError,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(onClick = onClearAuthError, modifier = Modifier.size(20.dp)) {
-                            Icon(imageVector = Icons.Default.Close, contentDescription = "Dismiss", tint = Color(0xFFDC2626))
+                            Icon(imageVector = Icons.Default.Close, contentDescription = "Dismiss", tint = ColorError)
                         }
                     }
                 }
@@ -275,20 +288,21 @@ fun ProfileSheet(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC))
+                    colors = CardDefaults.cardColors(containerColor = BlackSurfaceSecondary),
+                    border = BorderStroke(1.dp, BlackBorder)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Sign in to SK Mobile",
+                            text = "Sign in to SK Mobile Shoppy and Electronic",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A)
+                            color = TextMain
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Browse items freely without login. Sign in with your Google account to place orders, book repairs, and access your order history.",
                             fontSize = 12.sp,
-                            color = Color(0xFF64748B),
+                            color = TextSecondary,
                             lineHeight = 16.sp
                         )
 
@@ -301,12 +315,12 @@ fun ProfileSheet(
                                 .fillMaxWidth()
                                 .height(48.dp)
                                 .testTag("customer_google_signin_btn"),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A)),
+                            colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color(0xFF0B0B0B)),
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             if (isGoogleLoading || uiState.isLoading) {
                                 CircularProgressIndicator(
-                                    color = Color.White,
+                                    color = Color(0xFF0B0B0B),
                                     modifier = Modifier.size(18.dp),
                                     strokeWidth = 2.dp
                                 )
@@ -315,13 +329,13 @@ fun ProfileSheet(
                                     text = "Signing In...",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color.White
+                                    color = Color(0xFF0B0B0B)
                                 )
                             } else {
                                 Icon(
                                     imageVector = Icons.Default.Email,
                                     contentDescription = "Google",
-                                    tint = Color.White,
+                                    tint = Color(0xFF0B0B0B),
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
@@ -329,7 +343,7 @@ fun ProfileSheet(
                                     text = "Continue with Google",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = Color(0xFF0B0B0B)
                                 )
                             }
                         }
@@ -346,7 +360,8 @@ fun ProfileSheet(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC))
+                    colors = CardDefaults.cardColors(containerColor = BlackSurfaceSecondary),
+                    border = BorderStroke(1.dp, BlackBorder)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Row(
@@ -358,12 +373,12 @@ fun ProfileSheet(
                                 text = "Account Details",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF0F172A)
+                                color = TextMain
                             )
 
                             Button(
                                 onClick = onLogout,
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEE2E2), contentColor = Color(0xFFDC2626)),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF331414), contentColor = ColorError),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.testTag("customer_logout_btn")
                             ) {
@@ -381,7 +396,7 @@ fun ProfileSheet(
                                 Icon(
                                     imageVector = Icons.Default.Email,
                                     contentDescription = "Email",
-                                    tint = ShopPrimaryBlue,
+                                    tint = GoldPrimary,
                                     modifier = Modifier.size(15.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -389,7 +404,7 @@ fun ProfileSheet(
                                     text = uiState.customerEmail,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF1E293B)
+                                    color = TextMain
                                 )
                             }
                             Spacer(modifier = Modifier.height(6.dp))
@@ -401,7 +416,7 @@ fun ProfileSheet(
                                 Icon(
                                     imageVector = Icons.Default.Phone,
                                     contentDescription = "Phone",
-                                    tint = ShopPrimaryBlue,
+                                    tint = GoldPrimary,
                                     modifier = Modifier.size(15.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -409,7 +424,7 @@ fun ProfileSheet(
                                     text = uiState.customerPhone,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF1E293B)
+                                    color = TextMain
                                 )
                             }
                             Spacer(modifier = Modifier.height(6.dp))
@@ -420,19 +435,19 @@ fun ProfileSheet(
                             Icon(
                                 imageVector = Icons.Default.LocationOn,
                                 contentDescription = "Address",
-                                tint = ShopPrimaryBlue,
+                                tint = GoldPrimary,
                                 modifier = Modifier.size(15.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "${uiState.userAddress}, ${uiState.userCity} ${uiState.userPin}",
                                 fontSize = 12.sp,
-                                color = Color(0xFF475569)
+                                color = TextSecondary
                             )
                         }
 
                         Spacer(modifier = Modifier.height(10.dp))
-                        HorizontalDivider(color = Color(0xFFE2E8F0))
+                        HorizontalDivider(color = BlackBorder)
                         Spacer(modifier = Modifier.height(10.dp))
 
                         // Sign-In Method (Phase 11: Google-Only Authentication)
@@ -440,7 +455,7 @@ fun ProfileSheet(
                             text = "Authentication Method",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF334155)
+                            color = TextMain
                         )
                         Spacer(modifier = Modifier.height(6.dp))
 
@@ -503,7 +518,7 @@ fun ProfileSheet(
                         editMode = false
                     },
                     modifier = Modifier.fillMaxWidth().testTag("save_profile_button"),
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color(0xFF0B0B0B))
                 ) {
                     Text("Save Address Details", fontWeight = FontWeight.Bold)
                 }
@@ -514,7 +529,8 @@ fun ProfileSheet(
                 ) {
                     Button(
                         onClick = { editMode = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryLightBlue, contentColor = ShopPrimaryBlue),
+                        colors = ButtonDefaults.buttonColors(containerColor = BlackSurfaceSecondary, contentColor = GoldPrimary),
+                        border = BorderStroke(1.dp, GoldPrimary),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.testTag("edit_profile_btn")
                     ) {
@@ -532,7 +548,7 @@ fun ProfileSheet(
                 text = "Active Repair Trackers (${uiState.activeRepairBookings.size})",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF0F172A)
+                color = TextMain
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -541,13 +557,14 @@ fun ProfileSheet(
                 Text(
                     text = "No active repairs. Book online anytime for fast doorstep pickup in Udgir!",
                     fontSize = 12.sp,
-                    color = Color(0xFF64748B)
+                    color = TextSecondary
                 )
             } else {
                 uiState.activeRepairBookings.forEach { booking ->
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                        colors = CardDefaults.cardColors(containerColor = BlackSurfaceSecondary),
+                        border = BorderStroke(1.dp, BlackBorder),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Row(
@@ -559,7 +576,7 @@ fun ProfileSheet(
                                 Icon(
                                     imageVector = Icons.Default.Build,
                                     contentDescription = "Repair",
-                                    tint = ShopSuccessGreen,
+                                    tint = GoldPrimary,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
@@ -568,23 +585,24 @@ fun ProfileSheet(
                                         text = "${booking.bookingId} • ${booking.brand} ${booking.model}",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0F172A)
+                                        color = TextMain
                                     )
                                     Text(
                                         text = booking.problem,
                                         fontSize = 11.sp,
-                                        color = Color(0xFF475569)
+                                        color = TextSecondary
                                     )
                                 }
                             }
 
                             Surface(
-                                color = ShopSuccessGreen,
+                                color = BlackSurface,
+                                border = BorderStroke(1.dp, GoldPrimary),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
                                     text = booking.status,
-                                    color = Color.White,
+                                    color = GoldPrimary,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
@@ -598,12 +616,33 @@ fun ProfileSheet(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Recent Orders Quick Status (Requirement 4: Private customer records)
-            Text(
-                text = "Recent Orders (${uiState.pastOrders.size})",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF0F172A)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Recent Orders (${uiState.pastOrders.size})",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextMain
+                )
+
+                if (uiState.pastOrders.isNotEmpty()) {
+                    Text(
+                        text = "View All & Track →",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = GoldPrimary,
+                        modifier = Modifier
+                            .clickable {
+                                onViewOrders()
+                                onDismiss()
+                            }
+                            .padding(4.dp)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -611,13 +650,20 @@ fun ProfileSheet(
                 Text(
                     text = "No previous orders yet. Browse our store for great discounts!",
                     fontSize = 12.sp,
-                    color = Color(0xFF64748B)
+                    color = TextSecondary
                 )
             } else {
                 uiState.pastOrders.take(3).forEach { order ->
                     Card(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable {
+                                onTrackOrder(order)
+                                onDismiss()
+                            },
+                        colors = CardDefaults.cardColors(containerColor = BlackSurfaceSecondary),
+                        border = BorderStroke(1.dp, BlackBorder),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Row(
@@ -625,25 +671,28 @@ fun ProfileSheet(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "${order.orderId} • ₹${order.totalAmount}",
                                     fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextMain
                                 )
                                 Text(
                                     text = "${order.items.size} item(s) • ${order.orderDate}",
                                     fontSize = 11.sp,
-                                    color = Color(0xFF64748B)
+                                    color = TextSecondary
                                 )
                             }
+                            Spacer(modifier = Modifier.width(8.dp))
                             Surface(
-                                color = ShopPrimaryLightBlue,
+                                color = BlackSurface,
+                                border = BorderStroke(1.dp, GoldPrimary),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
                                     text = order.status,
-                                    color = ShopPrimaryBlue,
+                                    color = GoldPrimary,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
@@ -655,7 +704,7 @@ fun ProfileSheet(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-            HorizontalDivider(color = Color(0xFFE2E8F0))
+            HorizontalDivider(color = BlackBorder)
             Spacer(modifier = Modifier.height(14.dp))
 
             // Admin Portal Link
@@ -665,11 +714,12 @@ fun ProfileSheet(
                     onOpenAdmin()
                 },
                 modifier = Modifier.fillMaxWidth().height(42.dp).testTag("open_admin_portal_btn"),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, GoldPrimary)
             ) {
-                Icon(imageVector = Icons.Default.Build, contentDescription = "Admin", modifier = Modifier.size(16.dp), tint = Color(0xFF0F172A))
+                Icon(imageVector = Icons.Default.Build, contentDescription = "Admin", modifier = Modifier.size(16.dp), tint = GoldPrimary)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Store Admin Portal Login", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                Text(text = "Store Admin Portal Login", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GoldPrimary)
             }
         }
     }

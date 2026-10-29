@@ -175,7 +175,7 @@ fun OldPhoneScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "SK Mobile technician will inspect your phone at ${lastConfirmedSellRequest.address} in Udgir and hand over instant cash or UPI payment on the spot!",
+                        text = "SK Mobile Shoppy and Electronic technician will inspect your phone at ${lastConfirmedSellRequest.address} in Udgir and hand over instant cash or UPI payment on the spot!",
                         fontSize = 12.sp,
                         color = ShopTextSecondary,
                         lineHeight = 17.sp
@@ -185,10 +185,10 @@ fun OldPhoneScreen(
             confirmButton = {
                 Button(
                     onClick = onDismissSellDialog,
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color(0xFF0B0B0B)),
                     modifier = Modifier.fillMaxWidth().testTag("sell_dialog_ok_btn")
                 ) {
-                    Text("OK, View Tracking", fontWeight = FontWeight.Bold)
+                    Text("OK, View Tracking", fontWeight = FontWeight.Bold, color = Color(0xFF0B0B0B))
                 }
             }
         )
@@ -197,12 +197,13 @@ fun OldPhoneScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF6F8FA))
+            .background(com.example.ui.theme.BlackBackground)
             .testTag("old_phone_screen")
     ) {
         // Top App Bar
         Surface(
-            color = Color.White,
+            color = com.example.ui.theme.BlackSurface,
+            border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder),
             shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -231,7 +232,7 @@ fun OldPhoneScreen(
 
                 TabRow(
                     selectedTabIndex = selectedTab,
-                    containerColor = Color.White,
+                    containerColor = com.example.ui.theme.BlackSurface,
                     contentColor = ShopPrimaryBlue,
                     indicator = { tabPositions ->
                         TabRowDefaults.SecondaryIndicator(
@@ -247,7 +248,8 @@ fun OldPhoneScreen(
                             Text(
                                 text = "Buy Certified Old Phones",
                                 fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 13.sp
+                                fontSize = 13.sp,
+                                color = if (selectedTab == 0) com.example.ui.theme.GoldHighlight else ShopTextSecondary
                             )
                         }
                     )
@@ -259,7 +261,8 @@ fun OldPhoneScreen(
                             Text(
                                 text = "Sell Your Phone (Instant Cash)",
                                 fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium,
-                                fontSize = 13.sp
+                                fontSize = 13.sp,
+                                color = if (selectedTab == 1) com.example.ui.theme.GoldHighlight else ShopTextSecondary
                             )
                         }
                     )
@@ -281,14 +284,15 @@ fun OldPhoneScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
+                        colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.BlackSurface),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Verified,
                                     contentDescription = "Verified",
-                                    tint = Color(0xFFF59E0B),
+                                    tint = com.example.ui.theme.GoldHighlight,
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -301,9 +305,9 @@ fun OldPhoneScreen(
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Every refurbished phone is inspected via a 32-point technical diagnostic test. Comes with 6 Months SK Mobile warranty card & invoice.",
+                                text = "Every refurbished phone is inspected via a 32-point technical diagnostic test. Comes with 6 Months SK Mobile Shoppy and Electronic warranty card & invoice.",
                                 fontSize = 12.sp,
-                                color = Color(0xFFCBD5E1),
+                                color = com.example.ui.theme.TextSecondary,
                                 lineHeight = 16.sp
                             )
                         }

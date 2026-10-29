@@ -8,6 +8,7 @@ import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -62,6 +63,27 @@ fun AppBottomNavBar(
                     text = "Home",
                     fontSize = 11.sp,
                     fontWeight = if (currentScreen == AppScreen.HOME) FontWeight.Bold else FontWeight.Normal
+                )
+            },
+            colors = navItemColors()
+        )
+
+        // Reels Tab (Vertical Video Showcase)
+        NavigationBarItem(
+            selected = currentScreen == AppScreen.REELS,
+            onClick = { onNavigate(AppScreen.REELS) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.PlayCircle,
+                    contentDescription = "Reels",
+                    modifier = Modifier.size(22.dp)
+                )
+            },
+            label = {
+                Text(
+                    text = "Reels",
+                    fontSize = 11.sp,
+                    fontWeight = if (currentScreen == AppScreen.REELS) FontWeight.Bold else FontWeight.Normal
                 )
             },
             colors = navItemColors()

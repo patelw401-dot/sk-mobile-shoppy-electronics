@@ -77,7 +77,7 @@ data class RepairBooking(
     val pickupRequired: Boolean,
     val address: String,
     val preferredDate: String,
-    val additionalDetails: String,
+    val additionalDetails: String = "",
     val status: String = "Submitted Successfully",
     val estimatedCost: String = "₹499 - ₹1,499",
     val bookingTimestamp: Long = System.currentTimeMillis(),
@@ -147,7 +147,12 @@ data class ShopOrder(
     val paymentGatewayRef: String = "",
     val transactionStatus: String = "",
     val bankSettlementStatus: String = "Unsettled",
-    val idempotencyKey: String = ""
+    val idempotencyKey: String = "",
+    val statusHistory: List<OrderStatusHistoryEntry> = emptyList(),
+    val lastUpdated: Long = System.currentTimeMillis(),
+    val cancellationReason: String? = null,
+    val trackingNumber: String? = null,
+    val estimatedDeliveryDate: String? = null
 ) {
     val id: String get() = orderId
     val customerId: String get() = if (customerUid.isNotBlank()) customerUid else "CUST-${customerName.hashCode().let { if (it < 0) -it else it }}"
@@ -164,4 +169,7 @@ data class ShopOrder(
     val deliveryCharge: Int get() = deliveryFee
     val total: Int get() = totalAmount
     val createdAt: Long get() = System.currentTimeMillis()
+    val trackingStage: OrderTrackingStage get() = OrderTrackingStage.fromStatus(status)
+    val isCancelled: Boolean get() = trackingStage == OrderTrackingStage.CANCELLED
+    val isDelivered: Boolean get() = trackingStage == OrderTrackingStage.DELIVERED
 }
