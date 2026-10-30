@@ -1,47 +1,6 @@
-
-name: SK Mobile Android APK Build
-
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout project
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '9.3.1'
-
-      - name: Accept Android SDK licenses
-        run: |
-          yes | sdkmanager --licenses || true
-
-      - name: Install Android SDK packages
-        run: |
-          sdkmanager --install "platforms;android-36"
-          sdkmanager --install "build-tools;36.0.0"
-
-      - name: Build Debug APK
-        run: gradle assembleDebug --stacktrace
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: SK-Mobile-Debug-APK
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-          
+- name: Set up Android SDK
+  uses: android-actions/setup-android@v3
+  with:
+    packages: |
+      platforms;android-36
+      build-tools;36.0.0
