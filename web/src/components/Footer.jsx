@@ -115,6 +115,18 @@ export default function Footer({ setActivePage }) {
                 </button>
               </li>
               <li>
+                <button onClick={() => handleNav('cart')} className="hover:text-[#D4AF37] transition flex items-center gap-1">
+                  <ChevronRight size={12} className="text-[#D4AF37]" />
+                  Shopping Cart & Checkout
+                </button>
+              </li>
+              <li>
+                <button onClick={() => handleNav('my-orders')} className="hover:text-[#D4AF37] transition flex items-center gap-1">
+                  <ChevronRight size={12} className="text-[#D4AF37]" />
+                  Track Orders (My Orders)
+                </button>
+              </li>
+              <li>
                 <button onClick={() => handleNav('contact')} className="hover:text-[#D4AF37] transition flex items-center gap-1">
                   <ChevronRight size={12} className="text-[#D4AF37]" />
                   Store Location & Directions

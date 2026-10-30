@@ -33,9 +33,11 @@ import {
   Layers,
   Calendar,
   DollarSign,
-  Package
+  Package,
+  ShoppingBag
 } from 'lucide-react';
 import ProductManagementTab from '../components/ProductManagementTab';
+import OrdersManagementTab from '../components/OrdersManagementTab';
 
 export default function AdminDashboardPage({ currentUser, setActivePage, onShowToast }) {
   const [activeTab, setActiveTab] = useState('repairs'); // 'repairs' | 'old-phones' | 'products' | 'system'
@@ -399,6 +401,18 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
         </button>
 
         <button
+          onClick={() => setActiveTab('orders')}
+          className={`py-3 px-4 font-bold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition whitespace-nowrap ${
+            activeTab === 'orders'
+              ? 'border-[#D4AF37] text-[#D4AF37] bg-[#D4AF37]/5'
+              : 'border-transparent text-gray-400 hover:text-white'
+          }`}
+        >
+          <ShoppingBag size={16} />
+          <span>Orders Management</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('products')}
           className={`py-3 px-4 font-bold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition whitespace-nowrap ${
             activeTab === 'products'
@@ -653,6 +667,14 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
             </div>
           )}
         </div>
+      )}
+
+      {/* ----------------- TAB: ORDERS MANAGEMENT ----------------- */}
+      {activeTab === 'orders' && (
+        <OrdersManagementTab
+          currentUser={currentUser}
+          onShowToast={onShowToast}
+        />
       )}
 
       {/* ----------------- TAB 3: PRODUCT MANAGEMENT (CRUD) ----------------- */}

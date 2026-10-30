@@ -11,12 +11,14 @@ import {
   X, 
   User, 
   ShoppingBag,
+  ShoppingCart,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Package
 } from 'lucide-react';
 import { isUserAdmin } from '../firebase';
 
-export default function Navbar({ activePage, setActivePage, currentUser }) {
+export default function Navbar({ activePage, setActivePage, currentUser, cartCount = 0 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
@@ -152,6 +154,27 @@ export default function Navbar({ activePage, setActivePage, currentUser }) {
             <span>Admin Portal</span>
           </button>
 
+          {/* Cart Button */}
+          <button
+            onClick={() => handleNavClick('cart')}
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+              activePage === 'cart' || activePage === 'checkout'
+                ? 'bg-[#D4AF37] text-black border-[#D4AF37] shadow-md shadow-[#D4AF37]/20'
+                : 'border-[#333333] bg-[#141414] text-gray-200 hover:border-[#D4AF37] hover:text-[#D4AF37]'
+            }`}
+            title="View Shopping Cart"
+          >
+            <ShoppingCart size={15} />
+            <span className="hidden sm:inline">Cart</span>
+            {cartCount > 0 && (
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                activePage === 'cart' ? 'bg-black text-[#D4AF37]' : 'bg-[#D4AF37] text-black'
+              }`}>
+                {cartCount}
+              </span>
+            )}
+          </button>
+
           <button
             onClick={() => handleNavClick('repairs')}
             className="gold-btn !text-xs !py-2 !px-3.5 shadow-sm"
@@ -221,6 +244,33 @@ export default function Navbar({ activePage, setActivePage, currentUser }) {
               <span className="text-[10px] bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded font-extrabold border border-amber-400/30">
                 {isUserAdmin(currentUser) ? 'Verified' : 'Portal'}
               </span>
+            </button>
+          </div>
+
+          {/* Cart & Orders Quick Access in Mobile Menu */}
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#262626]">
+            <button
+              onClick={() => handleNavClick('cart')}
+              className={`p-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
+                activePage === 'cart' || activePage === 'checkout'
+                  ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
+                  : 'bg-[#181818] text-white border-[#333333]'
+              }`}
+            >
+              <ShoppingCart size={15} />
+              <span>Cart {cartCount > 0 ? `(${cartCount})` : ''}</span>
+            </button>
+
+            <button
+              onClick={() => handleNavClick('my-orders')}
+              className={`p-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 border transition-all ${
+                activePage === 'my-orders'
+                  ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
+                  : 'bg-[#181818] text-white border-[#333333]'
+              }`}
+            >
+              <Package size={15} />
+              <span>My Orders</span>
             </button>
           </div>
 

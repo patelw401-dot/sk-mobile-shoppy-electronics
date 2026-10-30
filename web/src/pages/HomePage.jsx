@@ -15,7 +15,7 @@ import {
   Headphones
 } from 'lucide-react';
 
-export default function HomePage({ setActivePage, setSelectedProduct }) {
+export default function HomePage({ setActivePage, setSelectedProduct, onAddToCart, onBuyNow }) {
   const featuredPhones = REAL_PRODUCTS.slice(0, 4);
   const featuredOldPhones = PRE_OWNED_PHONES.slice(0, 3);
 
@@ -122,6 +122,8 @@ export default function HomePage({ setActivePage, setSelectedProduct }) {
             <ProductCard
               key={phone.id}
               product={phone}
+              onAddToCart={onAddToCart}
+              onBuyNow={onBuyNow}
               onAction={() => setActivePage('products')}
             />
           ))}

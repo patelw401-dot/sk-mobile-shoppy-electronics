@@ -16,7 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-export default function AccessoriesPage({ onShowToast }) {
+export default function AccessoriesPage({ onShowToast, onAddToCart, onBuyNow }) {
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Firestore integration state
@@ -197,6 +197,8 @@ export default function AccessoriesPage({ onShowToast }) {
           <ProductCard
             key={item.id}
             product={item}
+            onAddToCart={onAddToCart}
+            onBuyNow={onBuyNow}
             onAction={(p) => {
               onShowToast?.(`Inquiry for ${p.name} noted. Available in-store at Nagar Parishad, Udgir.`);
             }}

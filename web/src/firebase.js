@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp } from 'firebase/firestore';
 import { 
   getAuth, 
   onAuthStateChanged, 
@@ -510,5 +510,194 @@ export async function seedDefaultProductsToFirestore(currentUser, initialItems =
 
   return { success: true, seededCount: results.length };
 }
+
+/**
+ * -------------------------------------------------------------
+ * E-COMMERCE ORDERS - FIRESTORE ORDERS COLLECTION
+ * -------------------------------------------------------------
+ * Rules:
+ * match /orders/{orderId} {
+ *   allow read: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+ *   allow create: if isAdmin() || (
+ *     isAuthenticated() &&
+ *     request.resource.data.customerId == request.auth.uid &&
+ *     request.resource.data.customerName is string && request.resource.data.customerName.size() > 0 &&
+ *     request.resource.data.phone is string && request.resource.data.phone.size() >= 10 &&
+ *     request.resource.data.address is string && request.resource.data.address.size() > 0 &&
+ *     request.resource.data.items is list && request.resource.data.items.size() > 0 &&
+ *     request.resource.data.total is int && request.resource.data.total >= 0 &&
+ *     request.resource.data.orderStatus in ['Pending', 'Order Confirmed', 'Processing', 'Order Placed'] &&
+ *     request.resource.data.paymentStatus in ['Pending', 'Paid']
+ *   );
+ * }
+ */
+
+/**
+ * Create a new customer order in Firestore 'orders' collection.
+ */
+export async function createCustomerOrderInFirestore(orderData, currentUser) {
+  if (!currentUser || !currentUser.uid) {
+    throw new Error('Authentication required: Please sign in with your customer account to place an order.');
+  }
+
+  const customerName = (orderData.customerName || currentUser.displayName || '').trim();
+  const phone = (orderData.phone || orderData.mobileNumber || '').trim();
+  const address = (orderData.address || '').trim();
+  const pincode = (orderData.pincode || orderData.pinCode || '').trim();
+  const items = Array.isArray(orderData.items) ? orderData.items : [];
+
+  if (!customerName) {
+    throw new Error('Customer full name is required.');
+  }
+  if (!phone || phone.replace(/\D/g, '').length < 10) {
+    throw new Error('Please provide a valid 10-digit mobile number.');
+  }
+  if (!address) {
+    throw new Error('Delivery address or store pickup location note is required.');
+  }
+  if (items.length === 0) {
+    throw new Error('Your cart is empty. Please add items before placing an order.');
+  }
+
+  // Calculate integer total
+  const calculatedTotal = items.reduce((sum, item) => {
+    const p = typeof item.price === 'number' ? item.price : (parseFloat(item.price) || 0);
+    const q = typeof item.quantity === 'number' ? item.quantity : (parseInt(item.quantity, 10) || 1);
+    return sum + (p * q);
+  }, 0);
+
+  const finalTotal = Math.round(Number(orderData.total !== undefined ? orderData.total : calculatedTotal));
+
+  // Generate unique order ID
+  const orderDocId = orderData.orderId || `SKM-ORD-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+  const orderRef = doc(db, 'orders', orderDocId);
+
+  // Clean items list
+  const sanitizedItems = items.map(item => ({
+    id: item.id || '',
+    name: item.name || 'Product',
+    brand: item.brand || '',
+    category: item.category || 'smartphones',
+    price: Math.round(Number(item.price) || 0),
+    quantity: parseInt(item.quantity, 10) || 1,
+    imageUrl: item.imageUrl || item.image || '',
+    subtotal: Math.round((Number(item.price) || 0) * (parseInt(item.quantity, 10) || 1))
+  }));
+
+  const payload = {
+    id: orderDocId,
+    orderId: orderDocId,
+    customerId: currentUser.uid,
+    customerEmail: currentUser.email || '',
+    customerName,
+    phone,
+    address,
+    pincode: pincode || '413517',
+    city: (orderData.city || 'Udgir').trim(),
+    state: (orderData.state || 'Maharashtra').trim(),
+    deliveryType: orderData.deliveryType || 'Store Pickup (Udgir Showroom)',
+    paymentMethod: orderData.paymentMethod || 'Cash on Delivery (COD)',
+    paymentStatus: 'Pending',
+    orderStatus: 'Pending',
+    items: sanitizedItems,
+    total: finalTotal,
+    notes: (orderData.notes || '').trim(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  };
+
+  await setDoc(orderRef, payload);
+
+  return {
+    success: true,
+    orderId: orderDocId,
+    order: payload
+  };
+}
+
+/**
+ * Fetch orders placed by the current customer.
+ */
+export async function fetchCustomerOrders(currentUser) {
+  if (!currentUser || !currentUser.uid) return [];
+  try {
+    const ordersRef = collection(db, 'orders');
+    const q = query(ordersRef, where('customerId', '==', currentUser.uid));
+    const snap = await getDocs(q);
+    const list = [];
+    snap.forEach(d => {
+      list.push({ id: d.id, ...d.data() });
+    });
+    return list.sort((a, b) => {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
+      return timeB - timeA;
+    });
+  } catch (err) {
+    console.error("fetchCustomerOrders error:", err);
+    return [];
+  }
+}
+
+/**
+ * Cancel an active customer order (before delivery).
+ */
+export async function cancelCustomerOrder(orderId, currentUser, reason = 'Cancelled by customer') {
+  if (!currentUser || !currentUser.uid) {
+    throw new Error('Authentication required.');
+  }
+  const orderRef = doc(db, 'orders', orderId);
+  await updateDoc(orderRef, {
+    orderStatus: 'Cancelled',
+    cancellationReason: reason,
+    updatedAt: serverTimestamp()
+  });
+  return true;
+}
+
+/**
+ * Fetch all customer orders for Store Admin review.
+ */
+export async function fetchAdminOrders() {
+  try {
+    const ordersRef = collection(db, 'orders');
+    const snap = await getDocs(ordersRef);
+    const list = [];
+    snap.forEach(d => {
+      list.push({ id: d.id, ...d.data() });
+    });
+    return list.sort((a, b) => {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
+      return timeB - timeA;
+    });
+  } catch (err) {
+    console.error("fetchAdminOrders error:", err);
+    throw err;
+  }
+}
+
+/**
+ * Update order status by Store Administrator.
+ * Permitted statuses: Pending, Confirmed, Processing, Shipped, Delivered, Cancelled
+ */
+export async function updateAdminOrderStatus(orderId, newStatus, adminEmail, adminNote = '') {
+  const orderRef = doc(db, 'orders', orderId);
+  const updates = {
+    orderStatus: newStatus,
+    status: newStatus,
+    lastUpdatedBy: adminEmail || 'Store Admin',
+    updatedAt: serverTimestamp()
+  };
+  if (adminNote) {
+    updates.adminNote = adminNote;
+  }
+  if (newStatus === 'Delivered') {
+    updates.paymentStatus = 'Paid';
+  }
+  await updateDoc(orderRef, updates);
+  return true;
+}
+
 
 

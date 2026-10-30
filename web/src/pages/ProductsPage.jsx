@@ -11,10 +11,12 @@ import {
   X, 
   Database, 
   RefreshCw, 
-  AlertCircle
+  AlertCircle,
+  ShoppingCart,
+  Zap
 } from 'lucide-react';
 
-export default function ProductsPage({ onShowToast }) {
+export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow }) {
   const [selectedBrand, setSelectedBrand] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('featured');
@@ -258,6 +260,8 @@ export default function ProductsPage({ onShowToast }) {
               product={product}
               onSelect={(p) => setSelectedProduct(p)}
               onAction={(p) => setSelectedProduct(p)}
+              onAddToCart={onAddToCart}
+              onBuyNow={onBuyNow}
             />
           ))}
         </div>
@@ -331,23 +335,48 @@ export default function ProductsPage({ onShowToast }) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
-              <a
-                href={`tel:${STORE_INFO.phone}`}
-                className="gold-btn flex-1 !py-2.5 text-center"
-              >
-                <Phone size={16} />
-                <span>Call Store to Reserve / Inquire</span>
-              </a>
-              <button
-                onClick={() => {
-                  setSelectedProduct(null);
-                  onShowToast?.(`Inquiry noted for ${selectedProduct.name}. Call +91 9823109313 for instant store hold.`);
-                }}
-                className="outline-gold-btn px-4"
-              >
-                Close
-              </button>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onAddToCart?.(selectedProduct);
+                    setSelectedProduct(null);
+                  }}
+                  className="py-3 px-4 rounded-xl text-xs font-bold bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333] hover:border-[#D4AF37] transition flex items-center justify-center gap-2"
+                >
+                  <ShoppingCart size={15} className="text-[#D4AF37]" />
+                  <span>Add to Cart</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onBuyNow ? onBuyNow(selectedProduct) : onAddToCart?.(selectedProduct);
+                    setSelectedProduct(null);
+                  }}
+                  className="gold-btn !text-xs !py-3 flex items-center justify-center gap-1.5 font-bold shadow-md shadow-[#D4AF37]/20"
+                >
+                  <Zap size={15} />
+                  <span>Buy Now</span>
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                <a
+                  href={`tel:${STORE_INFO.phone}`}
+                  className="flex-1 py-2.5 px-3 rounded-xl bg-[#141414] hover:bg-[#1C1C1C] text-gray-300 hover:text-white border border-[#2E2E2E] text-xs font-semibold flex items-center justify-center gap-2 transition"
+                >
+                  <Phone size={14} className="text-[#D4AF37]" />
+                  <span>Call Store ({STORE_INFO.displayPhone})</span>
+                </a>
+                <button
+                  onClick={() => setSelectedProduct(null)}
+                  className="outline-gold-btn !text-xs px-4"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

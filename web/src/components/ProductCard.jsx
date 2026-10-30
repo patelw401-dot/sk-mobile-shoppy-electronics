@@ -1,7 +1,7 @@
 import React from 'react';
-import { Star, ShieldCheck, BatteryCharging, CheckCircle, Tag } from 'lucide-react';
+import { Star, ShieldCheck, BatteryCharging, Tag, ShoppingCart, Zap } from 'lucide-react';
 
-export default function ProductCard({ product, onSelect, onAction }) {
+export default function ProductCard({ product, onSelect, onAction, onAddToCart, onBuyNow }) {
   const discountPercent = product.originalPrice && product.originalPrice > product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
@@ -28,7 +28,10 @@ export default function ProductCard({ product, onSelect, onAction }) {
       </div>
 
       {/* Product Image / Icon placeholder with sleek modern backdrop */}
-      <div className="h-44 rounded-xl bg-gradient-to-b from-[#1C1C1C] to-[#121212] border border-[#222222] flex flex-col items-center justify-center p-3 text-center mb-4 relative overflow-hidden group-hover:border-[#D4AF37]/30 transition-all">
+      <div 
+        onClick={() => onSelect?.(product)}
+        className="h-44 rounded-xl bg-gradient-to-b from-[#1C1C1C] to-[#121212] border border-[#222222] flex flex-col items-center justify-center p-3 text-center mb-4 relative overflow-hidden group-hover:border-[#D4AF37]/30 transition-all cursor-pointer"
+      >
         {product.imageUrl ? (
           <img 
             src={product.imageUrl} 
@@ -61,7 +64,10 @@ export default function ProductCard({ product, onSelect, onAction }) {
 
       {/* Info Section */}
       <div className="flex-1 flex flex-col">
-        <h3 className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors line-clamp-2 mb-1">
+        <h3 
+          onClick={() => onSelect?.(product)}
+          className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors line-clamp-2 mb-1 cursor-pointer"
+        >
           {product.name}
         </h3>
 
@@ -95,48 +101,79 @@ export default function ProductCard({ product, onSelect, onAction }) {
         )}
 
         {/* Price & Action */}
-        <div className="mt-auto pt-3 border-t border-[#222222] flex items-center justify-between gap-2">
-          <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-base font-extrabold text-[#D4AF37]">
-                ₹{product.price.toLocaleString('en-IN')}
-              </span>
-              {product.originalPrice && product.originalPrice > product.price && (
-                <span className="text-xs text-gray-500 line-through">
-                  ₹{product.originalPrice.toLocaleString('en-IN')}
+        <div className="mt-auto pt-3 border-t border-[#222222] space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-base font-extrabold text-[#D4AF37]">
+                  ₹{product.price.toLocaleString('en-IN')}
                 </span>
+                {product.originalPrice && product.originalPrice > product.price && (
+                  <span className="text-xs text-gray-500 line-through">
+                    ₹{product.originalPrice.toLocaleString('en-IN')}
+                  </span>
+                )}
+              </div>
+              {product.inStock === false || (product.stock !== undefined && product.stock <= 0) ? (
+                <p className="text-[10px] text-red-400 font-bold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                  <span>Out of Stock</span>
+                </p>
+              ) : (
+                <p className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span>In Stock • Udgir Store</span>
+                </p>
               )}
             </div>
-            {product.inStock === false || (product.stock !== undefined && product.stock <= 0) ? (
-              <p className="text-[10px] text-red-400 font-bold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                <span>Out of Stock</span>
-              </p>
-            ) : (
-              <p className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                <span>In Stock • Udgir Store</span>
-              </p>
-            )}
-            {product.isSample ? (
-              <span className="text-[9px] text-amber-400/90 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 inline-block mt-0.5">
-                Sample Catalog Data
-              </span>
-            ) : product.isLive ? (
-              <span className="text-[9px] text-emerald-400 font-semibold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 inline-block mt-0.5">
-                Live Cloud Product
-              </span>
-            ) : null}
+
+            <button
+              type="button"
+              onClick={() => onSelect?.(product)}
+              className="text-[11px] text-gray-400 hover:text-white underline underline-offset-2"
+            >
+              Details
+            </button>
           </div>
 
-          <button
-            onClick={() => onAction ? onAction(product) : onSelect?.(product)}
-            className={`gold-btn !text-xs !py-1.5 !px-3 ${
-              product.inStock === false || (product.stock !== undefined && product.stock <= 0) ? '!opacity-80 !bg-gray-800 !text-gray-300 !border-gray-700' : ''
-            }`}
-          >
-            <span>{product.inStock === false || (product.stock !== undefined && product.stock <= 0) ? 'Inquire Restock' : 'Inquire / View'}</span>
-          </button>
+          {/* Action Buttons: Add to Cart & Buy Now */}
+          {product.inStock === false || (product.stock !== undefined && product.stock <= 0) ? (
+            <button
+              type="button"
+              onClick={() => onAction ? onAction(product) : onSelect?.(product)}
+              className="w-full py-2 px-3 rounded-lg text-xs font-semibold bg-[#1C1C1C] text-gray-400 border border-[#2E2E2E] hover:border-gray-500 transition text-center"
+            >
+              Out of Stock • Inquire Restock
+            </button>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddToCart ? onAddToCart(product) : onSelect?.(product);
+                }}
+                className="py-2 px-2.5 rounded-lg text-xs font-bold bg-[#1A1A1A] hover:bg-[#252525] text-gray-200 border border-[#333333] hover:border-[#D4AF37] transition flex items-center justify-center gap-1.5"
+                title="Add to Cart"
+              >
+                <ShoppingCart size={13} className="text-[#D4AF37]" />
+                <span>Add to Cart</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBuyNow ? onBuyNow(product) : (onAddToCart ? onAddToCart(product) : onSelect?.(product));
+                }}
+                className="gold-btn !text-xs !py-2 !px-2.5 flex items-center justify-center gap-1 shadow-sm"
+                title="Buy Now"
+              >
+                <Zap size={13} />
+                <span>Buy Now</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
