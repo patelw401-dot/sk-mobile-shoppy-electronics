@@ -14,7 +14,8 @@ import {
   ShoppingCart,
   Sparkles,
   ShieldCheck,
-  Package
+  Package,
+  Download
 } from 'lucide-react';
 import { isUserAdmin } from '../firebase';
 
@@ -26,6 +27,7 @@ export default function Navbar({ activePage, setActivePage, currentUser, cartCou
     { id: 'products', label: 'Smartphones', icon: Smartphone },
     { id: 'accessories', label: 'Accessories', icon: Headphones },
     { id: 'repairs', label: 'Repair Booking', icon: Wrench, badge: '90-Day Warranty' },
+    { id: 'app-download', label: 'Download App', icon: Download, badge: 'APK' },
     { id: 'old-phones', label: 'Old Phones (Buy/Sell)', icon: RefreshCw },
     { id: 'contact', label: 'Store & Contact', icon: MapPin },
     { id: 'admin', label: 'Admin Portal', icon: ShieldCheck, badge: 'Admin' }
@@ -243,6 +245,28 @@ export default function Navbar({ activePage, setActivePage, currentUser, cartCou
               </div>
               <span className="text-[10px] bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded font-extrabold border border-amber-400/30">
                 {isUserAdmin(currentUser) ? 'Verified' : 'Portal'}
+              </span>
+            </button>
+          </div>
+
+          {/* Download SK Mobile Android App in Mobile Menu */}
+          <div className="pt-2 border-t border-[#262626]">
+            <button
+              onClick={() => handleNavClick('app-download')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-lg text-sm font-bold flex items-center justify-between transition-all ${
+                activePage === 'app-download'
+                  ? 'bg-[#D4AF37] text-black border border-[#D4AF37]'
+                  : 'bg-gradient-to-r from-[#1C180C] to-[#141414] text-amber-300 border border-[#D4AF37]/40 hover:border-[#D4AF37]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Download size={17} className={activePage === 'app-download' ? 'text-black' : 'text-[#D4AF37]'} />
+                <span>Download Android App (APK)</span>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded font-extrabold border ${
+                activePage === 'app-download' ? 'bg-black text-[#D4AF37] border-black' : 'bg-[#D4AF37]/20 text-[#D4AF37] border-[#D4AF37]/30'
+              }`}>
+                v1.2.0
               </span>
             </button>
           </div>

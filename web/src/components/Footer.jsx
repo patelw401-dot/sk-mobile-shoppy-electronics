@@ -127,6 +127,12 @@ export default function Footer({ setActivePage }) {
                 </button>
               </li>
               <li>
+                <button onClick={() => handleNav('app-download')} className="hover:text-[#D4AF37] transition flex items-center gap-1 font-semibold text-amber-300">
+                  <ChevronRight size={12} className="text-[#D4AF37]" />
+                  Download Android App (APK)
+                </button>
+              </li>
+              <li>
                 <button onClick={() => handleNav('contact')} className="hover:text-[#D4AF37] transition flex items-center gap-1">
                   <ChevronRight size={12} className="text-[#D4AF37]" />
                   Store Location & Directions

@@ -15,6 +15,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import MyOrdersPage from './pages/MyOrdersPage';
+import AppDownloadPage from './pages/AppDownloadPage';
 
 export default function App() {
   const [activePage, setActivePage] = useState('home');
@@ -200,6 +201,13 @@ export default function App() {
         return (
           <MyOrdersPage 
             currentUser={currentUser}
+            setActivePage={setActivePage}
+            onShowToast={showToast}
+          />
+        );
+      case 'app-download':
+        return (
+          <AppDownloadPage 
             setActivePage={setActivePage}
             onShowToast={showToast}
           />

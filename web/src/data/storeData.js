@@ -12,6 +12,49 @@ export const STORE_INFO = {
   locationSlug: "Nagar Parishad, Udgir"
 };
 
+export const APP_DOWNLOAD_CONFIG = {
+  // Configurable public APK download URL.
+  // Set to your public release APK URL (e.g. hosted on GitHub Releases, Firebase Storage, or direct public link).
+  // You can also override this via the VITE_SK_MOBILE_APK_URL environment variable.
+  // If empty (""), the website shows a clear "APK In Preparation / Config Guide" modal.
+  downloadUrl: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SK_MOBILE_APK_URL) || "",
+  fallbackFilename: "SK-Mobile-Udgir-v1.2.0.apk",
+  appName: "SK Mobile Shoppy & Electronic",
+  version: "v1.2.0 (Official Release)",
+  versionCode: "12",
+  fileSize: "28.5 MB",
+  updatedDate: "October 2026",
+  minAndroid: "Android 8.0 (Oreo) or higher",
+  packageName: "com.example",
+  developer: "SK Mobile Udgir",
+  isSafeVerified: true,
+  description: "Official Android app for SK Mobile Shoppy & Electronic. Browse smartphones, book 30-min express repairs, get instant cash valuations for old phones, and track orders directly from your phone.",
+  features: [
+    "Exclusive Udgir customer discounts & flash deals",
+    "Real-time repair booking & status tracking alerts",
+    "Instant sell/exchange price calculator for old phones",
+    "Direct WhatsApp & phone hotline to Udgir service engineers",
+    "Offline catalog browsing with genuine warranty checks"
+  ],
+  installationSteps: [
+    {
+      step: 1,
+      title: "Download APK Package",
+      desc: "Tap 'Download SK Mobile APK' above. If your browser prompts with a security warning, tap 'Download anyway'."
+    },
+    {
+      step: 2,
+      title: "Allow Unknown Sources",
+      desc: "If prompted during installation, tap 'Settings' and enable 'Allow from this source' for Chrome or your file manager."
+    },
+    {
+      step: 3,
+      title: "Tap Install",
+      desc: "Open your notification bar or Downloads folder, tap the downloaded APK file, and tap 'Install' to launch the app."
+    }
+  ]
+};
+
 export const REAL_PRODUCTS = [
   {
     id: "mob-1",

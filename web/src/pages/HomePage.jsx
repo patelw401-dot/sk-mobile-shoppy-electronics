@@ -12,10 +12,12 @@ import {
   CheckCircle2, 
   Sparkles,
   ArrowRight,
-  Headphones
+  Headphones,
+  Download
 } from 'lucide-react';
+import AppDownloadSection from '../components/AppDownloadSection';
 
-export default function HomePage({ setActivePage, setSelectedProduct, onAddToCart, onBuyNow }) {
+export default function HomePage({ setActivePage, setSelectedProduct, onAddToCart, onBuyNow, onShowToast }) {
   const featuredPhones = REAL_PRODUCTS.slice(0, 4);
   const featuredOldPhones = PRE_OWNED_PHONES.slice(0, 3);
 
@@ -65,6 +67,21 @@ export default function HomePage({ setActivePage, setSelectedProduct, onAddToCar
             >
               <RefreshCw size={16} />
               <span>Buy / Sell Old Phone</span>
+            </button>
+
+            <button
+              onClick={() => {
+                const el = document.getElementById('app-download');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  setActivePage('app-download');
+                }
+              }}
+              className="px-5 py-3 rounded-lg text-sm font-bold bg-[#1C180C] text-amber-300 border border-[#D4AF37]/50 hover:bg-[#D4AF37]/20 hover:text-white transition flex items-center gap-2 shadow-md shadow-[#D4AF37]/10"
+            >
+              <Download size={16} className="text-[#D4AF37]" />
+              <span>Download App (APK)</span>
             </button>
           </div>
 
@@ -129,6 +146,9 @@ export default function HomePage({ setActivePage, setSelectedProduct, onAddToCar
           ))}
         </div>
       </section>
+
+      {/* Prominent SK Mobile Android App Download Showcase */}
+      <AppDownloadSection onShowToast={onShowToast} />
 
       {/* Mobile Repair Booking Spotlight */}
       <section className="container">
