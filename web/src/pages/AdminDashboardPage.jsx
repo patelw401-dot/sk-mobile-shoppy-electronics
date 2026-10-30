@@ -32,8 +32,10 @@ import {
   Sparkles,
   Layers,
   Calendar,
-  DollarSign
+  DollarSign,
+  Package
 } from 'lucide-react';
+import ProductManagementTab from '../components/ProductManagementTab';
 
 export default function AdminDashboardPage({ currentUser, setActivePage, onShowToast }) {
   const [activeTab, setActiveTab] = useState('repairs'); // 'repairs' | 'old-phones' | 'products' | 'system'
@@ -404,8 +406,8 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
               : 'border-transparent text-gray-400 hover:text-white'
           }`}
         >
-          <Smartphone size={16} />
-          <span>Store Catalog Overview</span>
+          <Package size={16} />
+          <span>Product Management (CRUD)</span>
         </button>
 
         <button
@@ -653,39 +655,13 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
         </div>
       )}
 
-      {/* ----------------- TAB 3: PRODUCTS OVERVIEW ----------------- */}
+      {/* ----------------- TAB 3: PRODUCT MANAGEMENT (CRUD) ----------------- */}
       {activeTab === 'products' && (
-        <div className="space-y-6">
-          <div className="bg-[#141414] border border-[#222222] rounded-xl p-4 flex justify-between items-center text-xs">
-            <div>
-              <h3 className="font-bold text-white text-sm">Store Catalog Snapshot</h3>
-              <p className="text-gray-400 text-[11px]">Public read enabled for all online visitors</p>
-            </div>
-            <button
-              onClick={() => setActivePage?.('products')}
-              className="py-1.5 px-3 rounded-lg bg-[#D4AF37]/20 border border-[#D4AF37]/40 text-[#D4AF37] font-bold text-xs hover:bg-[#D4AF37]/30 transition"
-            >
-              Open Live Products Page
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {REAL_PRODUCTS.map((p) => (
-              <div key={p.id} className="p-4 rounded-xl bg-[#141414] border border-[#262626] space-y-2">
-                <div className="flex justify-between items-start gap-2">
-                  <h4 className="font-bold text-white text-xs leading-snug">{p.name}</h4>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 shrink-0">
-                    In Stock
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-xs pt-1">
-                  <span className="font-black text-[#D4AF37]">₹{p.price.toLocaleString('en-IN')}</span>
-                  <span className="text-[10px] text-gray-500">ID: {p.id}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <ProductManagementTab
+          currentUser={currentUser}
+          onShowToast={onShowToast}
+          setActivePage={setActivePage}
+        />
       )}
 
       {/* ----------------- TAB 4: SYSTEM & SECURITY ----------------- */}

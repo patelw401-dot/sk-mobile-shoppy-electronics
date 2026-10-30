@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { 
   getAuth, 
   onAuthStateChanged, 
@@ -82,19 +82,31 @@ export async function fetchFirestoreProducts() {
     const items = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
+      const priceNum = typeof data.price === 'number' ? data.price : (parseInt(data.price, 10) || 0);
+      const origPriceNum = typeof data.originalPrice === 'number' ? data.originalPrice : (data.originalPrice ? parseInt(data.originalPrice, 10) : undefined);
+      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? parseInt(data.stock, 10) : 10);
+      const inStockBool = data.inStock !== undefined ? Boolean(data.inStock) : stockNum > 0;
+
       items.push({
         id: doc.id,
         ...data,
         category: (data.category || '').toLowerCase(),
-        price: typeof data.price === 'number' ? data.price : parseInt(data.price, 10) || 0,
-        originalPrice: typeof data.originalPrice === 'number' ? data.originalPrice : (parseInt(data.originalPrice, 10) || undefined),
-        rating: data.rating || 4.5,
-        reviewCount: data.reviewCount || 0,
+        price: priceNum,
+        originalPrice: origPriceNum,
+        stock: stockNum,
+        inStock: inStockBool,
+        rating: data.rating || 4.7,
+        reviewCount: data.reviewCount || 12,
         brand: data.brand || 'Generic',
         name: data.name || 'Product',
         description: data.description || '',
+        imageUrl: data.imageUrl || data.image || '',
+        badge: data.badge || (data.isFeatured ? 'Featured' : (data.isBestSeller ? 'Best Seller' : '')),
+        isFeatured: Boolean(data.isFeatured),
+        isBestSeller: Boolean(data.isBestSeller),
         specs: data.specifications || data.specs || {},
-        inStock: data.stock !== undefined ? data.stock > 0 : true
+        createdAt: data.createdAt || null,
+        updatedAt: data.updatedAt || null
       });
     });
 
@@ -334,4 +346,169 @@ export async function updateAdminOldPhoneStatus(requestId, newStatus, adminNote)
   await updateDoc(docRef, updates);
   return true;
 }
+
+/**
+ * -------------------------------------------------------------
+ * PRODUCT MANAGEMENT (CRUD) - FIRESTORE PRODUCTS COLLECTION
+ * -------------------------------------------------------------
+ * Security Rule:
+ * match /products/{productId} {
+ *   allow read: if true;
+ *   allow write: if isAdmin();
+ * }
+ */
+
+/**
+ * Fetch all products from Firestore for Admin Inventory Management.
+ */
+export async function fetchAdminProducts() {
+  try {
+    const productsRef = collection(db, 'products');
+    const snap = await getDocs(productsRef);
+    if (snap.empty) {
+      return { success: true, data: [], isEmpty: true };
+    }
+    const items = [];
+    snap.forEach((d) => {
+      const data = d.data();
+      const priceNum = typeof data.price === 'number' ? data.price : (parseInt(data.price, 10) || 0);
+      const origPriceNum = typeof data.originalPrice === 'number' ? data.originalPrice : (data.originalPrice ? parseInt(data.originalPrice, 10) : undefined);
+      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? parseInt(data.stock, 10) : 10);
+      const inStockBool = data.inStock !== undefined ? Boolean(data.inStock) : stockNum > 0;
+
+      items.push({
+        id: d.id,
+        ...data,
+        name: data.name || 'Unnamed Product',
+        brand: data.brand || 'Generic',
+        category: (data.category || 'smartphones').toLowerCase(),
+        price: priceNum,
+        originalPrice: origPriceNum,
+        stock: stockNum,
+        inStock: inStockBool,
+        rating: data.rating || 4.7,
+        reviewCount: data.reviewCount || 10,
+        description: data.description || '',
+        imageUrl: data.imageUrl || data.image || '',
+        badge: data.badge || (data.isFeatured ? 'Featured' : (data.isBestSeller ? 'Best Seller' : '')),
+        isFeatured: Boolean(data.isFeatured),
+        isBestSeller: Boolean(data.isBestSeller),
+        specs: data.specs || data.specifications || {},
+        createdAt: data.createdAt || null,
+        updatedAt: data.updatedAt || null
+      });
+    });
+    return { success: true, data: items, isEmpty: false };
+  } catch (err) {
+    console.error("fetchAdminProducts error:", err);
+    return { success: false, data: [], error: err.message };
+  }
+}
+
+/**
+ * Save product (Create or Edit) in Firestore 'products' collection.
+ * Restricted strictly to authorized store administrators.
+ */
+export async function saveAdminProductToFirestore(productData, currentUser) {
+  if (!isUserAdmin(currentUser)) {
+    throw new Error('Unauthorized: You must be an authorized store administrator to add or modify products.');
+  }
+
+  const name = (productData.name || '').trim();
+  const brand = (productData.brand || '').trim();
+  const price = typeof productData.price === 'number' ? productData.price : (parseFloat(productData.price) || 0);
+
+  if (!name) throw new Error('Product name is required.');
+  if (!brand) throw new Error('Brand name is required.');
+  if (price <= 0) throw new Error('Selling price must be greater than zero.');
+
+  const docId = (productData.id || '').trim() || `prod-${Date.now().toString()}`;
+  const docRef = doc(db, 'products', docId);
+
+  const origPrice = productData.originalPrice ? (typeof productData.originalPrice === 'number' ? productData.originalPrice : parseFloat(productData.originalPrice)) : null;
+  const stock = typeof productData.stock === 'number' ? productData.stock : (parseInt(productData.stock, 10) >= 0 ? parseInt(productData.stock, 10) : 0);
+  const inStock = stock > 0;
+  const discount = origPrice && origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0;
+
+  const payload = {
+    id: docId,
+    name,
+    brand,
+    category: (productData.category || 'smartphones').toLowerCase(),
+    price,
+    stock,
+    inStock,
+    description: (productData.description || '').trim(),
+    imageUrl: (productData.imageUrl || productData.image || '').trim(),
+    badge: (productData.badge || '').trim(),
+    isFeatured: Boolean(productData.isFeatured),
+    isBestSeller: Boolean(productData.isBestSeller),
+    rating: productData.rating || 4.7,
+    reviewCount: productData.reviewCount || 10,
+    specs: productData.specs || {},
+    lastUpdatedBy: currentUser.email || 'Store Admin',
+    updatedAt: serverTimestamp()
+  };
+
+  if (origPrice && origPrice > price) {
+    payload.originalPrice = origPrice;
+    payload.discount = discount;
+  }
+
+  // Preserve creation timestamp on edit, or set new
+  if (productData.createdAt) {
+    payload.createdAt = productData.createdAt;
+  } else {
+    payload.createdAt = serverTimestamp();
+    payload.createdBy = currentUser.email || 'Store Admin';
+  }
+
+  await setDoc(docRef, payload, { merge: true });
+
+  return {
+    success: true,
+    id: docId,
+    product: payload
+  };
+}
+
+/**
+ * Delete a product from Firestore 'products' collection.
+ * Restricted strictly to authorized store administrators.
+ */
+export async function deleteAdminProductFromFirestore(productId, currentUser) {
+  if (!isUserAdmin(currentUser)) {
+    throw new Error('Unauthorized: You must be an authorized store administrator to delete products.');
+  }
+
+  if (!productId) throw new Error('Product ID is required for deletion.');
+
+  const docRef = doc(db, 'products', productId);
+  await deleteDoc(docRef);
+
+  return { success: true, deletedId: productId };
+}
+
+/**
+ * Seed initial sample catalog from storeData into Firestore 'products' collection.
+ * This populates the cloud database so the admin can edit existing store phones and accessories immediately!
+ */
+export async function seedDefaultProductsToFirestore(currentUser, initialItems = []) {
+  if (!isUserAdmin(currentUser)) {
+    throw new Error('Unauthorized: Admin access required to initialize store catalogue.');
+  }
+
+  const results = [];
+  for (const item of initialItems) {
+    try {
+      const res = await saveAdminProductToFirestore(item, currentUser);
+      results.push(res);
+    } catch (e) {
+      console.warn(`Failed to seed product ${item.name}:`, e);
+    }
+  }
+
+  return { success: true, seededCount: results.length };
+}
+
 

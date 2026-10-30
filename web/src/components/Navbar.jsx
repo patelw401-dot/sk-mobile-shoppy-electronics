@@ -25,7 +25,8 @@ export default function Navbar({ activePage, setActivePage, currentUser }) {
     { id: 'accessories', label: 'Accessories', icon: Headphones },
     { id: 'repairs', label: 'Repair Booking', icon: Wrench, badge: '90-Day Warranty' },
     { id: 'old-phones', label: 'Old Phones (Buy/Sell)', icon: RefreshCw },
-    { id: 'contact', label: 'Store & Contact', icon: MapPin }
+    { id: 'contact', label: 'Store & Contact', icon: MapPin },
+    { id: 'admin', label: 'Admin Portal', icon: ShieldCheck, badge: 'Admin' }
   ];
 
   const handleNavClick = (pageId) => {
@@ -215,7 +216,7 @@ export default function Navbar({ activePage, setActivePage, currentUser }) {
             >
               <div className="flex items-center gap-2.5">
                 <ShieldCheck size={18} className="text-amber-400" />
-                <span>Store Admin Portal</span>
+                <span>Admin Portal</span>
               </div>
               <span className="text-[10px] bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded font-extrabold border border-amber-400/30">
                 {isUserAdmin(currentUser) ? 'Verified' : 'Portal'}

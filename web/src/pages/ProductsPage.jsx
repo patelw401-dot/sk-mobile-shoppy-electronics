@@ -73,7 +73,16 @@ export default function ProductsPage({ onShowToast }) {
     loadProducts();
   }, []);
 
-  const brands = ['All', 'OnePlus', 'Samsung', 'Xiaomi', 'Realme'];
+  const brands = useMemo(() => {
+    const defaultBrands = ['All', 'OnePlus', 'Samsung', 'Xiaomi', 'Realme', 'Apple'];
+    const dynamicSet = new Set(defaultBrands);
+    rawProducts.forEach(p => {
+      if (p.brand && typeof p.brand === 'string') {
+        dynamicSet.add(p.brand);
+      }
+    });
+    return Array.from(dynamicSet);
+  }, [rawProducts]);
 
   const filteredProducts = useMemo(() => {
     let result = [...rawProducts];

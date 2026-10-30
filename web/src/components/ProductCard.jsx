@@ -28,11 +28,27 @@ export default function ProductCard({ product, onSelect, onAction }) {
       </div>
 
       {/* Product Image / Icon placeholder with sleek modern backdrop */}
-      <div className="h-40 rounded-xl bg-gradient-to-b from-[#1C1C1C] to-[#121212] border border-[#222222] flex flex-col items-center justify-center p-4 text-center mb-4 relative overflow-hidden group-hover:border-[#D4AF37]/30 transition-all">
-        <div className="w-16 h-16 rounded-2xl bg-[#222222] flex items-center justify-center mb-2 border border-[#333333] shadow-inner">
+      <div className="h-44 rounded-xl bg-gradient-to-b from-[#1C1C1C] to-[#121212] border border-[#222222] flex flex-col items-center justify-center p-3 text-center mb-4 relative overflow-hidden group-hover:border-[#D4AF37]/30 transition-all">
+        {product.imageUrl ? (
+          <img 
+            src={product.imageUrl} 
+            alt={product.name} 
+            className="w-full h-28 object-contain mb-1 transition-transform group-hover:scale-105 duration-300"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              if (e.currentTarget.nextElementSibling) {
+                e.currentTarget.nextElementSibling.style.display = 'flex';
+              }
+            }}
+          />
+        ) : null}
+        <div 
+          style={{ display: product.imageUrl ? 'none' : 'flex' }}
+          className="w-16 h-16 rounded-2xl bg-[#222222] items-center justify-center mb-2 border border-[#333333] shadow-inner"
+        >
           <Tag className="text-[#D4AF37]" size={28} />
         </div>
-        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
+        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest truncate max-w-full">
           {product.brand}
         </span>
         {product.conditionGrade && (
@@ -91,7 +107,17 @@ export default function ProductCard({ product, onSelect, onAction }) {
                 </span>
               )}
             </div>
-            <p className="text-[10px] text-emerald-400 font-medium">In Stock • Udgir Store</p>
+            {product.inStock === false || (product.stock !== undefined && product.stock <= 0) ? (
+              <p className="text-[10px] text-red-400 font-bold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                <span>Out of Stock</span>
+              </p>
+            ) : (
+              <p className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>In Stock • Udgir Store</span>
+              </p>
+            )}
             {product.isSample ? (
               <span className="text-[9px] text-amber-400/90 font-semibold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 inline-block mt-0.5">
                 Sample Catalog Data
@@ -105,9 +131,11 @@ export default function ProductCard({ product, onSelect, onAction }) {
 
           <button
             onClick={() => onAction ? onAction(product) : onSelect?.(product)}
-            className="gold-btn !text-xs !py-1.5 !px-3"
+            className={`gold-btn !text-xs !py-1.5 !px-3 ${
+              product.inStock === false || (product.stock !== undefined && product.stock <= 0) ? '!opacity-80 !bg-gray-800 !text-gray-300 !border-gray-700' : ''
+            }`}
           >
-            <span>Inquire / View</span>
+            <span>{product.inStock === false || (product.stock !== undefined && product.stock <= 0) ? 'Inquire Restock' : 'Inquire / View'}</span>
           </button>
         </div>
       </div>
