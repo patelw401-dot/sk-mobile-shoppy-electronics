@@ -3,7 +3,8 @@ import {
   fetchAdminProducts, 
   saveAdminProductToFirestore, 
   deleteAdminProductFromFirestore, 
-  seedDefaultProductsToFirestore 
+  seedDefaultProductsToFirestore,
+  quickUpdateProductWarranty 
 } from '../firebase';
 import { REAL_PRODUCTS, ACCESSORIES } from '../data/storeData';
 import { 
@@ -25,8 +26,13 @@ import {
   Sparkles,
   AlertTriangle,
   Database,
-  ArrowRight
+  ArrowRight,
+  Shield,
+  ShieldCheck,
+  ShieldOff
 } from 'lucide-react';
+
+const WARRANTY_PRESETS = ['7 Days', '30 Days', '3 Months', '6 Months', '1 Year', '2 Years', 'Custom'];
 
 const PRESET_IMAGES = [
   { name: 'OnePlus Flagship', url: 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&auto=format&fit=crop&q=80', brand: 'OnePlus', category: 'smartphones' },
@@ -54,6 +60,13 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState(null);
+  const [warrantyRemoveProduct, setWarrantyRemoveProduct] = useState(null);
+  const [quickWarrantyProduct, setQuickWarrantyProduct] = useState(null);
+  const [quickWarrantyData, setQuickWarrantyData] = useState({
+    preset: '1 Year',
+    custom: '',
+    description: ''
+  });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -68,6 +81,11 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
     badge: '',
     isFeatured: false,
     isBestSeller: false,
+    hasWarranty: false,
+    warrantyPreset: '1 Year',
+    customDuration: '',
+    warrantyDuration: '',
+    warrantyDescription: '',
     specsText: ''
   });
 
@@ -146,6 +164,11 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
       badge: '',
       isFeatured: false,
       isBestSeller: false,
+      hasWarranty: false,
+      warrantyPreset: '1 Year',
+      customDuration: '',
+      warrantyDuration: '',
+      warrantyDescription: '',
       specsText: 'Display: 6.7" AMOLED\nProcessor: Snapdragon 7 Gen 3\nCamera: 50MP Sony OIS\nBattery: 5500 mAh'
     });
     setShowModal(true);
@@ -157,6 +180,19 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
     if (prod.specs && typeof prod.specs === 'object') {
       specsStr = Object.entries(prod.specs).map(([k, v]) => `${k}: ${v}`).join('\n');
     }
+
+    const hasW = Boolean(prod.hasWarranty);
+    let preset = '1 Year';
+    let custom = '';
+    if (prod.warrantyDuration) {
+      if (['7 Days', '30 Days', '3 Months', '6 Months', '1 Year', '2 Years'].includes(prod.warrantyDuration)) {
+        preset = prod.warrantyDuration;
+      } else {
+        preset = 'Custom';
+        custom = prod.warrantyDuration;
+      }
+    }
+
     setFormData({
       name: prod.name || '',
       brand: prod.brand || 'OnePlus',
@@ -169,6 +205,11 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
       badge: prod.badge || '',
       isFeatured: Boolean(prod.isFeatured),
       isBestSeller: Boolean(prod.isBestSeller),
+      hasWarranty: hasW,
+      warrantyPreset: preset,
+      customDuration: custom,
+      warrantyDuration: prod.warrantyDuration || '',
+      warrantyDescription: prod.warrantyDescription || '',
       specsText: specsStr
     });
     setShowModal(true);
@@ -250,6 +291,10 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
 
     setIsSubmitting(true);
     try {
+      const effectiveWarrantyDuration = formData.hasWarranty
+        ? (formData.warrantyPreset === 'Custom' ? (formData.customDuration || '').trim() : formData.warrantyPreset)
+        : '';
+
       const payload = {
         name: formData.name.trim(),
         brand: formData.brand.trim(),
@@ -263,6 +308,9 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
         badge: formData.badge.trim(),
         isFeatured: formData.isFeatured,
         isBestSeller: formData.isBestSeller,
+        hasWarranty: Boolean(formData.hasWarranty),
+        warrantyDuration: effectiveWarrantyDuration,
+        warrantyDescription: formData.hasWarranty ? (formData.warrantyDescription || '').trim() : '',
         specs: parseSpecs(formData.specsText)
       };
 
@@ -283,6 +331,79 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
     } catch (err) {
       console.error('Failed to save product:', err);
       onShowToast?.(err.message || 'Error saving product to Firestore.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenQuickWarranty = (prod) => {
+    let preset = '1 Year';
+    let custom = '';
+    if (prod.warrantyDuration) {
+      if (['7 Days', '30 Days', '3 Months', '6 Months', '1 Year', '2 Years'].includes(prod.warrantyDuration)) {
+        preset = prod.warrantyDuration;
+      } else {
+        preset = 'Custom';
+        custom = prod.warrantyDuration;
+      }
+    }
+    setQuickWarrantyProduct(prod);
+    setQuickWarrantyData({
+      preset,
+      custom,
+      description: prod.warrantyDescription || ''
+    });
+  };
+
+  const handleSaveQuickWarranty = async (e) => {
+    if (e) e.preventDefault();
+    if (!quickWarrantyProduct) return;
+    const finalDuration = quickWarrantyData.preset === 'Custom'
+      ? (quickWarrantyData.custom || '').trim()
+      : quickWarrantyData.preset;
+
+    if (!finalDuration) {
+      onShowToast?.('Please specify a warranty duration.', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await quickUpdateProductWarranty(
+        quickWarrantyProduct.id,
+        true,
+        finalDuration,
+        quickWarrantyData.description.trim(),
+        currentUser
+      );
+      onShowToast?.(`Warranty (${finalDuration}) saved for "${quickWarrantyProduct.name}"!`, 'success');
+      setQuickWarrantyProduct(null);
+      await loadProducts();
+    } catch (err) {
+      console.error('Quick warranty save error:', err);
+      onShowToast?.(err.message || 'Failed to update warranty in Firestore.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmRemoveWarranty = async () => {
+    if (!warrantyRemoveProduct) return;
+    setIsSubmitting(true);
+    try {
+      await quickUpdateProductWarranty(
+        warrantyRemoveProduct.id,
+        false,
+        '',
+        '',
+        currentUser
+      );
+      onShowToast?.(`Warranty removed from "${warrantyRemoveProduct.name}".`, 'info');
+      setWarrantyRemoveProduct(null);
+      await loadProducts();
+    } catch (err) {
+      console.error('Remove warranty error:', err);
+      onShowToast?.(err.message || 'Failed to remove warranty in Firestore.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -611,6 +732,58 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
                       </button>
                     </div>
                   </div>
+
+                  {/* Warranty Status & Quick Action Row */}
+                  <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-[#0E0E0E] border border-[#1E1E1E] mb-3 text-xs">
+                    <div className="flex items-center gap-1.5 overflow-hidden">
+                      {p.hasWarranty && p.warrantyDuration ? (
+                        <span className="text-[10px] font-bold text-[#D4AF37] bg-[#D4AF37]/15 border border-[#D4AF37]/30 px-2 py-0.5 rounded flex items-center gap-1 truncate">
+                          <ShieldCheck size={11} className="text-[#D4AF37] shrink-0" />
+                          <span>{p.warrantyDuration}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-gray-500 bg-[#141414] border border-[#222222] px-2 py-0.5 rounded flex items-center gap-1">
+                          <ShieldOff size={11} className="text-gray-500 shrink-0" />
+                          <span>No Warranty</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {p.hasWarranty ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenQuickWarranty(p)}
+                            className="text-[10px] text-[#D4AF37] hover:text-yellow-300 font-semibold px-1.5 py-0.5 rounded hover:bg-[#D4AF37]/10 transition flex items-center gap-0.5"
+                            title="Edit Warranty"
+                          >
+                            <Shield size={10} />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setWarrantyRemoveProduct(p)}
+                            className="text-[10px] text-red-400 hover:text-red-300 font-semibold px-1.5 py-0.5 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition flex items-center gap-0.5"
+                            title="Remove Warranty"
+                          >
+                            <ShieldOff size={10} />
+                            <span>Remove</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenQuickWarranty(p)}
+                          className="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition flex items-center gap-1"
+                          title="Add Warranty"
+                        >
+                          <ShieldCheck size={10} />
+                          <span>Add Warranty</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Card Action Buttons */}
@@ -804,6 +977,154 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
                 </div>
               </div>
 
+              {/* Warranty Management Section */}
+              <div className="p-4 rounded-xl bg-[#0E0E0E] border border-[#2E2E2E] space-y-3">
+                <div className="flex items-center justify-between border-b border-[#1E1E1E] pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={16} className="text-[#D4AF37]" />
+                    <span className="text-xs font-bold text-white">Warranty Management</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (formData.hasWarranty) {
+                          setFormData(prev => ({
+                            ...prev,
+                            hasWarranty: false,
+                            warrantyDuration: '',
+                            warrantyDescription: ''
+                          }));
+                          onShowToast?.('Warranty disabled for this product.', 'info');
+                        } else {
+                          setFormData(prev => ({
+                            ...prev,
+                            hasWarranty: true,
+                            warrantyPreset: prev.warrantyPreset || '1 Year'
+                          }));
+                          onShowToast?.('Warranty enabled for this product.', 'success');
+                        }
+                      }}
+                      className={`text-xs font-semibold px-3 py-1 rounded-lg border transition flex items-center gap-1.5 ${
+                        formData.hasWarranty
+                          ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]'
+                          : 'bg-[#1C1C1C] border-[#333333] text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      {formData.hasWarranty ? (
+                        <>
+                          <ShieldCheck size={13} />
+                          <span>Warranty: Enabled</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShieldOff size={13} />
+                          <span>Warranty: Disabled</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {formData.hasWarranty ? (
+                  <div className="space-y-3 pt-1">
+                    {/* Duration Presets */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-300 mb-1.5">
+                        Warranty Duration *
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {WARRANTY_PRESETS.map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, warrantyPreset: preset }))}
+                            className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition ${
+                              formData.warrantyPreset === preset
+                                ? 'bg-[#D4AF37] text-black font-bold border-[#D4AF37] shadow-sm'
+                                : 'bg-[#161616] border-[#2A2A2A] text-gray-300 hover:text-white hover:border-[#444444]'
+                            }`}
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Custom Duration Input */}
+                    {formData.warrantyPreset === 'Custom' && (
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-300 mb-1">
+                          Custom Warranty Duration *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. 45 Days, 18 Months Replacement"
+                          value={formData.customDuration}
+                          onChange={(e) => setFormData({ ...formData, customDuration: e.target.value })}
+                          className="w-full bg-[#141414] border border-[#2E2E2E] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                        />
+                      </div>
+                    )}
+
+                    {/* Warranty Description */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-300 mb-1">
+                        Warranty Description / Coverage Terms <span className="text-gray-500 font-normal">(Optional)</span>
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="e.g. 100% official brand warranty covering manufacturing defects. Physical & liquid damage excluded."
+                        value={formData.warrantyDescription}
+                        onChange={(e) => setFormData({ ...formData, warrantyDescription: e.target.value })}
+                        className="w-full bg-[#141414] border border-[#2E2E2E] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                      />
+                    </div>
+
+                    {/* Remove Warranty Button inside form */}
+                    <div className="pt-1 flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-gray-400">
+                        Active Coverage: <strong className="text-[#D4AF37]">{formData.warrantyPreset === 'Custom' ? (formData.customDuration || 'Custom') : formData.warrantyPreset}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            hasWarranty: false,
+                            warrantyPreset: '1 Year',
+                            customDuration: '',
+                            warrantyDuration: '',
+                            warrantyDescription: ''
+                          }));
+                          onShowToast?.('Warranty removed from this product.', 'info');
+                        }}
+                        className="text-[11px] text-red-400 hover:text-red-300 font-semibold flex items-center gap-1 hover:underline"
+                      >
+                        <Trash2 size={11} />
+                        <span>Remove Warranty</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#141414] border border-[#222222]">
+                    <span className="text-[11px] text-gray-400">
+                      No warranty configured. No warranty badge will appear on customer listings.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, hasWarranty: true, warrantyPreset: '1 Year' }))}
+                      className="text-xs font-bold text-[#D4AF37] hover:text-yellow-300 flex items-center gap-1 shrink-0"
+                    >
+                      <Plus size={13} />
+                      <span>Add Warranty</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Image Input Options */}
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-gray-300">
@@ -987,6 +1308,180 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ----------------- MODAL 3: CONFIRM REMOVE WARRANTY ----------------- */}
+      {warrantyRemoveProduct && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#141414] border border-amber-500/40 rounded-2xl w-full max-w-md p-6 sm:p-8 space-y-5 relative shadow-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto">
+              <ShieldOff size={28} />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="text-lg font-black text-white">Remove Warranty Confirmation</h3>
+              <p className="text-xs text-gray-400">
+                Are you sure you want to remove warranty coverage from this product?
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-[#0E0E0E] border border-[#222222] text-xs space-y-1.5">
+              <div className="flex justify-between text-gray-400">
+                <span>Product Name:</span>
+                <span className="text-white font-bold truncate max-w-[200px]">{warrantyRemoveProduct.name}</span>
+              </div>
+              <div className="flex justify-between text-gray-400">
+                <span>Current Warranty:</span>
+                <span className="text-[#D4AF37] font-semibold">{warrantyRemoveProduct.warrantyDuration || 'Active'}</span>
+              </div>
+              {warrantyRemoveProduct.warrantyDescription && (
+                <div className="text-[11px] text-gray-500 border-t border-[#1E1E1E] pt-1">
+                  Terms: {warrantyRemoveProduct.warrantyDescription}
+                </div>
+              )}
+            </div>
+
+            <div className="text-[11px] text-amber-300/90 bg-amber-950/20 p-2.5 rounded-lg border border-amber-900/30">
+              ℹ️ The warranty badge and warranty text will be immediately hidden from customer product listings and detail pages.
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setWarrantyRemoveProduct(null)}
+                className="py-2.5 px-4 rounded-xl border border-[#333333] hover:border-[#555555] text-xs font-semibold text-gray-300 hover:text-white transition"
+              >
+                Keep Warranty
+              </button>
+
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleConfirmRemoveWarranty}
+                className="py-2.5 px-5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <span>Updating Firestore...</span>
+                ) : (
+                  <>
+                    <ShieldOff size={14} />
+                    <span>Confirm Remove Warranty</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ----------------- MODAL 4: QUICK ADD / EDIT WARRANTY ----------------- */}
+      {quickWarrantyProduct && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#141414] border border-[#2E2E2E] rounded-2xl w-full max-w-lg p-6 sm:p-8 space-y-5 relative shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#222222] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-[#D4AF37]/15 text-[#D4AF37]">
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    {quickWarrantyProduct.hasWarranty ? 'Update Warranty' : 'Add Product Warranty'}
+                  </h3>
+                  <p className="text-xs text-gray-400 truncate max-w-xs">{quickWarrantyProduct.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setQuickWarrantyProduct(null)}
+                className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/5"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveQuickWarranty} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                  Select Warranty Duration *
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {WARRANTY_PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setQuickWarrantyData(prev => ({ ...prev, preset }))}
+                      className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition ${
+                        quickWarrantyData.preset === preset
+                          ? 'bg-[#D4AF37] text-black font-bold border-[#D4AF37]'
+                          : 'bg-[#181818] border-[#2A2A2A] text-gray-300 hover:text-white'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {quickWarrantyData.preset === 'Custom' && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 mb-1">
+                    Custom Duration *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 45 Days, 18 Months Replacement"
+                    value={quickWarrantyData.custom}
+                    onChange={(e) => setQuickWarrantyData(prev => ({ ...prev, custom: e.target.value }))}
+                    className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">
+                  Warranty Description / Coverage Details <span className="text-gray-500 font-normal">(Optional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. 100% official brand warranty covering manufacturing defects. Physical & liquid damage excluded."
+                  value={quickWarrantyData.description}
+                  onChange={(e) => setQuickWarrantyData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-[#222222] flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => setQuickWarrantyProduct(null)}
+                  className="py-2.5 px-4 rounded-xl border border-[#333333] hover:border-[#555555] text-xs font-semibold text-gray-300 hover:text-white transition"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="py-2.5 px-6 rounded-xl bg-[#D4AF37] hover:bg-[#C29F2F] text-black font-extrabold text-xs flex items-center gap-1.5 transition disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw size={13} className="animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={15} />
+                      <span>Save Warranty</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

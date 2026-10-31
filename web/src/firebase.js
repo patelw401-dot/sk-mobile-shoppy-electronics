@@ -104,6 +104,9 @@ export async function fetchFirestoreProducts() {
         badge: data.badge || (data.isFeatured ? 'Featured' : (data.isBestSeller ? 'Best Seller' : '')),
         isFeatured: Boolean(data.isFeatured),
         isBestSeller: Boolean(data.isBestSeller),
+        hasWarranty: Boolean(data.hasWarranty),
+        warrantyDuration: data.hasWarranty ? (data.warrantyDuration || '') : '',
+        warrantyDescription: data.hasWarranty ? (data.warrantyDescription || '') : '',
         specs: data.specifications || data.specs || {},
         createdAt: data.createdAt || null,
         updatedAt: data.updatedAt || null
@@ -393,6 +396,9 @@ export async function fetchAdminProducts() {
         badge: data.badge || (data.isFeatured ? 'Featured' : (data.isBestSeller ? 'Best Seller' : '')),
         isFeatured: Boolean(data.isFeatured),
         isBestSeller: Boolean(data.isBestSeller),
+        hasWarranty: Boolean(data.hasWarranty),
+        warrantyDuration: data.hasWarranty ? (data.warrantyDuration || '') : '',
+        warrantyDescription: data.hasWarranty ? (data.warrantyDescription || '') : '',
         specs: data.specs || data.specifications || {},
         createdAt: data.createdAt || null,
         updatedAt: data.updatedAt || null
@@ -429,6 +435,9 @@ export async function saveAdminProductToFirestore(productData, currentUser) {
   const stock = typeof productData.stock === 'number' ? productData.stock : (parseInt(productData.stock, 10) >= 0 ? parseInt(productData.stock, 10) : 0);
   const inStock = stock > 0;
   const discount = origPrice && origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0;
+  const hasWarranty = Boolean(productData.hasWarranty);
+  const warrantyDuration = hasWarranty ? (productData.warrantyDuration || '').trim() : '';
+  const warrantyDescription = hasWarranty ? (productData.warrantyDescription || '').trim() : '';
 
   const payload = {
     id: docId,
@@ -443,6 +452,9 @@ export async function saveAdminProductToFirestore(productData, currentUser) {
     badge: (productData.badge || '').trim(),
     isFeatured: Boolean(productData.isFeatured),
     isBestSeller: Boolean(productData.isBestSeller),
+    hasWarranty,
+    warrantyDuration,
+    warrantyDescription,
     rating: productData.rating || 4.7,
     reviewCount: productData.reviewCount || 10,
     specs: productData.specs || {},
@@ -470,6 +482,28 @@ export async function saveAdminProductToFirestore(productData, currentUser) {
     id: docId,
     product: payload
   };
+}
+
+/**
+ * Quick update product warranty status (Admin only).
+ */
+export async function quickUpdateProductWarranty(productId, hasWarranty, warrantyDuration = '', warrantyDescription = '', currentUser) {
+  if (!isUserAdmin(currentUser)) {
+    throw new Error('Unauthorized: Admin access required to update product warranty.');
+  }
+  if (!productId) {
+    throw new Error('Product ID is required.');
+  }
+  const docRef = doc(db, 'products', productId);
+  const updates = {
+    hasWarranty: Boolean(hasWarranty),
+    warrantyDuration: hasWarranty ? (warrantyDuration || '').trim() : '',
+    warrantyDescription: hasWarranty ? (warrantyDescription || '').trim() : '',
+    lastUpdatedBy: currentUser.email || 'Store Admin',
+    updatedAt: serverTimestamp()
+  };
+  await updateDoc(docRef, updates);
+  return { success: true, ...updates };
 }
 
 /**

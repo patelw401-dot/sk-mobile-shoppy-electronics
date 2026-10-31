@@ -315,24 +315,37 @@ export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow }) {
               {selectedProduct.description}
             </p>
 
-            {/* Specifications List */}
+            {/* Technical Specifications */}
             <div className="space-y-2 mb-6 text-xs bg-[#0E0E0E] p-4 rounded-xl border border-[#222222]">
               <div className="font-bold text-gray-200 border-b border-[#222222] pb-1.5 mb-2">
                 Technical Specifications
               </div>
               {selectedProduct.specs && Object.entries(selectedProduct.specs).map(([k, v]) => (
-                <div key={k} className="flex justify-between py-1 border-b border-[#1A1A1A] last:border-none">
+                 <div key={k} className="flex justify-between py-1 border-b border-[#1A1A1A] last:border-none">
                   <span className="text-gray-400">{k}</span>
                   <span className="text-gray-200 font-medium text-right">{v}</span>
                 </div>
               ))}
             </div>
 
-            {/* Store Guarantee */}
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-[#181818] border border-[#262626] text-xs text-gray-300 mb-6">
-              <ShieldCheck size={18} className="text-[#D4AF37] shrink-0" />
-              <span>100% Original Brand Packed with 1 Year Official India Manufacturer Warranty.</span>
-            </div>
+            {/* Official Store Warranty - Rendered ONLY if product has active warranty */}
+            {selectedProduct.hasWarranty && selectedProduct.warrantyDuration && (
+              <div className="p-3.5 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-xs text-gray-200 mb-6 space-y-1.5">
+                <div className="flex items-center gap-2 font-bold text-[#D4AF37]">
+                  <ShieldCheck size={18} className="text-[#D4AF37] shrink-0" />
+                  <span>{selectedProduct.warrantyDuration} Official Store Warranty</span>
+                </div>
+                {selectedProduct.warrantyDescription ? (
+                  <p className="text-[11px] text-gray-300 pl-6 leading-relaxed">
+                    {selectedProduct.warrantyDescription}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-gray-400 pl-6">
+                    100% genuine product with {selectedProduct.warrantyDuration} coverage verified by SK Mobile Shoppy & Electronic.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="space-y-3">

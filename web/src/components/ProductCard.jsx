@@ -80,6 +80,14 @@ export default function ProductCard({ product, onSelect, onAction, onAddToCart, 
           <span className="text-gray-500 text-[11px]">({product.reviewCount || 120} reviews)</span>
         </div>
 
+        {/* Product Warranty Badge (displayed only when enabled by admin with exact duration) */}
+        {product.hasWarranty && product.warrantyDuration && (
+          <div className="flex items-center gap-1.5 text-[11px] text-[#D4AF37] mb-2 bg-[#D4AF37]/10 px-2 py-0.5 rounded border border-[#D4AF37]/30 self-start">
+            <ShieldCheck size={13} className="text-[#D4AF37] shrink-0" />
+            <span className="font-semibold">{product.warrantyDuration} Warranty</span>
+          </div>
+        )}
+
         {/* Pre-owned specific indicators */}
         {product.batteryHealth && (
           <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 mb-2 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/30 self-start">
