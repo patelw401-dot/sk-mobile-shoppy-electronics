@@ -167,7 +167,7 @@ export default function RepairBookingPage({ currentUser, setActivePage, onShowTo
         </div>
         <h1 className="text-3xl font-black text-white">Book Mobile Repair & Service</h1>
         <p className="text-xs sm:text-sm text-gray-400 mt-1 max-w-2xl">
-          Get transparent diagnosis, genuine components, and an ironclad 90-day warranty. Choose free doorstep device pickup anywhere in Udgir or visit our service desk.
+          Get transparent diagnosis, genuine components, and expert service. Choose free doorstep device pickup anywhere in Udgir or visit our service desk.
         </p>
       </div>
 
@@ -476,12 +476,12 @@ export default function RepairBookingPage({ currentUser, setActivePage, onShowTo
                 <ShieldCheck size={24} />
               </div>
               <div>
-                <h3 className="text-base font-black text-white">SK 90-Day Warranty</h3>
+                <h3 className="text-base font-black text-white">SK Service Guarantee</h3>
                 <p className="text-xs text-[#D4AF37] font-semibold">100% Genuine Replacement Parts</p>
               </div>
             </div>
             <p className="text-xs text-gray-300 leading-relaxed mb-4">
-              Every display, battery, and charging port installed at our Udgir center comes sealed with our shop warranty sticker. If you experience any touch delay or performance issues within 90 days, we replace it free of cost.
+              Every display, battery, and charging port installed at our Udgir center is thoroughly tested and verified with genuine components. Fast diagnosis and dependable turnaround on all repairs.
             </p>
             <div className="space-y-2 text-xs text-gray-300 pt-2 border-t border-[#333333]">
               <div className="flex items-center gap-2">

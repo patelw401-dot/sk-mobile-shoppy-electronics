@@ -186,7 +186,7 @@ export default function AppDownloadSection({ onShowToast }) {
                       Fast Counter Services
                     </span>
                     <div className="text-xs font-black text-white">
-                      30-Min Mobile Repairs • 90-Day Warranty
+                      30-Min Mobile Repairs • Genuine Parts
                     </div>
                     <div className="text-[10px] text-gray-400">
                       Nagar Parishad, Udgir Store

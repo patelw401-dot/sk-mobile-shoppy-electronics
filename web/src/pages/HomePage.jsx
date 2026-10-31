@@ -40,7 +40,7 @@ export default function HomePage({ setActivePage, setSelectedProduct, onAddToCar
           </h1>
 
           <p className="text-gray-300 text-sm sm:text-base md:text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
-            Welcome to <strong>SK Mobile Shoppy and Electronic</strong>. We offer brand-new smartphones, tested pre-owned devices, original accessories, and expert 30-minute mobile repairs with a 90-day warranty.
+            Welcome to <strong>SK Mobile Shoppy and Electronics</strong>. We offer brand-new smartphones, tested pre-owned devices, original accessories, and expert 30-minute mobile repairs.
           </p>
 
           {/* Action CTAs */}
@@ -93,8 +93,8 @@ export default function HomePage({ setActivePage, setSelectedProduct, onAddToCar
               <div className="text-[10px] text-gray-500">Opposite Municipal Complex</div>
             </div>
             <div className="p-3 rounded-xl bg-[#141414]/80 border border-[#222222]">
-              <div className="text-xs text-gray-400 mb-1">Service Warranty</div>
-              <div className="text-xs font-bold text-[#D4AF37]">90-Day Full Warranty</div>
+              <div className="text-xs text-gray-400 mb-1">Fast Repairs</div>
+              <div className="text-xs font-bold text-[#D4AF37]">30-Min Express Service</div>
               <div className="text-[10px] text-gray-500">On displays, batteries & ports</div>
             </div>
             <div className="p-3 rounded-xl bg-[#141414]/80 border border-[#222222]">
@@ -163,7 +163,7 @@ export default function HomePage({ setActivePage, setSelectedProduct, onAddToCar
               <span className="gold-text">Fix It in 30 Minutes</span>
             </h2>
             <p className="text-xs sm:text-sm text-gray-300 leading-relaxed mb-6">
-              Skip the long waiting times at external service centers. Our certified technicians in Nagar Parishad, Udgir use genuine parts with a 90-day replacement warranty. Doorstep pickup or fast 30-min counter service available.
+              Skip the long waiting times at external service centers. Our certified technicians in Nagar Parishad, Udgir use genuine parts. Doorstep pickup or fast 30-min counter service available.
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">

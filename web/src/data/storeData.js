@@ -8,7 +8,7 @@ export const STORE_INFO = {
   email: "skmobileshoppyandelectronics@gmail.com",
   adminEmail: "patelw401@gmail.com",
   hours: "9:30 AM – 9:30 PM (Open All 7 Days)",
-  warrantyPromise: "90-Day Warranty on all Repairs & 6 Months on Pre-Owned Phones",
+  warrantyPromise: "Certified Repairs & 6 Months on Pre-Owned Phones",
   locationSlug: "Nagar Parishad, Udgir"
 };
 
@@ -329,7 +329,7 @@ export const REPAIR_SERVICES = [
     title: "Display & Touch Replacement",
     priceRange: "₹899 – ₹3,999",
     timeEstimate: "30 – 60 Mins",
-    warranty: "90-Day Warranty",
+    warranty: "Certified Service",
     description: "Original OLED and high-grade FHD displays. Resolves broken glass, lines, touch lag, and black screens."
   },
   {
@@ -345,7 +345,7 @@ export const REPAIR_SERVICES = [
     title: "Charging Port & IC Repair",
     priceRange: "₹299 – ₹899",
     timeEstimate: "20 – 45 Mins",
-    warranty: "90-Day Warranty",
+    warranty: "Certified Service",
     description: "Resolves loose cable fit, slow charging, moisture detected warning, and dead charging circuits."
   },
   {
@@ -353,7 +353,7 @@ export const REPAIR_SERVICES = [
     title: "Camera & Lens Glass Repair",
     priceRange: "₹399 – ₹1,499",
     timeEstimate: "45 Mins",
-    warranty: "90-Day Warranty",
+    warranty: "Certified Service",
     description: "Original sapphire and tempered camera lens glass. Resolves blurry focus, spots, and vibration bugs."
   },
   {
@@ -361,7 +361,7 @@ export const REPAIR_SERVICES = [
     title: "Speaker, Mic & Receiver",
     priceRange: "₹299 – ₹799",
     timeEstimate: "30 Mins",
-    warranty: "90-Day Warranty",
+    warranty: "Certified Service",
     description: "Low call volume, crackling loudspeakers, and inaudible microphone replacements."
   },
   {
@@ -369,7 +369,7 @@ export const REPAIR_SERVICES = [
     title: "Water Damage & Motherboard Diagnosis",
     priceRange: "₹499 – ₹2,499",
     timeEstimate: "Same Day",
-    warranty: "90-Day Warranty",
+    warranty: "Certified Service",
     description: "Ultrasonic chemical wash and microscopic short-circuit removal by senior repair technicians."
   }
 ];

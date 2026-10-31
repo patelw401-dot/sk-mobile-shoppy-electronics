@@ -29,8 +29,8 @@ export default function Footer({ setActivePage }) {
               <ShieldCheck size={22} />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white">90-Day Warranty</h4>
-              <p className="text-[11px] text-gray-400">Guaranteed on all repairs</p>
+              <h4 className="text-sm font-bold text-white">Quality Guarantee</h4>
+              <p className="text-[11px] text-gray-400">Tested & certified repairs</p>
             </div>
           </div>
 

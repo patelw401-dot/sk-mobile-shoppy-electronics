@@ -26,7 +26,7 @@ export default function Navbar({ activePage, setActivePage, currentUser, cartCou
     { id: 'home', label: 'Home', icon: Sparkles },
     { id: 'products', label: 'Smartphones', icon: Smartphone },
     { id: 'accessories', label: 'Accessories', icon: Headphones },
-    { id: 'repairs', label: 'Repair Booking', icon: Wrench, badge: '90-Day Warranty' },
+    { id: 'repairs', label: 'Repair Booking', icon: Wrench },
     { id: 'app-download', label: 'Download App', icon: Download, badge: 'APK' },
     { id: 'old-phones', label: 'Old Phones (Buy/Sell)', icon: RefreshCw },
     { id: 'contact', label: 'Store & Contact', icon: MapPin },

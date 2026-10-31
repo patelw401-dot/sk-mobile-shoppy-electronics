@@ -231,11 +231,11 @@ export const initialProducts = [
 ];
 
 export const repairServicesList = [
-  { id: 'rep-1', name: 'Display Replacement', icon: 'smartphone', priceEst: '₹1,200 - ₹4,500', time: '30 - 60 Mins', warranty: '90 Days Warranty' },
+  { id: 'rep-1', name: 'Display Replacement', icon: 'smartphone', priceEst: '₹1,200 - ₹4,500', time: '30 - 60 Mins', warranty: 'Certified Service' },
   { id: 'rep-2', name: 'Battery Replacement', icon: 'battery_alert', priceEst: '₹600 - ₹1,800', time: '30 Mins', warranty: '180 Days Warranty' },
-  { id: 'rep-3', name: 'Charging Port Repair', icon: 'power', priceEst: '₹350 - ₹900', time: '20 Mins', warranty: '90 Days Warranty' },
-  { id: 'rep-4', name: 'Speaker & Mic Repair', icon: 'volume_up', priceEst: '₹400 - ₹850', time: '30 Mins', warranty: '90 Days Warranty' },
-  { id: 'rep-5', name: 'Camera & Lens Glass', icon: 'photo_camera', priceEst: '₹500 - ₹1,600', time: '45 Mins', warranty: '90 Days Warranty' },
+  { id: 'rep-3', name: 'Charging Port Repair', icon: 'power', priceEst: '₹350 - ₹900', time: '20 Mins', warranty: 'Certified Service' },
+  { id: 'rep-4', name: 'Speaker & Mic Repair', icon: 'volume_up', priceEst: '₹400 - ₹850', time: '30 Mins', warranty: 'Certified Service' },
+  { id: 'rep-5', name: 'Camera & Lens Glass', icon: 'photo_camera', priceEst: '₹500 - ₹1,600', time: '45 Mins', warranty: 'Certified Service' },
   { id: 'rep-6', name: 'Water Damage Treatment', icon: 'water_drop', priceEst: '₹800 - ₹2,500', time: '2 - 4 Hours', warranty: 'Inspection Guaranteed' },
   { id: 'rep-7', name: 'Software & Dead Boot', icon: 'settings_system_daydream', priceEst: '₹300 - ₹800', time: '40 Mins', warranty: 'Free Diagnosis' }
 ];
