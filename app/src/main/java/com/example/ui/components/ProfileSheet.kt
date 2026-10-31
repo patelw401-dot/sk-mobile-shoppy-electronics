@@ -293,7 +293,7 @@ fun ProfileSheet(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Sign in to SK Mobile Shoppy and Electronic",
+                            text = "Sign in to SK Mobile Shoppy and Electronics",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextMain

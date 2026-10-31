@@ -205,7 +205,7 @@ fun RepairBookingScreen(
                         text = if (lastConfirmedBooking.pickupRequired) {
                             "Our technician will visit ${lastConfirmedBooking.address} for doorstep collection. Estimated repair time: 45-60 mins."
                         } else {
-                            "Please bring your device to SK Mobile Shoppy and Electronic Shop, Nagar Parishad, Udgir. Your slot has been reserved!"
+                            "Please bring your device to SK Mobile Shoppy and Electronics Shop, Nagar Parishad, Udgir. Your slot has been reserved!"
                         },
                         fontSize = 12.sp,
                         color = ShopTextSecondary,
@@ -215,7 +215,7 @@ fun RepairBookingScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Need urgent help? Call SK Mobile Shoppy and Electronic: +91 98765 43210",
+                        text = "Need urgent help? Call SK Mobile Shoppy and Electronics: +91 98765 43210",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = ShopPrimaryBlue
@@ -269,7 +269,7 @@ fun RepairBookingScreen(
                         color = ShopTextPrimary
                     )
                     Text(
-                        text = "SK Mobile Shoppy and Electronic Service Center • Udgir",
+                        text = "SK Mobile Shoppy and Electronics Service Center • Udgir",
                         fontSize = 11.sp,
                         color = ShopTextSecondary
                     )
@@ -556,7 +556,7 @@ fun RepairBookingScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Column {
                                 Text(
-                                    text = "No, I will visit SK Mobile Shoppy and Electronic shop",
+                                    text = "No, I will visit SK Mobile Shoppy and Electronics shop",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = ShopTextPrimary

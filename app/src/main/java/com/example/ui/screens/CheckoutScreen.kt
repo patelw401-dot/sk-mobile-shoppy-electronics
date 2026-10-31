@@ -279,8 +279,8 @@ fun CheckoutScreen(
 
                         val deliveryOptions = listOf(
                             "Standard Free Delivery in Udgir" to "Delivered to your doorstep within 4-6 hours (Free)",
-                            "Express 2-Hour Delivery in Udgir" to "Priority dispatch from SK Mobile Shoppy and Electronic store (Free promo)",
-                            "Store Pickup at SK Mobile Shoppy and Electronic" to "Collect directly from SK Mobile Shoppy and Electronic Nagar Parishad store in 30 mins"
+                            "Express 2-Hour Delivery in Udgir" to "Priority dispatch from SK Mobile Shoppy and Electronics store (Free promo)",
+                            "Store Pickup at SK Mobile Shoppy and Electronics" to "Collect directly from SK Mobile Shoppy and Electronics Nagar Parishad store in 30 mins"
                         )
 
                         deliveryOptions.forEach { (title, subtitle) ->

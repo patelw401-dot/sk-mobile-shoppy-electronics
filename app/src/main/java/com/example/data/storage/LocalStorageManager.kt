@@ -303,7 +303,7 @@ class LocalStorageManager(private val context: Context? = null) {
             try {
                 val obj = JSONObject(jsonString)
                 val s = ShopSettings(
-                    shopName = obj.optString("shopName", "SK Mobile Shoppy and Electronic"),
+                    shopName = obj.optString("shopName", "SK Mobile Shoppy and Electronics"),
                     address = obj.optString("address", "Nagar Parishad, Udgir, Maharashtra - 413517"),
                     phoneNumber = obj.optString("phoneNumber", "+91 98765 43210"),
                     whatsappNumber = obj.optString("whatsappNumber", "+91 98765 43210"),
@@ -623,7 +623,7 @@ class LocalStorageManager(private val context: Context? = null) {
                 city = "Udgir",
                 state = "Maharashtra",
                 pinCode = "413517",
-                deliveryOption = "Store Pickup at SK Mobile Shoppy and Electronic",
+                deliveryOption = "Store Pickup at SK Mobile Shoppy and Electronics",
                 paymentMethod = "Online Payment",
                 orderDate = "Yesterday, 04:45 PM",
                 status = "Delivered"

@@ -137,7 +137,7 @@ fun AppHeader(
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "SK Mobile Shoppy and Electronic",
+                                    text = "SK Mobile Shoppy and Electronics",
                                     color = TextMain,
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 14.sp,

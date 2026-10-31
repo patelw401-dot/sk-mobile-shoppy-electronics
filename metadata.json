@@ -1,5 +1,5 @@
 {
-  "name": "SK Mobile Shoppy and Electronic",
+  "name": "SK Mobile Shoppy and Electronics",
   "description": "Electronics and mobile store application with admin management, repair booking, and video reels",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

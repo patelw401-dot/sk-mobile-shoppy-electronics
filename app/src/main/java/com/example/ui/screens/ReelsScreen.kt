@@ -742,7 +742,7 @@ private fun shareReelExternal(context: Context, reel: ReelItem) {
         )
         putExtra(
             Intent.EXTRA_TEXT,
-            "🔥 ${reel.title}\n\n${reel.caption}\n\nCheck out top smartphone deals & electronics at SK Mobile Shoppy & Electronic, Udgir!\nStore location: Nagar Parishad, Station Road, Udgir."
+            "🔥 ${reel.title}\n\n${reel.caption}\n\nCheck out top smartphone deals & electronics at SK Mobile Shoppy and Electronics, Udgir!\nStore location: Nagar Parishad, Station Road, Udgir."
         )
     }
     context.startActivity(Intent.createChooser(shareIntent, "Share SK Reel via"))

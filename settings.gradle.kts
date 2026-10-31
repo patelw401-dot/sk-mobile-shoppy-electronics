@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "SK Mobile Shoppy and Electronic"
+rootProject.name = "SK Mobile Shoppy and Electronics"
 
 include(":app")

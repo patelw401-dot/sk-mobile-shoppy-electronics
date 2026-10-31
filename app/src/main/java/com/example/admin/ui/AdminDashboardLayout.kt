@@ -175,7 +175,7 @@ fun AdminDashboardLayout(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "SK Mobile Shoppy and Electronic Admin • Udgir",
+                                    text = "SK Mobile Shoppy and Electronics Admin • Udgir",
                                     color = TextSecondary,
                                     fontSize = 11.sp
                                 )
@@ -391,7 +391,7 @@ fun AdminSidebarSheet(
 
                         Column {
                             Text(
-                                text = "SK Mobile Shoppy and Electronic Admin",
+                                text = "SK Mobile Shoppy and Electronics Admin",
                                 color = TextMain,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,

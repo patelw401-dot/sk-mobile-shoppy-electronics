@@ -110,7 +110,7 @@ fun OrderSuccessScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Thank you for shopping at SK Mobile Shoppy and Electronic, Udgir.",
+                text = "Thank you for shopping at SK Mobile Shoppy and Electronics, Udgir.",
                 fontSize = 13.sp,
                 color = ShopTextSecondary,
                 textAlign = TextAlign.Center

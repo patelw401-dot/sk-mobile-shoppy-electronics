@@ -175,7 +175,7 @@ fun OldPhoneScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
-                        text = "SK Mobile Shoppy and Electronic technician will inspect your phone at ${lastConfirmedSellRequest.address} in Udgir and hand over instant cash or UPI payment on the spot!",
+                        text = "SK Mobile Shoppy and Electronics technician will inspect your phone at ${lastConfirmedSellRequest.address} in Udgir and hand over instant cash or UPI payment on the spot!",
                         fontSize = 12.sp,
                         color = ShopTextSecondary,
                         lineHeight = 17.sp
@@ -305,7 +305,7 @@ fun OldPhoneScreen(
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Every refurbished phone is inspected via a 32-point technical diagnostic test. Comes with 6 Months SK Mobile Shoppy and Electronic warranty card & invoice.",
+                                text = "Every refurbished phone is inspected via a 32-point technical diagnostic test. Comes with 6 Months SK Mobile Shoppy and Electronics warranty card & invoice.",
                                 fontSize = 12.sp,
                                 color = com.example.ui.theme.TextSecondary,
                                 lineHeight = 16.sp

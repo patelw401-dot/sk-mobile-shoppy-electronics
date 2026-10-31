@@ -305,7 +305,7 @@ fun AdminLoginScreen(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 Text(
-                    text = "SK Mobile Shoppy and Electronic",
+                    text = "SK Mobile Shoppy and Electronics",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = TextMain

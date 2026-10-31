@@ -67,7 +67,7 @@ data class AdminReviewRecord(
 )
 
 data class ShopSettings(
-    val shopName: String = "SK Mobile Shoppy and Electronic",
+    val shopName: String = "SK Mobile Shoppy and Electronics",
     val address: String = "Nagar Parishad, Udgir, Maharashtra - 413517",
     val phoneNumber: String = "+91 98765 43210",
     val whatsappNumber: String = "+91 98765 43210",

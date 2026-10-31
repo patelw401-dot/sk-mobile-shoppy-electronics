@@ -76,7 +76,7 @@ fun MobileMenuDrawerSheet(
                 .fillMaxHeight()
                 .padding(bottom = 20.dp)
         ) {
-            // Header with SK Mobile Shoppy and Electronic branding & Close Button
+            // Header with SK Mobile Shoppy and Electronics branding & Close Button
             Surface(
                 color = BlackSurfaceSecondary,
                 modifier = Modifier.fillMaxWidth(),
@@ -107,7 +107,7 @@ fun MobileMenuDrawerSheet(
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = "SK Mobile Shoppy and Electronic",
+                                        text = "SK Mobile Shoppy and Electronics",
                                         color = TextMain,
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 14.sp

@@ -85,7 +85,7 @@ fun ContactScreen(
                 }
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Contact SK Mobile Shoppy and Electronic",
+                    text = "Contact SK Mobile Shoppy and Electronics",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = ShopTextPrimary
@@ -127,7 +127,7 @@ fun ContactScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "SK Mobile Shoppy and Electronic",
+                                    text = "SK Mobile Shoppy and Electronics",
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Black,
                                     color = ShopPrimaryBlue
@@ -280,7 +280,7 @@ fun ContactScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "How to Reach SK Mobile Shoppy and Electronic",
+                                text = "How to Reach SK Mobile Shoppy and Electronics",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = ShopTextPrimary
@@ -315,7 +315,7 @@ fun ContactScreen(
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "SK Mobile Shoppy and Electronic • Nagar Parishad Road, Udgir",
+                                    text = "SK Mobile Shoppy and Electronics • Nagar Parishad Road, Udgir",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = ShopTextPrimary
@@ -343,7 +343,7 @@ fun ContactScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Services Available at SK Mobile Shoppy and Electronic",
+                            text = "Services Available at SK Mobile Shoppy and Electronics",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = ShopTextPrimary

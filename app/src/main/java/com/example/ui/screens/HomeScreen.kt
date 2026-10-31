@@ -272,7 +272,7 @@ fun HomeScreen(
         item {
             Spacer(modifier = Modifier.height(20.dp))
             SectionHeader(
-                title = "Best Sellers at SK Mobile Shoppy and Electronic",
+                title = "Best Sellers at SK Mobile Shoppy and Electronics",
                 subtitle = "Top customer favorites and hot sellers in Udgir",
                 onSeeAll = { onNavigate(AppScreen.PRODUCTS) }
             )
@@ -415,7 +415,7 @@ fun PromoHeroBanner(
             // Background Artwork
             Image(
                 painter = painterResource(id = R.drawable.img_hero_banner_1791267089819),
-                contentDescription = "SK Mobile Shoppy and Electronic Banner Artwork",
+                contentDescription = "SK Mobile Shoppy and Electronics Banner Artwork",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(210.dp),
@@ -816,7 +816,7 @@ fun WhyChooseUsSection() {
             .testTag("why_choose_sk_mobile_section")
     ) {
         Text(
-            text = "Why Choose SK Mobile Shoppy and Electronic?",
+            text = "Why Choose SK Mobile Shoppy and Electronics?",
             fontSize = 17.sp,
             fontWeight = FontWeight.Bold,
             color = ShopTextPrimary
@@ -908,7 +908,7 @@ fun CustomerReviewsSection(reviews: List<CustomerReview>) {
                     color = ShopTextPrimary
                 )
                 Text(
-                    text = "What Udgir locals say about SK Mobile Shoppy and Electronic",
+                    text = "What Udgir locals say about SK Mobile Shoppy and Electronics",
                     fontSize = 12.sp,
                     color = ShopTextSecondary
                 )
@@ -1023,7 +1023,7 @@ fun ShopFooterSection(
         Column(modifier = Modifier.padding(20.dp)) {
             // Brand & Location
             Text(
-                text = "SK Mobile Shoppy and Electronic",
+                text = "SK Mobile Shoppy and Electronics",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = com.example.ui.theme.TextMain
@@ -1144,7 +1144,7 @@ fun ShopFooterSection(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "© 2026 SK Mobile Shoppy and Electronic, Udgir. All Rights Reserved. Designed for Udgir mobile shoppers.",
+                text = "© 2026 SK Mobile Shoppy and Electronics, Udgir. All Rights Reserved. Designed for Udgir mobile shoppers.",
                 fontSize = 10.sp,
                 color = com.example.ui.theme.TextMuted
             )
