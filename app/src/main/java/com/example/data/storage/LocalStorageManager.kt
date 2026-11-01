@@ -923,6 +923,173 @@ class LocalStorageManager(private val context: Context? = null) {
         )
     }
 
+    @Volatile
+    private var cachedCategories: MutableList<CategoryRecord>? = null
+
+    @Synchronized
+    fun loadCategories(): List<CategoryRecord> {
+        cachedCategories?.let { return it.toList() }
+
+        val jsonString = prefs?.getString(KEY_CATEGORIES, null)
+        if (!jsonString.isNullOrEmpty()) {
+            try {
+                val array = JSONArray(jsonString)
+                val list = mutableListOf<CategoryRecord>()
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    list.add(jsonToCategory(obj))
+                }
+                cachedCategories = list
+                return list.toList()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to parse stored categories: ${e.message}")
+            }
+        }
+
+        val defaults = getDefaultCategories()
+        saveCategories(defaults)
+        return defaults
+    }
+
+    @Synchronized
+    fun saveCategories(categories: List<CategoryRecord>) {
+        cachedCategories = categories.toMutableList()
+        try {
+            val array = JSONArray()
+            for (c in categories) {
+                array.put(categoryToJson(c))
+            }
+            prefs?.edit()?.putString(KEY_CATEGORIES, array.toString())?.apply()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save categories: ${e.message}")
+        }
+    }
+
+    private fun categoryToJson(c: CategoryRecord): JSONObject {
+        return JSONObject().apply {
+            put("id", c.id)
+            put("name", c.name)
+            put("slug", c.slug)
+            put("categoryEnum", c.category.name)
+            put("isActive", c.isActive)
+            put("productCount", c.productCount)
+            put("imageUrl", c.imageUrl)
+            put("description", c.description)
+            put("displayOrder", c.displayOrder)
+            put("createdAt", c.createdAt)
+        }
+    }
+
+    private fun jsonToCategory(obj: JSONObject): CategoryRecord {
+        val enumName = obj.optString("categoryEnum", ProductCategory.ACCESSORIES.name)
+        val catEnum = try { ProductCategory.valueOf(enumName) } catch (e: Exception) { ProductCategory.ACCESSORIES }
+        return CategoryRecord(
+            id = obj.getString("id"),
+            name = obj.optString("name", "Category"),
+            slug = obj.optString("slug", "category"),
+            category = catEnum,
+            isActive = obj.optBoolean("isActive", true),
+            productCount = obj.optInt("productCount", 0),
+            imageUrl = obj.optString("imageUrl", ""),
+            description = obj.optString("description", ""),
+            displayOrder = obj.optInt("displayOrder", 1),
+            createdAt = obj.optLong("createdAt", System.currentTimeMillis())
+        )
+    }
+
+    fun getDefaultCategories(): List<CategoryRecord> {
+        return listOf(
+            CategoryRecord(
+                id = "cat-smartphones",
+                name = "Smartphones",
+                slug = "smartphones",
+                category = ProductCategory.MOBILE_PHONES,
+                isActive = true,
+                productCount = 4,
+                imageUrl = "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&auto=format&fit=crop&q=80",
+                description = "Brand new Android & iOS flagship smartphones with official warranty",
+                displayOrder = 1
+            ),
+            CategoryRecord(
+                id = "cat-old-phones",
+                name = "Old Phones",
+                slug = "old-phones",
+                category = ProductCategory.OLD_PHONES,
+                isActive = true,
+                productCount = 3,
+                imageUrl = "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=500&auto=format&fit=crop&q=80",
+                description = "Certified pre-owned second hand smartphones with 32-point inspection",
+                displayOrder = 2
+            ),
+            CategoryRecord(
+                id = "cat-chargers",
+                name = "Fast Chargers",
+                slug = "chargers",
+                category = ProductCategory.CHARGERS,
+                isActive = true,
+                productCount = 3,
+                imageUrl = "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=500&auto=format&fit=crop&q=80",
+                description = "High-speed 33W, 65W & 100W GaN chargers with Power Delivery",
+                displayOrder = 3
+            ),
+            CategoryRecord(
+                id = "cat-cables",
+                name = "Data Cables",
+                slug = "data-cables",
+                category = ProductCategory.DATA_CABLES,
+                isActive = true,
+                productCount = 3,
+                imageUrl = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&auto=format&fit=crop&q=80",
+                description = "Tough braided Type-C, Lightning & Micro USB fast charging cables",
+                displayOrder = 4
+            ),
+            CategoryRecord(
+                id = "cat-headphones",
+                name = "Headphones",
+                slug = "headphones",
+                category = ProductCategory.HEADPHONES,
+                isActive = true,
+                productCount = 2,
+                imageUrl = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=80",
+                description = "Over-ear, in-ear & wireless Bluetooth headphones with deep bass",
+                displayOrder = 5
+            ),
+            CategoryRecord(
+                id = "cat-bluetooth",
+                name = "Bluetooth",
+                slug = "bluetooth",
+                category = ProductCategory.BLUETOOTH,
+                isActive = true,
+                productCount = 3,
+                imageUrl = "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=500&auto=format&fit=crop&q=80",
+                description = "Portable wireless speakers, neckbands & Bluetooth audio accessories",
+                displayOrder = 6
+            ),
+            CategoryRecord(
+                id = "cat-accessories",
+                name = "Accessories",
+                slug = "accessories",
+                category = ProductCategory.ACCESSORIES,
+                isActive = true,
+                productCount = 3,
+                imageUrl = "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=500&auto=format&fit=crop&q=80",
+                description = "Tempered glass, premium back covers, holders & mobile skins",
+                displayOrder = 7
+            ),
+            CategoryRecord(
+                id = "cat-repair",
+                name = "Mobile Repair",
+                slug = "repair",
+                category = ProductCategory.REPAIR_SERVICES,
+                isActive = true,
+                productCount = 6,
+                imageUrl = "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=500&auto=format&fit=crop&q=80",
+                description = "Expert 30-minute display, battery & chip-level smartphone repair in Udgir",
+                displayOrder = 8
+            )
+        )
+    }
+
     companion object {
         private const val TAG = "LocalStorageManager"
         private const val PREFS_NAME = "sk_mobile_prefs"
@@ -934,6 +1101,7 @@ class LocalStorageManager(private val context: Context? = null) {
         private const val KEY_SETTINGS = "key_settings"
         private const val KEY_NOTIFICATIONS_PREFIX = "key_notif_"
         private const val KEY_REELS = "key_reels"
+        private const val KEY_CATEGORIES = "key_categories"
 
         // Singleton instance
         @Volatile

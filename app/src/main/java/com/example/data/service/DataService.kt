@@ -66,8 +66,11 @@ interface DataService {
 
     // --- REVIEWS, CATEGORIES & SETTINGS ---
     suspend fun getReviews(): List<CustomerReview>
+    fun observeCategories(): Flow<List<CategoryRecord>>
     suspend fun getCategories(): List<CategoryRecord>
+    suspend fun saveCategory(category: CategoryRecord): Result<CategoryRecord>
     suspend fun toggleCategoryActive(categoryId: String): Result<CategoryRecord>
+    suspend fun deleteCategory(categoryId: String, reassignToSlug: String? = null): Result<Boolean>
     suspend fun addCategory(name: String, slug: String): Result<CategoryRecord>
     suspend fun getSettings(): ShopSettings
     suspend fun saveSettings(settings: ShopSettings): Result<ShopSettings>

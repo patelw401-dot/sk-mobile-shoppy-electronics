@@ -92,10 +92,12 @@ fun HomeScreen(
     featuredProducts: List<Product>,
     repairServices: List<RepairService>,
     customerReviews: List<CustomerReview>,
+    categories: List<com.example.admin.model.CategoryRecord> = emptyList(),
     onSelectProduct: (Product) -> Unit,
     onAddToCart: (Product) -> Unit,
     onBuyNow: (Product) -> Unit,
     onCategoryClick: (ProductCategory) -> Unit,
+    onCategoryRecordClick: ((com.example.admin.model.CategoryRecord) -> Unit)? = null,
     onNavigate: (AppScreen) -> Unit,
     onBookRepairProblem: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -155,11 +157,26 @@ fun HomeScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(CategoryData.items) { meta ->
-                        com.example.ui.components.CategoryCardItem(
-                            categoryMeta = meta,
-                            onClick = { onCategoryClick(meta.category) }
-                        )
+                    if (categories.isNotEmpty()) {
+                        items(categories) { cat ->
+                            com.example.ui.components.DynamicCategoryCardItem(
+                                category = cat,
+                                onClick = {
+                                    if (onCategoryRecordClick != null) {
+                                        onCategoryRecordClick(cat)
+                                    } else {
+                                        onCategoryClick(cat.category)
+                                    }
+                                }
+                            )
+                        }
+                    } else {
+                        items(CategoryData.items) { meta ->
+                            com.example.ui.components.CategoryCardItem(
+                                categoryMeta = meta,
+                                onClick = { onCategoryClick(meta.category) }
+                            )
+                        }
                     }
                 }
             }

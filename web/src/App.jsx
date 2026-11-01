@@ -19,6 +19,7 @@ import AppDownloadPage from './pages/AppDownloadPage';
 
 export default function App() {
   const [activePage, setActivePage] = useState('home');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -164,6 +165,8 @@ export default function App() {
       case 'products':
         return (
           <ProductsPage 
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
             onShowToast={showToast} 
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
@@ -255,6 +258,10 @@ export default function App() {
         return (
           <HomePage 
             setActivePage={setActivePage} 
+            onSelectCategory={(catSlug) => {
+              setSelectedCategory(catSlug);
+              setActivePage('products');
+            }}
             onShowToast={showToast} 
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}

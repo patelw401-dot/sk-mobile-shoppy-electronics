@@ -1,4 +1,4 @@
-// Firebase Web Integration for SK Mobile Shoppy and Electronic, Udgir
+// Firebase Web Integration for SK Mobile Shoppy and Electronics, Udgir
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
 import { 
   getAuth, 

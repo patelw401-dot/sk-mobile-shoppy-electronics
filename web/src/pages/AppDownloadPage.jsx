@@ -50,7 +50,7 @@ export default function AppDownloadPage({ setActivePage, onShowToast }) {
             </div>
             <h3 className="text-sm font-bold text-white">Direct OEM Release</h3>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Standalone Android APK distributed directly by SK Mobile Shoppy & Electronic. No third-party bloatware, advertisements, or background tracking.
+              Standalone Android APK distributed directly by SK Mobile Shoppy and Electronics. No third-party bloatware, advertisements, or background tracking.
             </p>
           </div>
 

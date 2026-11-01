@@ -36,17 +36,9 @@ class LocalDataService(
     private val _repairsFlow = MutableStateFlow<List<RepairBooking>>(emptyList())
     private val _sellRequestsFlow = MutableStateFlow<List<SellRequest>>(emptyList())
     private val _reelsFlow = MutableStateFlow<List<ReelItem>>(emptyList())
+    private val _categoriesFlow = MutableStateFlow<List<CategoryRecord>>(emptyList())
 
-    private var categoriesCache = mutableListOf(
-        CategoryRecord("CAT-1", "Mobile Phones", "mobile-phones", ProductCategory.MOBILE_PHONES, true, 4),
-        CategoryRecord("CAT-2", "Old Phones", "old-phones", ProductCategory.OLD_PHONES, true, 3),
-        CategoryRecord("CAT-3", "Mobile Repair", "mobile-repair", ProductCategory.REPAIR_SERVICES, true, 6),
-        CategoryRecord("CAT-4", "Chargers", "chargers", ProductCategory.CHARGERS, true, 3),
-        CategoryRecord("CAT-5", "Data Cables", "data-cables", ProductCategory.DATA_CABLES, true, 3),
-        CategoryRecord("CAT-6", "Headphones", "headphones", ProductCategory.HEADPHONES, true, 2),
-        CategoryRecord("CAT-7", "Bluetooth", "bluetooth", ProductCategory.BLUETOOTH, true, 3),
-        CategoryRecord("CAT-8", "Accessories", "accessories", ProductCategory.ACCESSORIES, true, 3)
-    )
+    private var categoriesCache = mutableListOf<CategoryRecord>()
 
     init {
         // Hydrate initial states from persistent storage
@@ -55,6 +47,9 @@ class LocalDataService(
         _repairsFlow.value = storage.loadRepairBookings()
         _sellRequestsFlow.value = storage.loadSellRequests()
         _reelsFlow.value = storage.loadReels()
+        val loadedCategories = storage.loadCategories()
+        categoriesCache = loadedCategories.toMutableList()
+        _categoriesFlow.value = loadedCategories
     }
 
     // --- PRODUCTS ---
@@ -390,8 +385,24 @@ class LocalDataService(
     // --- REVIEWS, CATEGORIES & SETTINGS ---
     override suspend fun getReviews(): List<CustomerReview> = MockData.customerReviews
 
+    override fun observeCategories(): Flow<List<CategoryRecord>> = _categoriesFlow.asStateFlow()
+
     override suspend fun getCategories(): List<CategoryRecord> = mutex.withLock {
-        categoriesCache.toList()
+        _categoriesFlow.value
+    }
+
+    override suspend fun saveCategory(category: CategoryRecord): Result<CategoryRecord> = mutex.withLock {
+        val index = categoriesCache.indexOfFirst { it.id == category.id }
+        if (index != -1) {
+            categoriesCache[index] = category
+        } else {
+            categoriesCache.add(category)
+        }
+        val sorted = categoriesCache.sortedBy { it.displayOrder }
+        categoriesCache = sorted.toMutableList()
+        _categoriesFlow.value = sorted
+        storage.saveCategories(sorted)
+        Result.success(category)
     }
 
     override suspend fun toggleCategoryActive(categoryId: String): Result<CategoryRecord> = mutex.withLock {
@@ -400,19 +411,48 @@ class LocalDataService(
         val cat = categoriesCache[index]
         val updated = cat.copy(isActive = !cat.isActive)
         categoriesCache[index] = updated
+        _categoriesFlow.value = categoriesCache.toList()
+        storage.saveCategories(categoriesCache.toList())
         Result.success(updated)
+    }
+
+    override suspend fun deleteCategory(categoryId: String, reassignToSlug: String?): Result<Boolean> = mutex.withLock {
+        val cat = categoriesCache.find { it.id == categoryId }
+        if (cat != null && !reassignToSlug.isNullOrBlank()) {
+            val targetEnum = try { ProductCategory.valueOf(reassignToSlug.uppercase().replace("-", "_")) } catch (e: Exception) { ProductCategory.ACCESSORIES }
+            val currentProds = _productsFlow.value.toMutableList()
+            var modified = false
+            for (i in 0 until currentProds.size) {
+                val p = currentProds[i]
+                if (p.categoryMatches(cat.slug) || p.category == cat.category) {
+                    currentProds[i] = p.copy(category = targetEnum)
+                    modified = true
+                }
+            }
+            if (modified) {
+                _productsFlow.value = currentProds
+                storage.saveProducts(currentProds)
+            }
+        }
+        categoriesCache.removeAll { it.id == categoryId }
+        _categoriesFlow.value = categoriesCache.toList()
+        storage.saveCategories(categoriesCache.toList())
+        Result.success(true)
     }
 
     override suspend fun addCategory(name: String, slug: String): Result<CategoryRecord> = mutex.withLock {
         val newCat = CategoryRecord(
-            id = "CAT-${categoriesCache.size + 1}",
+            id = "cat-${slug.ifBlank { System.currentTimeMillis().toString() }}",
             name = name,
             slug = slug,
             category = ProductCategory.ACCESSORIES,
             isActive = true,
-            productCount = 0
+            productCount = 0,
+            displayOrder = categoriesCache.size + 1
         )
         categoriesCache.add(newCat)
+        _categoriesFlow.value = categoriesCache.toList()
+        storage.saveCategories(categoriesCache.toList())
         Result.success(newCat)
     }
 

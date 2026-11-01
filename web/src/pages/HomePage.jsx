@@ -1,5 +1,6 @@
-import React from 'react';
-import { STORE_INFO, REAL_PRODUCTS, PRE_OWNED_PHONES, REPAIR_SERVICES } from '../data/storeData';
+import React, { useState, useEffect } from 'react';
+import { STORE_INFO, REAL_PRODUCTS, PRE_OWNED_PHONES, REPAIR_SERVICES, DEFAULT_CATEGORIES } from '../data/storeData';
+import { fetchCategoriesFromFirestore } from '../firebase';
 import ProductCard from '../components/ProductCard';
 import { 
   Smartphone, 
@@ -13,13 +14,31 @@ import {
   Sparkles,
   ArrowRight,
   Headphones,
-  Download
+  Download,
+  Layers
 } from 'lucide-react';
 import AppDownloadSection from '../components/AppDownloadSection';
 
-export default function HomePage({ setActivePage, setSelectedProduct, onAddToCart, onBuyNow, onShowToast }) {
+export default function HomePage({ setActivePage, setSelectedProduct, onAddToCart, onBuyNow, onShowToast, onSelectCategory }) {
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const featuredPhones = REAL_PRODUCTS.slice(0, 4);
   const featuredOldPhones = PRE_OWNED_PHONES.slice(0, 3);
+
+  useEffect(() => {
+    async function loadActiveCategories() {
+      try {
+        const res = await fetchCategoriesFromFirestore();
+        if (res.success && res.data && res.data.length > 0) {
+          setCategories(res.data.filter(c => c.isActive));
+        } else {
+          setCategories(DEFAULT_CATEGORIES.filter(c => c.isActive));
+        }
+      } catch (e) {
+        setCategories(DEFAULT_CATEGORIES.filter(c => c.isActive));
+      }
+    }
+    loadActiveCategories();
+  }, []);
 
   return (
     <div className="space-y-16 pb-16">
@@ -108,6 +127,62 @@ export default function HomePage({ setActivePage, setSelectedProduct, onAddToCar
               <div className="text-[10px] text-gray-500">Open all 7 days (9:30 AM–9:30 PM)</div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Dynamic Shop by Category Section */}
+      <section className="container">
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-8 gap-4">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-widest text-[#D4AF37] mb-1">
+              Store Taxonomy
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-white">
+              Shop by Category
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-400 mt-1">
+              Browse brand-new smartphones, certified pre-owned devices, original chargers, audio and accessories.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              onSelectCategory?.('ALL');
+              setActivePage('products');
+            }}
+            className="outline-gold-btn !text-xs !py-2 !px-4 self-start sm:self-auto"
+          >
+            <span>Browse Full Catalog</span>
+            <ArrowRight size={14} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3.5">
+          {categories.map((cat) => (
+            <div
+              key={cat.id}
+              onClick={() => {
+                onSelectCategory?.(cat.slug);
+                setActivePage('products');
+              }}
+              className="group cursor-pointer rounded-xl bg-[#141414] border border-[#262626] hover:border-[#D4AF37] p-3 text-center transition flex flex-col items-center justify-between shadow-md hover:shadow-[#D4AF37]/5"
+            >
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-[#1F1F1F] border border-[#333333] overflow-hidden mb-2.5 relative group-hover:scale-105 transition">
+                <img
+                  src={cat.imageUrl}
+                  alt={cat.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&auto=format&fit=crop&q=80';
+                  }}
+                />
+              </div>
+              <h3 className="text-xs font-bold text-white group-hover:text-[#D4AF37] transition truncate w-full">
+                {cat.name}
+              </h3>
+              <span className="text-[10px] text-gray-500 mt-0.5">Explore deals &rarr;</span>
+            </div>
+          ))}
         </div>
       </section>
 

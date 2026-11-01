@@ -74,19 +74,22 @@ class FirestoreDataService(
     private val _repairsFlow = MutableStateFlow<List<RepairBooking>>(localStorage.loadRepairBookings())
     private val _oldPhonesFlow = MutableStateFlow<List<SellRequest>>(localStorage.loadSellRequests())
     private val _reelsFlow = MutableStateFlow<List<ReelItem>>(localStorage.loadReels().ifEmpty { MockData.defaultReels })
+    private val _categoriesFlow = MutableStateFlow<List<CategoryRecord>>(localStorage.loadCategories())
 
     private var ordersListener: ListenerRegistration? = null
     private var repairsListener: ListenerRegistration? = null
     private var oldPhonesListener: ListenerRegistration? = null
     private var reelsListener: ListenerRegistration? = null
+    private var categoriesListener: ListenerRegistration? = null
 
     @Volatile
     private var isSeeding = false
 
     init {
-        // Products and Reels collection have public read rules, so safe to listen without auth
+        // Products, Reels, and Categories collections have public read rules, so safe to listen without auth
         setupProductsListener()
         setupReelsListener()
+        setupCategoriesListener()
 
         // Auth-gated snapshot listeners for admin collections (orders, repairs, oldPhones)
         try {
@@ -97,11 +100,12 @@ class FirestoreDataService(
                     serviceScope.launch {
                         val isAuthorized = AdminAuthService.verifyAdminAuthorization(user)
                         if (isAuthorized) {
-                            // Authenticated as verified admin: attach admin listeners & seed products if empty
+                            // Authenticated as verified admin: attach admin listeners & seed products/categories if empty
                             setupOrdersListener()
                             setupRepairsListener()
                             setupOldPhonesListener()
                             checkAndSeedProductsIfAdmin()
+                            checkAndSeedCategoriesIfAdmin()
                         } else {
                             // Normal customer: detach admin listeners to prevent PERMISSION_DENIED
                             detachAdminListeners()
@@ -136,6 +140,82 @@ class FirestoreDataService(
         } catch (e: Exception) {
             Log.w(TAG, "checkAndSeedProductsIfAdmin error: ${e.message}")
         }
+    }
+
+    private suspend fun checkAndSeedCategoriesIfAdmin() {
+        try {
+            if (FirebaseConfig.getAuth().currentUser == null) return
+            val snapshot = firestore.collection(COLLECTION_CATEGORIES).limit(1).get().await()
+            if (snapshot.isEmpty) {
+                val defaults = localStorage.getDefaultCategories()
+                val batch = firestore.batch()
+                defaults.forEach { cat ->
+                    val docRef = firestore.collection(COLLECTION_CATEGORIES).document(cat.id)
+                    val map = mapOf(
+                        "id" to cat.id,
+                        "name" to cat.name,
+                        "slug" to cat.slug,
+                        "category" to cat.category.name,
+                        "isActive" to cat.isActive,
+                        "imageUrl" to cat.imageUrl,
+                        "description" to cat.description,
+                        "displayOrder" to cat.displayOrder,
+                        "createdAt" to cat.createdAt
+                    )
+                    batch.set(docRef, map, SetOptions.merge())
+                }
+                batch.commit().await()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "checkAndSeedCategoriesIfAdmin error: ${e.message}")
+        }
+    }
+
+    private fun setupCategoriesListener() {
+        categoriesListener = firestore.collection(COLLECTION_CATEGORIES)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "Categories listener failed: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null && !snapshot.isEmpty) {
+                    val list = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            val id = doc.getString("id") ?: doc.id
+                            val name = doc.getString("name") ?: return@mapNotNull null
+                            val slug = doc.getString("slug") ?: id.removePrefix("cat-")
+                            val catEnumName = doc.getString("category") ?: ProductCategory.ACCESSORIES.name
+                            val catEnum = try { ProductCategory.valueOf(catEnumName) } catch (e: Exception) {
+                                ProductCategory.entries.find { it.name.equals(catEnumName, ignoreCase = true) } ?: ProductCategory.ACCESSORIES
+                            }
+                            val isActive = doc.getBoolean("isActive") ?: true
+                            val displayOrder = doc.getLong("displayOrder")?.toInt() ?: 99
+                            val imageUrl = doc.getString("imageUrl") ?: ""
+                            val description = doc.getString("description") ?: ""
+                            val createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis()
+                            CategoryRecord(
+                                id = id,
+                                name = name,
+                                slug = slug,
+                                category = catEnum,
+                                isActive = isActive,
+                                productCount = 0,
+                                imageUrl = imageUrl,
+                                description = description,
+                                displayOrder = displayOrder,
+                                createdAt = createdAt
+                            )
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }.sortedBy { it.displayOrder }
+
+                    if (list.isNotEmpty()) {
+                        _categoriesFlow.value = list
+                        localStorage.saveCategories(list)
+                    }
+                }
+            }
     }
 
     // -------------------------------------------------------------
@@ -1177,35 +1257,94 @@ class FirestoreDataService(
         return MockData.customerReviews
     }
 
+    override fun observeCategories(): Flow<List<CategoryRecord>> = _categoriesFlow.asStateFlow()
+
     override suspend fun getCategories(): List<CategoryRecord> {
-        return listOf(
-            CategoryRecord("CAT-1", "Mobile Phones", "mobile-phones", ProductCategory.MOBILE_PHONES, true, 4),
-            CategoryRecord("CAT-2", "Old Phones", "old-phones", ProductCategory.OLD_PHONES, true, 3),
-            CategoryRecord("CAT-3", "Mobile Repair", "mobile-repair", ProductCategory.REPAIR_SERVICES, true, 6),
-            CategoryRecord("CAT-4", "Chargers", "chargers", ProductCategory.CHARGERS, true, 3),
-            CategoryRecord("CAT-5", "Data Cables", "data-cables", ProductCategory.DATA_CABLES, true, 3),
-            CategoryRecord("CAT-6", "Headphones", "headphones", ProductCategory.HEADPHONES, true, 2),
-            CategoryRecord("CAT-7", "Bluetooth", "bluetooth", ProductCategory.BLUETOOTH, true, 3),
-            CategoryRecord("CAT-8", "Accessories", "accessories", ProductCategory.ACCESSORIES, true, 3)
-        )
+        return _categoriesFlow.value
+    }
+
+    override suspend fun saveCategory(category: CategoryRecord): Result<CategoryRecord> {
+        return try {
+            val map = mapOf(
+                "id" to category.id,
+                "name" to category.name,
+                "slug" to category.slug,
+                "category" to category.category.name,
+                "isActive" to category.isActive,
+                "imageUrl" to category.imageUrl,
+                "description" to category.description,
+                "displayOrder" to category.displayOrder,
+                "createdAt" to category.createdAt
+            )
+            firestore.collection(COLLECTION_CATEGORIES).document(category.id).set(map, SetOptions.merge()).await()
+            val current = _categoriesFlow.value.toMutableList()
+            val idx = current.indexOfFirst { it.id == category.id }
+            if (idx != -1) {
+                current[idx] = category
+            } else {
+                current.add(category)
+            }
+            val sorted = current.sortedBy { it.displayOrder }
+            _categoriesFlow.value = sorted
+            localStorage.saveCategories(sorted)
+            Result.success(category)
+        } catch (e: Exception) {
+            Log.e(TAG, "saveCategory error: ${e.message}")
+            val current = _categoriesFlow.value.toMutableList()
+            val idx = current.indexOfFirst { it.id == category.id }
+            if (idx != -1) current[idx] = category else current.add(category)
+            val sorted = current.sortedBy { it.displayOrder }
+            _categoriesFlow.value = sorted
+            localStorage.saveCategories(sorted)
+            Result.success(category)
+        }
     }
 
     override suspend fun toggleCategoryActive(categoryId: String): Result<CategoryRecord> {
-        val cat = getCategories().find { it.id == categoryId }
+        val cat = _categoriesFlow.value.find { it.id == categoryId }
             ?: return Result.failure(NoSuchElementException("Category not found"))
-        return Result.success(cat.copy(isActive = !cat.isActive))
+        val updated = cat.copy(isActive = !cat.isActive)
+        return saveCategory(updated)
+    }
+
+    override suspend fun deleteCategory(categoryId: String, reassignToSlug: String?): Result<Boolean> {
+        return try {
+            val cat = _categoriesFlow.value.find { it.id == categoryId }
+            if (cat != null && !reassignToSlug.isNullOrBlank()) {
+                val targetEnum = try { ProductCategory.valueOf(reassignToSlug.uppercase().replace("-", "_")) } catch (e: Exception) { ProductCategory.ACCESSORIES }
+                val prods = _productsFlow.value
+                prods.forEach { p ->
+                    if (p.categoryMatches(cat.slug) || p.category == cat.category) {
+                        val updatedProd = p.copy(category = targetEnum)
+                        updateProduct(updatedProd)
+                    }
+                }
+            }
+            firestore.collection(COLLECTION_CATEGORIES).document(categoryId).delete().await()
+            val updated = _categoriesFlow.value.filterNot { it.id == categoryId }
+            _categoriesFlow.value = updated
+            localStorage.saveCategories(updated)
+            Result.success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "deleteCategory error: ${e.message}")
+            val updated = _categoriesFlow.value.filterNot { it.id == categoryId }
+            _categoriesFlow.value = updated
+            localStorage.saveCategories(updated)
+            Result.success(true)
+        }
     }
 
     override suspend fun addCategory(name: String, slug: String): Result<CategoryRecord> {
         val newCat = CategoryRecord(
-            id = "CAT-${UUID.randomUUID().toString().take(4)}",
+            id = "cat-${slug.ifBlank { System.currentTimeMillis().toString() }}",
             name = name,
             slug = slug,
             category = ProductCategory.ACCESSORIES,
             isActive = true,
-            productCount = 0
+            productCount = 0,
+            displayOrder = _categoriesFlow.value.size + 1
         )
-        return Result.success(newCat)
+        return saveCategory(newCat)
     }
 
     override suspend fun getSettings(): ShopSettings {

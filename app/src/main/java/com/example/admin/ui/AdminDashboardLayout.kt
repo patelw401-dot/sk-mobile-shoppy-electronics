@@ -289,8 +289,10 @@ fun AdminDashboardLayout(
                     AdminTab.CATEGORIES -> {
                         AdminCategoriesScreen(
                             categories = uiState.categories,
+                            products = uiState.products,
+                            onSaveCategory = { cat -> adminViewModel.saveCategory(cat) },
                             onToggleCategoryActive = { id -> adminViewModel.toggleCategoryActive(id) },
-                            onAddCategory = { name, slug -> adminViewModel.addCategory(name, slug) }
+                            onDeleteCategory = { id, reassignTo -> adminViewModel.deleteCategory(id, reassignTo) }
                         )
                     }
 

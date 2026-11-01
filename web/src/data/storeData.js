@@ -1,5 +1,5 @@
 export const STORE_INFO = {
-  name: "SK Mobile Shoppy and Electronic",
+  name: "SK Mobile Shoppy and Electronics",
   tagline: "Udgir's Premier Destination for Smartphones, Certified Pre-Owned & Express Repairs",
   address: "Near Nagar Parishad Office, Station Road, Udgir, Maharashtra - 413517",
   landmark: "Opposite Nagar Parishad Municipal Complex",
@@ -19,7 +19,7 @@ export const APP_DOWNLOAD_CONFIG = {
   // If empty (""), the website shows a clear "APK In Preparation / Config Guide" modal.
   downloadUrl: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SK_MOBILE_APK_URL) || "",
   fallbackFilename: "SK-Mobile-Udgir-v1.2.0.apk",
-  appName: "SK Mobile Shoppy & Electronic",
+  appName: "SK Mobile Shoppy and Electronics",
   version: "v1.2.0 (Official Release)",
   versionCode: "12",
   fileSize: "28.5 MB",
@@ -28,7 +28,7 @@ export const APP_DOWNLOAD_CONFIG = {
   packageName: "com.example",
   developer: "SK Mobile Udgir",
   isSafeVerified: true,
-  description: "Official Android app for SK Mobile Shoppy & Electronic. Browse smartphones, book 30-min express repairs, get instant cash valuations for old phones, and track orders directly from your phone.",
+  description: "Official Android app for SK Mobile Shoppy and Electronics. Browse smartphones, book 30-min express repairs, get instant cash valuations for old phones, and track orders directly from your phone.",
   features: [
     "Exclusive Udgir customer discounts & flash deals",
     "Real-time repair booking & status tracking alerts",
@@ -386,3 +386,61 @@ export const REPAIR_BRANDS = [
   "Poco",
   "Other Brand"
 ];
+
+export const DEFAULT_CATEGORIES = [
+  {
+    id: "cat-smartphones",
+    name: "Smartphones",
+    slug: "smartphones",
+    imageUrl: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&auto=format&fit=crop&q=80",
+    description: "Brand new Android & iOS flagship smartphones with official warranty",
+    isActive: true,
+    displayOrder: 1
+  },
+  {
+    id: "cat-old-phones",
+    name: "Pre-Owned Phones",
+    slug: "old_phones",
+    imageUrl: "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=500&auto=format&fit=crop&q=80",
+    description: "Certified pre-owned second hand smartphones with 32-point inspection",
+    isActive: true,
+    displayOrder: 2
+  },
+  {
+    id: "cat-chargers",
+    name: "Fast Chargers",
+    slug: "chargers",
+    imageUrl: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=500&auto=format&fit=crop&q=80",
+    description: "High-speed 33W, 65W & 100W GaN chargers with Power Delivery",
+    isActive: true,
+    displayOrder: 3
+  },
+  {
+    id: "cat-cables",
+    name: "Data Cables",
+    slug: "cables",
+    imageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&auto=format&fit=crop&q=80",
+    description: "Tough braided Type-C, Lightning & Micro USB fast charging cables",
+    isActive: true,
+    displayOrder: 4
+  },
+  {
+    id: "cat-audio",
+    name: "Headphones & Audio",
+    slug: "audio",
+    imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=80",
+    description: "Over-ear, in-ear & wireless Bluetooth headphones with deep bass",
+    isActive: true,
+    displayOrder: 5
+  },
+  {
+    id: "cat-accessories",
+    name: "Cases & Accessories",
+    slug: "accessories",
+    imageUrl: "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?w=500&auto=format&fit=crop&q=80",
+    description: "Tempered glass, premium back covers, holders & mobile skins",
+    isActive: true,
+    displayOrder: 6
+  }
+];
+

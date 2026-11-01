@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
 import { 
   fetchAdminProducts, 
   saveAdminProductToFirestore, 
   deleteAdminProductFromFirestore, 
   seedDefaultProductsToFirestore,
-  quickUpdateProductWarranty 
+  quickUpdateProductWarranty,
+  fetchCategoriesFromFirestore
 } from '../firebase';
-import { REAL_PRODUCTS, ACCESSORIES } from '../data/storeData';
+import { REAL_PRODUCTS, ACCESSORIES, DEFAULT_CATEGORIES } from '../data/storeData';
 import { 
   Plus, 
   Edit2, 
@@ -49,6 +49,7 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [categoriesList, setCategoriesList] = useState(DEFAULT_CATEGORIES);
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -104,6 +105,15 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
     } finally {
       setIsLoading(false);
     }
+
+    try {
+      const catRes = await fetchCategoriesFromFirestore();
+      if (catRes.success && catRes.data && catRes.data.length > 0) {
+        setCategoriesList(catRes.data);
+      }
+    } catch (e) {
+      // fallback
+    }
   };
 
   useEffect(() => {
@@ -130,10 +140,15 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
 
       const pCat = (p.category || '').toLowerCase();
       let matchesCat = true;
-      if (categoryFilter === 'smartphones') {
-        matchesCat = pCat.includes('smart') || pCat.includes('phone') || pCat.includes('mobile');
-      } else if (categoryFilter === 'accessories') {
-        matchesCat = pCat.includes('accessori') || pCat.includes('charger') || pCat.includes('cable') || pCat.includes('audio');
+      if (categoryFilter !== 'ALL') {
+        const filterLower = categoryFilter.toLowerCase();
+        if (filterLower === 'smartphones') {
+          matchesCat = pCat === 'smartphones' || pCat.includes('smart') || pCat.includes('phone') || pCat.includes('mobile');
+        } else if (filterLower === 'accessories') {
+          matchesCat = pCat === 'accessories' || pCat.includes('accessori');
+        } else {
+          matchesCat = pCat === filterLower;
+        }
       }
 
       const matchesBrand = brandFilter === 'ALL' || (p.brand || '').toLowerCase() === brandFilter.toLowerCase();
@@ -572,8 +587,9 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
             className="bg-[#0A0A0A] border border-[#262626] rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
           >
             <option value="ALL">All Categories</option>
-            <option value="smartphones">Smartphones</option>
-            <option value="accessories">Accessories</option>
+            {categoriesList.map(cat => (
+              <option key={cat.id} value={cat.slug}>{cat.name}</option>
+            ))}
           </select>
 
           {/* Brand Filter */}
@@ -880,8 +896,11 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
                   >
-                    <option value="smartphones">Smartphones (Featured on Products Page)</option>
-                    <option value="accessories">Accessories (Featured on Accessories Page)</option>
+                    {categoriesList.map(cat => (
+                      <option key={cat.id} value={cat.slug}>
+                        {cat.name} ({cat.slug})
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

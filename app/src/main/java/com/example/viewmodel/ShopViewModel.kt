@@ -4,6 +4,7 @@ import android.app.Activity
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.admin.model.CategoryRecord
 import com.example.auth.CustomerAuthService
 import com.example.data.firebase.FirebaseConfig
 import com.example.data.service.DataService
@@ -71,6 +72,8 @@ data class ShopUiState(
     val cartItems: List<CartItem> = emptyList(),
     val selectedProduct: Product? = null,
     val selectedCategory: ProductCategory = ProductCategory.ALL,
+    val selectedCategorySlug: String = "all",
+    val activeCategories: List<CategoryRecord> = emptyList(),
     val searchQuery: String = "",
     val sortOption: SortOption = SortOption.RECOMMENDED,
     val preselectedRepairProblem: String = "Display Replacement",
@@ -137,10 +140,10 @@ data class ShopUiState(
     // Search query matching across name, category, and brand
     val filteredProducts: List<Product>
         get() {
-            var list = if (selectedCategory == ProductCategory.ALL) {
+            var list = if (selectedCategorySlug == "all" || selectedCategory == ProductCategory.ALL) {
                 products
             } else {
-                products.filter { it.category == selectedCategory }
+                products.filter { it.categoryMatches(selectedCategorySlug) || it.category == selectedCategory }
             }
 
             if (searchQuery.isNotBlank()) {
@@ -230,6 +233,14 @@ class ShopViewModel(
                         reels = if (published.isNotEmpty()) published else MockData.defaultReels
                     )
                 }
+            }
+        }
+
+        // Collect categories continuously from DataService
+        viewModelScope.launch {
+            dataService.observeCategories().collect { categories ->
+                val active = categories.filter { it.isActive }
+                _uiState.update { it.copy(activeCategories = active) }
             }
         }
 
@@ -413,12 +424,14 @@ class ShopViewModel(
     }
 
     fun filterByCategory(category: ProductCategory) {
+        val slug = category.name.lowercase().replace("_", "-")
         _uiState.update { state ->
             if (category == ProductCategory.REPAIR_SERVICES) {
                 state.copy(currentScreen = AppScreen.REPAIR_BOOKING, screenStack = state.screenStack + AppScreen.REPAIR_BOOKING, isMobileMenuOpen = false)
             } else if (category == ProductCategory.OLD_PHONES) {
                 state.copy(
                     selectedCategory = ProductCategory.OLD_PHONES,
+                    selectedCategorySlug = "old-phones",
                     currentScreen = AppScreen.OLD_PHONE_BUY,
                     screenStack = state.screenStack + AppScreen.OLD_PHONE_BUY,
                     isMobileMenuOpen = false
@@ -426,6 +439,26 @@ class ShopViewModel(
             } else {
                 state.copy(
                     selectedCategory = category,
+                    selectedCategorySlug = if (category == ProductCategory.ALL) "all" else slug,
+                    currentScreen = AppScreen.PRODUCTS,
+                    screenStack = if (state.currentScreen == AppScreen.PRODUCTS) state.screenStack else state.screenStack + AppScreen.PRODUCTS,
+                    isMobileMenuOpen = false
+                )
+            }
+        }
+    }
+
+    fun filterByCategoryRecord(categoryRecord: CategoryRecord) {
+        val slug = categoryRecord.slug.lowercase()
+        if (slug == "repair" || categoryRecord.category == ProductCategory.REPAIR_SERVICES) {
+            filterByCategory(ProductCategory.REPAIR_SERVICES)
+        } else if (slug == "old-phones" || slug == "old_phones" || categoryRecord.category == ProductCategory.OLD_PHONES) {
+            filterByCategory(ProductCategory.OLD_PHONES)
+        } else {
+            _uiState.update { state ->
+                state.copy(
+                    selectedCategory = categoryRecord.category,
+                    selectedCategorySlug = slug,
                     currentScreen = AppScreen.PRODUCTS,
                     screenStack = if (state.currentScreen == AppScreen.PRODUCTS) state.screenStack else state.screenStack + AppScreen.PRODUCTS,
                     isMobileMenuOpen = false
@@ -928,7 +961,7 @@ class ShopViewModel(
                     _uiState.update {
                         it.copy(
                             phoneVerificationId = null,
-                            toastMessage = "Phone verified successfully! Welcome to SK Mobile Shoppy and Electronic."
+                            toastMessage = "Phone verified successfully! Welcome to SK Mobile Shoppy and Electronics."
                         )
                     }
                     onComplete(true, null)

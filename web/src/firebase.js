@@ -8,7 +8,7 @@ import {
   signOut 
 } from 'firebase/auth';
 
-// Approved Web Client Configuration for SK Mobile Shoppy and Electronic
+// Approved Web Client Configuration for SK Mobile Shoppy and Electronics
 // Public client configuration derived from app/google-services.json
 const firebaseConfig = {
   apiKey: "AIzaSyAtyJz_sSW1NXQuy5vUtQRUsrfgZsG9A1I",
@@ -733,5 +733,158 @@ export async function updateAdminOrderStatus(orderId, newStatus, adminEmail, adm
   return true;
 }
 
+/**
+ * Fetch categories from Firestore 'categories' collection.
+ * Public read access allowed by security rules.
+ */
+export async function fetchCategoriesFromFirestore() {
+  try {
+    const colRef = collection(db, 'categories');
+    const snap = await getDocs(colRef);
+    if (snap.empty) {
+      return { success: true, data: [], isEmpty: true };
+    }
+    const list = [];
+    snap.forEach(d => {
+      const data = d.data();
+      list.push({
+        id: d.id,
+        name: data.name || 'Unnamed Category',
+        slug: (data.slug || d.id).toLowerCase(),
+        imageUrl: data.imageUrl || '',
+        description: data.description || '',
+        isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+        displayOrder: typeof data.displayOrder === 'number' ? data.displayOrder : (parseInt(data.displayOrder, 10) || 99),
+        createdAt: data.createdAt || null,
+        updatedAt: data.updatedAt || null
+      });
+    });
+    list.sort((a, b) => a.displayOrder - b.displayOrder);
+    return { success: true, data: list, isEmpty: false };
+  } catch (err) {
+    console.error("fetchCategoriesFromFirestore error:", err);
+    return { success: false, data: [], error: err.message };
+  }
+}
 
+/**
+ * Save (create or edit) category in Firestore 'categories' collection.
+ * Restricted strictly to authorized store administrators.
+ */
+export async function saveAdminCategoryToFirestore(categoryData, currentUser) {
+  if (!isUserAdmin(currentUser)) {
+    throw new Error('Unauthorized: You must be an authorized store administrator to manage categories.');
+  }
 
+  const name = (categoryData.name || '').trim();
+  if (!name) throw new Error('Category name is required.');
+
+  const slug = (categoryData.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')).trim();
+  const docId = (categoryData.id || `cat-${slug}`).trim();
+  const docRef = doc(db, 'categories', docId);
+
+  const payload = {
+    id: docId,
+    name,
+    slug,
+    imageUrl: (categoryData.imageUrl || '').trim(),
+    description: (categoryData.description || '').trim(),
+    isActive: categoryData.isActive !== undefined ? Boolean(categoryData.isActive) : true,
+    displayOrder: typeof categoryData.displayOrder === 'number' ? categoryData.displayOrder : (parseInt(categoryData.displayOrder, 10) || 1),
+    lastUpdatedBy: currentUser.email || 'Store Admin',
+    updatedAt: serverTimestamp()
+  };
+
+  if (!categoryData.id) {
+    payload.createdAt = serverTimestamp();
+    payload.createdBy = currentUser.email || 'Store Admin';
+  }
+
+  await setDoc(docRef, payload, { merge: true });
+
+  return { success: true, id: docId, category: payload };
+}
+
+/**
+ * Toggle category active/inactive status (Admin only).
+ */
+export async function toggleAdminCategoryActive(categoryId, currentActive, currentUser) {
+  if (!isUserAdmin(currentUser)) {
+    throw new Error('Unauthorized: Admin access required.');
+  }
+  const docRef = doc(db, 'categories', categoryId);
+  const newActive = !currentActive;
+  await updateDoc(docRef, {
+    isActive: newActive,
+    lastUpdatedBy: currentUser.email || 'Store Admin',
+    updatedAt: serverTimestamp()
+  });
+  return { success: true, categoryId, isActive: newActive };
+}
+
+/**
+ * Safe Category Deletion:
+ * Checks if products belong to this category.
+ * If reassignToSlug is provided, reassigns products to reassignToSlug.
+ * Then deletes the category document.
+ */
+export async function deleteAdminCategoryFromFirestore(categoryId, categorySlug, reassignToSlug = null, currentUser) {
+  if (!isUserAdmin(currentUser)) {
+    throw new Error('Unauthorized: Admin access required to delete categories.');
+  }
+  if (!categoryId) {
+    throw new Error('Category ID is required for deletion.');
+  }
+
+  // 1. If reassignment requested, update products assigned to this category
+  if (reassignToSlug && reassignToSlug !== categorySlug) {
+    try {
+      const prodQuery = query(collection(db, 'products'));
+      const prodSnap = await getDocs(prodQuery);
+      const updates = [];
+      prodSnap.forEach(pDoc => {
+        const pData = pDoc.data();
+        const pCat = (pData.category || '').toLowerCase();
+        if (pCat === (categorySlug || '').toLowerCase() || pCat === (categoryId || '').toLowerCase()) {
+          updates.push(updateDoc(pDoc.ref, {
+            category: reassignToSlug.toLowerCase(),
+            updatedAt: serverTimestamp(),
+            lastUpdatedBy: currentUser.email || 'Store Admin'
+          }));
+        }
+      });
+      if (updates.length > 0) {
+        await Promise.all(updates);
+      }
+    } catch (e) {
+      console.warn("Could not reassign products before category deletion:", e);
+    }
+  }
+
+  // 2. Delete the category document
+  const docRef = doc(db, 'categories', categoryId);
+  await deleteDoc(docRef);
+
+  return { success: true, deletedId: categoryId, reassignedTo: reassignToSlug };
+}
+
+/**
+ * Seed initial categories to Firestore if empty.
+ */
+export async function seedDefaultCategoriesToFirestore(currentUser, defaultCategories = []) {
+  if (!isUserAdmin(currentUser)) {
+    throw new Error('Unauthorized: Admin access required.');
+  }
+  let count = 0;
+  for (const cat of defaultCategories) {
+    const docRef = doc(db, 'categories', cat.id);
+    await setDoc(docRef, {
+      ...cat,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      createdBy: currentUser.email || 'Store Admin'
+    }, { merge: true });
+    count++;
+  }
+  return { success: true, count };
+}

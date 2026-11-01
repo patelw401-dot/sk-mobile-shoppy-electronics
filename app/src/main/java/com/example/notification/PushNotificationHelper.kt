@@ -47,7 +47,7 @@ object PushNotificationHelper {
                         CHANNEL_NAME_ORDERS,
                         NotificationManager.IMPORTANCE_HIGH
                     ).apply {
-                        description = "Notifications about SK Mobile Shoppy and Electronic order status changes"
+                        description = "Notifications about SK Mobile Shoppy and Electronics order status changes"
                         enableLights(true)
                         enableVibration(true)
                     }
@@ -57,7 +57,7 @@ object PushNotificationHelper {
                         CHANNEL_NAME_REPAIRS,
                         NotificationManager.IMPORTANCE_HIGH
                     ).apply {
-                        description = "Notifications about SK Mobile Shoppy and Electronic repair booking progress"
+                        description = "Notifications about SK Mobile Shoppy and Electronics repair booking progress"
                         enableLights(true)
                         enableVibration(true)
                     }

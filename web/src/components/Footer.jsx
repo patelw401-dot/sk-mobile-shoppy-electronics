@@ -196,7 +196,7 @@ export default function Footer({ setActivePage }) {
 
         {/* Bottom Copyright & Admin Access */}
         <div className="pt-6 border-t border-[#1C1C1C] flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-3">
-          <p>© {new Date().getFullYear()} SK Mobile Shoppy and Electronic • All Rights Reserved.</p>
+          <p>© {new Date().getFullYear()} SK Mobile Shoppy and Electronics • All Rights Reserved.</p>
           <div className="flex items-center gap-3">
             <button
               onClick={() => handleNav('admin')}

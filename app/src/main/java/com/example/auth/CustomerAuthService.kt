@@ -124,7 +124,7 @@ object CustomerAuthService {
                 "ERROR_INVALID_VERIFICATION_CODE" ->
                     "Incorrect OTP entered. Please verify the code sent to your phone."
                 "ERROR_USER_DISABLED" ->
-                    "This account has been disabled. Please contact SK Mobile Shoppy and Electronic support."
+                    "This account has been disabled. Please contact SK Mobile Shoppy and Electronics support."
                 "ERROR_CREDENTIAL_ALREADY_IN_USE" ->
                     "This credential is already linked to another account."
                 else -> {

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.PendingActions
@@ -78,7 +79,7 @@ fun AdminDashboardHome(
                     ) {
                         Column {
                             Text(
-                                text = "SK Mobile Shoppy and Electronic Overview",
+                                text = "SK Mobile Shoppy and Electronics Overview",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = TextMain
@@ -128,6 +129,7 @@ fun AdminDashboardHome(
                 MetricItem("Old Phones Purchased", "${uiState.oldPhonesPurchasedCount}", Icons.Default.PhoneAndroid, GoldPrimary, BlackSurfaceSecondary, AdminTab.OLD_PHONE_BUY),
                 MetricItem("Pending Requests", "${uiState.oldPhonesPendingCount}", Icons.Default.PhoneAndroid, GoldHighlight, BlackSurfaceSecondary, AdminTab.SELL_REQUESTS),
                 MetricItem("Active Products", "${uiState.products.size}", Icons.Default.Inventory2, GoldPrimary, BlackSurfaceSecondary, AdminTab.PRODUCTS),
+                MetricItem("Product Categories", "${uiState.categories.size}", Icons.Default.Category, GoldPrimary, BlackSurfaceSecondary, AdminTab.CATEGORIES),
                 MetricItem("Registered Customers", "${uiState.totalCustomersCount}", Icons.Default.People, GoldHighlight, BlackSurfaceSecondary, AdminTab.CUSTOMERS),
                 MetricItem("Total Sales", formatInr(uiState.totalSalesAmount), Icons.Default.AttachMoney, GoldPrimary, BlackSurfaceSecondary, AdminTab.REPORTS),
                 MetricItem("Estimated Profit", formatInr(uiState.estimatedProfitAmount), Icons.Default.TrendingUp, ColorSuccess, BlackSurfaceSecondary, AdminTab.REPORTS)

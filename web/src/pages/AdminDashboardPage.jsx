@@ -38,9 +38,10 @@ import {
 } from 'lucide-react';
 import ProductManagementTab from '../components/ProductManagementTab';
 import OrdersManagementTab from '../components/OrdersManagementTab';
+import CategoryManagementTab from '../components/CategoryManagementTab';
 
 export default function AdminDashboardPage({ currentUser, setActivePage, onShowToast }) {
-  const [activeTab, setActiveTab] = useState('repairs'); // 'repairs' | 'old-phones' | 'products' | 'system'
+  const [activeTab, setActiveTab] = useState('repairs'); // 'repairs' | 'old-phones' | 'orders' | 'products' | 'categories' | 'system'
   const [repairs, setRepairs] = useState([]);
   const [oldPhones, setOldPhones] = useState([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -425,6 +426,18 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
         </button>
 
         <button
+          onClick={() => setActiveTab('categories')}
+          className={`py-3 px-4 font-bold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition whitespace-nowrap ${
+            activeTab === 'categories'
+              ? 'border-[#D4AF37] text-[#D4AF37] bg-[#D4AF37]/5'
+              : 'border-transparent text-gray-400 hover:text-white'
+          }`}
+        >
+          <Layers size={16} />
+          <span>Category Management</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('system')}
           className={`py-3 px-4 font-bold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition whitespace-nowrap ${
             activeTab === 'system'
@@ -683,6 +696,14 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
           currentUser={currentUser}
           onShowToast={onShowToast}
           setActivePage={setActivePage}
+        />
+      )}
+
+      {/* ----------------- TAB 4: CATEGORY MANAGEMENT ----------------- */}
+      {activeTab === 'categories' && (
+        <CategoryManagementTab
+          currentUser={currentUser}
+          onShowToast={onShowToast}
         />
       )}
 

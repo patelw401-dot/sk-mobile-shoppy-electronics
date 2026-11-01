@@ -241,7 +241,7 @@ export const repairServicesList = [
 ];
 
 export const storeInfo = {
-  name: 'SK Mobile Shoppy and Electronic',
+  name: 'SK Mobile Shoppy and Electronics',
   tagline: 'Your Trusted Mobile & Electronics Destination in Udgir',
   address: 'Nagar Parishad Office Road, Near Station Road, Udgir, Dist. Latur, Maharashtra - 413517',
   phone1: '+91 94213 77777',

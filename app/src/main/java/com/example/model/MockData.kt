@@ -95,19 +95,19 @@ object MockData {
             originalPrice = 49900,
             rating = 4.8f,
             reviewCount = 142,
-            description = "Thoroughly inspected with SK Mobile Shoppy and Electronic 32-point quality check. 100% genuine components with pristine Super Retina XDR OLED display, A14 Bionic chip, and verified battery health.",
+            description = "Thoroughly inspected with SK Mobile Shoppy and Electronics 32-point quality check. 100% genuine components with pristine Super Retina XDR OLED display, A14 Bionic chip, and verified battery health.",
             specifications = mapOf(
                 "Condition" to "Grade A+ (Like New, zero scratches)",
                 "Battery Health" to "92% Original Apple Battery",
                 "Screen" to "6.1\" Super Retina XDR OLED True Tone",
                 "Chipset" to "Apple A14 Bionic 6-core",
-                "Included" to "Original Type-C Cable + SK Mobile Shoppy and Electronic 6-Month Warranty Card",
+                "Included" to "Original Type-C Cable + SK Mobile Shoppy and Electronics 6-Month Warranty Card",
                 "Inspection" to "32-Point Technician Passed (SK Certified)"
             ),
             isPreOwned = true,
             conditionGrade = "Grade A+ (Like New)",
             batteryHealth = "92%",
-            warranty = "6 Months SK Mobile Shoppy and Electronic Replacement Warranty",
+            warranty = "6 Months SK Mobile Shoppy and Electronics Replacement Warranty",
             isFeatured = true,
             highlightBadge = "Certified Refurbished"
         ),
@@ -120,18 +120,18 @@ object MockData {
             originalPrice = 64999,
             rating = 4.6f,
             reviewCount = 88,
-            description = "Hasselblad quad camera flagship with curved QHD+ 120Hz LTPO display. Completely sanitized, tested, and backed by SK Mobile Shoppy and Electronic warranty in Udgir.",
+            description = "Hasselblad quad camera flagship with curved QHD+ 120Hz LTPO display. Completely sanitized, tested, and backed by SK Mobile Shoppy and Electronics warranty in Udgir.",
             specifications = mapOf(
                 "Condition" to "Grade A (Minor cosmetic hairline, 100% functional)",
                 "Battery Health" to "89% Tested Battery",
                 "Display" to "6.7\" QHD+ 120Hz Fluid AMOLED LTPO",
                 "Processor" to "Snapdragon 888 5G",
-                "Warranty" to "6 Months Warranty at SK Mobile Shoppy and Electronic Udgir"
+                "Warranty" to "6 Months Warranty at SK Mobile Shoppy and Electronics Udgir"
             ),
             isPreOwned = true,
             conditionGrade = "Grade A (Clean)",
             batteryHealth = "89%",
-            warranty = "6 Months SK Mobile Shoppy and Electronic Shop Warranty"
+            warranty = "6 Months SK Mobile Shoppy and Electronics Shop Warranty"
         ),
         Product(
             id = "old-3",
@@ -389,7 +389,7 @@ object MockData {
             originalPrice = 499,
             rating = 4.9f,
             reviewCount = 920,
-            description = "9H hardness shatterproof glass with oleophobic anti-fingerprint coating and curved black borders. Free professional bubble-free installation at SK Mobile Shoppy and Electronic Udgir shop.",
+            description = "9H hardness shatterproof glass with oleophobic anti-fingerprint coating and curved black borders. Free professional bubble-free installation at SK Mobile Shoppy and Electronics Udgir shop.",
             specifications = mapOf(
                 "Hardness" to "9H Scratch Resistant Japanese Asahi Glass",
                 "Coating" to "Nano Oleophobic Anti-smudge Layer",
@@ -479,7 +479,7 @@ object MockData {
             location = "Nagar Parishad Road, Udgir",
             rating = 5,
             date = "Yesterday",
-            comment = "My OnePlus display was completely shattered. SK Mobile Shoppy and Electronic technicians replaced it in just 45 minutes with genuine display at a fraction of the showroom price! Honest people, highly recommended in Udgir.",
+            comment = "My OnePlus display was completely shattered. SK Mobile Shoppy and Electronics technicians replaced it in just 45 minutes with genuine display at a fraction of the showroom price! Honest people, highly recommended in Udgir.",
             serviceOrProduct = "Display Replacement"
         ),
         CustomerReview(
@@ -488,7 +488,7 @@ object MockData {
             location = "Shivaji Chowk, Udgir",
             rating = 5,
             date = "3 days ago",
-            comment = "Bought an iPhone 12 certified pre-owned from SK Mobile Shoppy and Electronic. The condition is like brand new with 92% battery health, bill, and warranty. Best place in Udgir to buy second hand phones.",
+            comment = "Bought an iPhone 12 certified pre-owned from SK Mobile Shoppy and Electronics. The condition is like brand new with 92% battery health, bill, and warranty. Best place in Udgir to buy second hand phones.",
             serviceOrProduct = "iPhone 12 (Certified Old Phone)"
         ),
         CustomerReview(
@@ -517,7 +517,7 @@ object MockData {
         ReelItem(
             id = "reel-1",
             title = "OnePlus Nord CE4 5G Unboxing & 100W Charging Test!",
-            caption = "⚡ Watch the 100W SUPERVOOC blast from 1% to 100% in under 30 minutes! Available in store now with official brand warranty & instant store discounts at SK Mobile Shoppy & Electronic Udgir.",
+            caption = "⚡ Watch the 100W SUPERVOOC blast from 1% to 100% in under 30 minutes! Available in store now with official brand warranty & instant store discounts at SK Mobile Shoppy and Electronics Udgir.",
             videoUrl = "raw://videoplayback",
             thumbnailUrl = "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&q=80",
             productId = "mob-1",

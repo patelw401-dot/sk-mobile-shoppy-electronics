@@ -38,7 +38,7 @@ data class AppNotification(
                 "out for delivery", "shipped" ->
                     "Out for Delivery" to "Your order ($orderId) is out for delivery! Executive is en route."
                 "delivered" ->
-                    "Order Delivered" to "Your order ($orderId) has been delivered. Thank you for choosing SK Mobile Shoppy and Electronic!"
+                    "Order Delivered" to "Your order ($orderId) has been delivered. Thank you for choosing SK Mobile Shoppy and Electronics!"
                 "cancelled" ->
                     "Order Cancelled" to "Your order ($orderId) has been cancelled."
                 else ->

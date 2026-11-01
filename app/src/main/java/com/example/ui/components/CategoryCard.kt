@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -40,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.ProductCategory
 import com.example.ui.theme.ShopPrimaryBlue
+import coil.compose.AsyncImage
+import com.example.admin.model.CategoryRecord
 
 data class CategoryMeta(
     val category: ProductCategory,
@@ -165,3 +168,89 @@ fun CategoryCardItem(
         }
     }
 }
+
+@Composable
+fun DynamicCategoryCardItem(
+    category: CategoryRecord,
+    isSelected: Boolean = false,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val fallbackIcon = when {
+        category.slug.contains("phone") || category.name.contains("Mobile", ignoreCase = true) -> Icons.Default.PhoneAndroid
+        category.slug.contains("old") -> Icons.Default.SwapHoriz
+        category.slug.contains("charger") || category.slug.contains("power") -> Icons.Default.Power
+        category.slug.contains("cable") -> Icons.Default.Cable
+        category.slug.contains("headphone") || category.slug.contains("audio") -> Icons.Default.Headphones
+        category.slug.contains("repair") -> Icons.Default.Build
+        category.slug.contains("bluetooth") -> Icons.Default.VolumeUp
+        else -> Icons.Default.Watch
+    }
+
+    Card(
+        modifier = modifier
+            .width(86.dp)
+            .clickable(onClick = onClick)
+            .testTag("dynamic_category_chip_${category.slug}"),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) com.example.ui.theme.BlackSurfaceSecondary else com.example.ui.theme.BlackSurface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp),
+        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, com.example.ui.theme.GoldPrimary) else androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp, horizontal = 6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(com.example.ui.theme.BlackSurfaceSecondary),
+                contentAlignment = Alignment.Center
+            ) {
+                if (category.imageUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = category.imageUrl,
+                        contentDescription = category.name,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Brush.linearGradient(listOf(Color(0xFF2A2A2A), Color(0xFF1A1A1A)))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = fallbackIcon,
+                            contentDescription = category.name,
+                            tint = com.example.ui.theme.GoldPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = category.name,
+                fontSize = 11.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) com.example.ui.theme.GoldHighlight else com.example.ui.theme.TextMain,
+                textAlign = TextAlign.Center,
+                lineHeight = 13.sp,
+                maxLines = 2
+            )
+        }
+    }
+}
+

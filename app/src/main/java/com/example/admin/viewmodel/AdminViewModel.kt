@@ -107,10 +107,28 @@ class AdminViewModel(
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
 
     init {
-        // Collect products continuously from DataService
+        // Collect products continuously from DataService and update category counts
         viewModelScope.launch {
             dataService.observeProducts().collect { products ->
-                _uiState.update { it.copy(products = products) }
+                _uiState.update { state ->
+                    val updatedCategories = state.categories.map { cat ->
+                        val count = products.count { p -> p.categoryMatches(cat.slug) || (p.category == cat.category) }
+                        cat.copy(productCount = count)
+                    }
+                    state.copy(products = products, categories = updatedCategories)
+                }
+            }
+        }
+
+        // Collect categories continuously from DataService
+        viewModelScope.launch {
+            dataService.observeCategories().collect { rawCategories ->
+                val currentProducts = _uiState.value.products
+                val enriched = rawCategories.map { cat ->
+                    val count = currentProducts.count { p -> p.categoryMatches(cat.slug) || (p.category == cat.category) }
+                    cat.copy(productCount = count)
+                }
+                _uiState.update { it.copy(categories = enriched) }
             }
         }
 
@@ -503,24 +521,69 @@ class AdminViewModel(
                 val updated = state.categories.map {
                     if (it.id == categoryId) it.copy(isActive = !it.isActive) else it
                 }
-                state.copy(categories = updated)
+                val target = state.categories.find { it.id == categoryId }
+                val statusStr = if (target?.isActive == true) "Hidden" else "Active"
+                state.copy(categories = updated, toastMessage = "Category '${target?.name}' is now $statusStr")
+            }
+        }
+    }
+
+    fun saveCategory(category: CategoryRecord) {
+        viewModelScope.launch {
+            val result = dataService.saveCategory(category)
+            if (result.isSuccess) {
+                _uiState.update { state ->
+                    val existingIdx = state.categories.indexOfFirst { it.id == category.id }
+                    val updatedList = if (existingIdx != -1) {
+                        state.categories.map { if (it.id == category.id) category else it }
+                    } else {
+                        state.categories + category
+                    }.sortedBy { it.displayOrder }
+                    state.copy(
+                        categories = updatedList,
+                        toastMessage = "Category '${category.name}' saved successfully!"
+                    )
+                }
+            } else {
+                _uiState.update { it.copy(toastMessage = "Could not save category: ${result.exceptionOrNull()?.message}") }
+            }
+        }
+    }
+
+    fun deleteCategory(categoryId: String, reassignToSlug: String? = null) {
+        viewModelScope.launch {
+            val cat = _uiState.value.categories.find { it.id == categoryId }
+            val catName = cat?.name ?: "Category"
+            val result = dataService.deleteCategory(categoryId, reassignToSlug)
+            if (result.isSuccess) {
+                _uiState.update { state ->
+                    state.copy(
+                        categories = state.categories.filterNot { it.id == categoryId },
+                        toastMessage = if (!reassignToSlug.isNullOrBlank()) {
+                            "Deleted '$catName'. Products reassigned to '$reassignToSlug'."
+                        } else {
+                            "Category '$catName' deleted successfully."
+                        }
+                    )
+                }
+            } else {
+                _uiState.update { it.copy(toastMessage = "Failed to delete category") }
             }
         }
     }
 
     fun addCategory(name: String, slug: String) {
-        viewModelScope.launch {
-            dataService.addCategory(name, slug)
-            val newCat = CategoryRecord(
-                id = "CAT-${_uiState.value.categories.size + 1}",
-                name = name,
-                slug = slug,
-                category = ProductCategory.ACCESSORIES,
-                isActive = true,
-                productCount = 0
-            )
-            _uiState.update { it.copy(categories = it.categories + newCat, toastMessage = "Category added!") }
-        }
+        val nextOrder = (_uiState.value.categories.maxOfOrNull { it.displayOrder } ?: 0) + 1
+        val newCat = CategoryRecord(
+            id = "cat-${slug.ifBlank { System.currentTimeMillis().toString() }}",
+            name = name,
+            slug = slug,
+            category = ProductCategory.ACCESSORIES,
+            isActive = true,
+            productCount = 0,
+            displayOrder = nextOrder
+        )
+        saveCategory(newCat)
     }
 
     // Review actions

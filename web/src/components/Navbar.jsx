@@ -82,7 +82,7 @@ export default function Navbar({ activePage, setActivePage, currentUser, cartCou
               </span>
             </div>
             <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">
-              Shoppy & Electronic
+              Shoppy & Electronics
             </p>
           </div>
         </button>

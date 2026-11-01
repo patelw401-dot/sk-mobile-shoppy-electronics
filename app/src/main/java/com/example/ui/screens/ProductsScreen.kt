@@ -67,9 +67,12 @@ import com.example.viewmodel.SortOption
 fun ProductsScreen(
     products: List<Product>,
     selectedCategory: ProductCategory,
+    selectedCategorySlug: String = "all",
+    activeCategories: List<com.example.admin.model.CategoryRecord> = emptyList(),
     searchQuery: String,
     sortOption: SortOption,
     onCategorySelect: (ProductCategory) -> Unit,
+    onCategoryRecordSelect: ((com.example.admin.model.CategoryRecord) -> Unit)? = null,
     onSortSelect: (SortOption) -> Unit,
     onClearSearch: () -> Unit,
     onSelectProduct: (Product) -> Unit,
@@ -81,10 +84,10 @@ fun ProductsScreen(
     var showSortMenu by remember { mutableStateOf(false) }
 
     // Filter by Category
-    val filteredByCategory = if (selectedCategory == ProductCategory.ALL) {
+    val filteredByCategory = if (selectedCategorySlug == "all" && selectedCategory == ProductCategory.ALL) {
         products
     } else {
-        products.filter { it.category == selectedCategory }
+        products.filter { it.categoryMatches(selectedCategorySlug) || it.category == selectedCategory }
     }
 
     // Filter by Search Query
@@ -109,7 +112,7 @@ fun ProductsScreen(
         SortOption.NEWEST -> filteredBySearch.sortedByDescending { it.releaseOrder }
     }
 
-    val categories = listOf(
+    val defaultCategories = listOf(
         ProductCategory.ALL,
         ProductCategory.MOBILE_PHONES,
         ProductCategory.OLD_PHONES,
@@ -119,6 +122,12 @@ fun ProductsScreen(
         ProductCategory.BLUETOOTH,
         ProductCategory.ACCESSORIES
     )
+
+    val currentTitle = if (selectedCategorySlug == "all" && selectedCategory == ProductCategory.ALL) {
+        "All Products"
+    } else {
+        activeCategories.find { it.slug.equals(selectedCategorySlug, true) }?.name ?: selectedCategory.displayName
+    }
 
     Column(
         modifier = modifier
@@ -152,7 +161,7 @@ fun ProductsScreen(
 
                         Column {
                             Text(
-                                text = if (selectedCategory == ProductCategory.ALL) "All Products" else selectedCategory.displayName,
+                                text = currentTitle,
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = ShopTextPrimary
@@ -251,32 +260,98 @@ fun ProductsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(vertical = 4.dp)
                 ) {
-                    items(categories) { category ->
-                        val isSelected = category == selectedCategory
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { onCategorySelect(category) },
-                            label = {
-                                Text(
-                                    text = category.displayName,
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = ShopPrimaryBlue,
-                                selectedLabelColor = Color(0xFF0B0B0B),
-                                containerColor = com.example.ui.theme.BlackSurfaceSecondary,
-                                labelColor = ShopTextPrimary
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
+                    if (activeCategories.isNotEmpty()) {
+                        // "All" Chip
+                        item {
+                            val isAllSelected = selectedCategorySlug == "all" && selectedCategory == ProductCategory.ALL
+                            FilterChip(
+                                selected = isAllSelected,
+                                onClick = { onCategorySelect(ProductCategory.ALL) },
+                                label = {
+                                    Text(
+                                        text = "All",
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = ShopPrimaryBlue,
+                                    selectedLabelColor = Color(0xFF0B0B0B),
+                                    containerColor = com.example.ui.theme.BlackSurfaceSecondary,
+                                    labelColor = ShopTextPrimary
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isAllSelected,
+                                    borderColor = com.example.ui.theme.BlackBorder,
+                                    selectedBorderColor = ShopPrimaryBlue
+                                ),
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                        }
+
+                        // Each active Category Chip
+                        items(activeCategories) { cat ->
+                            val isSelected = cat.slug.equals(selectedCategorySlug, ignoreCase = true) || cat.category == selectedCategory
+                            FilterChip(
                                 selected = isSelected,
-                                borderColor = com.example.ui.theme.BlackBorder,
-                                selectedBorderColor = ShopPrimaryBlue
-                            ),
-                            shape = RoundedCornerShape(16.dp)
-                        )
+                                onClick = {
+                                    if (onCategoryRecordSelect != null) {
+                                        onCategoryRecordSelect(cat)
+                                    } else {
+                                        onCategorySelect(cat.category)
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        text = cat.name,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = ShopPrimaryBlue,
+                                    selectedLabelColor = Color(0xFF0B0B0B),
+                                    containerColor = com.example.ui.theme.BlackSurfaceSecondary,
+                                    labelColor = ShopTextPrimary
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = com.example.ui.theme.BlackBorder,
+                                    selectedBorderColor = ShopPrimaryBlue
+                                ),
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                        }
+                    } else {
+                        items(defaultCategories) { category ->
+                            val isSelected = category == selectedCategory
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onCategorySelect(category) },
+                                label = {
+                                    Text(
+                                        text = category.displayName,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = ShopPrimaryBlue,
+                                    selectedLabelColor = Color(0xFF0B0B0B),
+                                    containerColor = com.example.ui.theme.BlackSurfaceSecondary,
+                                    labelColor = ShopTextPrimary
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = com.example.ui.theme.BlackBorder,
+                                    selectedBorderColor = ShopPrimaryBlue
+                                ),
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                        }
                     }
                 }
             }

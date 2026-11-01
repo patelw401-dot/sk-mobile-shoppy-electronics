@@ -222,7 +222,7 @@ export default function ContactPage({ currentUser, onShowToast }) {
               <div className="text-center">
                 <h3 className="text-base font-bold text-white">Inquiry Draft Prepared!</h3>
                 <p className="text-xs text-gray-400 mt-1">
-                  Ready to send directly to SK Mobile Shoppy & Electronic
+                  Ready to send directly to SK Mobile Shoppy and Electronics
                 </p>
               </div>
 

@@ -49,6 +49,23 @@ data class Product(
 
     val savingsAmount: Int
         get() = originalPrice - price
+
+    fun categoryMatches(targetSlug: String): Boolean {
+        val target = targetSlug.lowercase().replace("_", "-").trim()
+        if (target == "all") return true
+        val curName = category.name.lowercase().replace("_", "-").trim()
+        val curDisplay = category.displayName.lowercase().replace("_", "-").trim()
+        if (target == "smartphones" || target == "mobile-phones") {
+            return curName.contains("phone") || curName.contains("mobile") || curDisplay.contains("phone")
+        }
+        if (target == "accessories") {
+            return curName.contains("accessori") || curDisplay.contains("accessori")
+        }
+        if (target == "old-phones" || target == "old_phones") {
+            return curName.contains("old") || isPreOwned
+        }
+        return curName == target || curDisplay == target || curName.contains(target)
+    }
 }
 
 data class CartItem(

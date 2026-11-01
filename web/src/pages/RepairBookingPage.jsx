@@ -579,7 +579,7 @@ export default function RepairBookingPage({ currentUser, setActivePage, onShowTo
             </div>
 
             <p className="text-xs text-gray-300 leading-relaxed text-center mb-6">
-              Our technician from SK Mobile Shoppy and Electronic (Udgir) will call you shortly on <strong>{confirmedBooking.mobileNumber}</strong> to confirm your slot.
+              Our technician from SK Mobile Shoppy and Electronics (Udgir) will call you shortly on <strong>{confirmedBooking.mobileNumber}</strong> to confirm your slot.
             </p>
 
             <div className="flex gap-3">

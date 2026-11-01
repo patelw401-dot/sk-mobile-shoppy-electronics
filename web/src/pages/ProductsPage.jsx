@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { REAL_PRODUCTS, STORE_INFO } from '../data/storeData';
-import { fetchFirestoreProducts, FIREBASE_PROJECT_ID } from '../firebase';
+import { REAL_PRODUCTS, ACCESSORIES, DEFAULT_CATEGORIES, STORE_INFO } from '../data/storeData';
+import { fetchFirestoreProducts, fetchCategoriesFromFirestore, FIREBASE_PROJECT_ID } from '../firebase';
 import ProductCard from '../components/ProductCard';
 import { 
   Search, 
@@ -13,18 +13,27 @@ import {
   RefreshCw, 
   AlertCircle,
   ShoppingCart,
-  Zap
+  Zap,
+  Layers
 } from 'lucide-react';
 
-export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow }) {
+export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow, selectedCategory: parentCategory, setSelectedCategory: setParentCategory }) {
+  const [internalCategory, setInternalCategory] = useState(parentCategory || 'ALL');
+  const activeCategory = parentCategory || internalCategory;
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [selectedBrand, setSelectedBrand] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('featured');
   const [selectedProduct, setSelectedProduct] = useState(null);
 
+  const handleSelectCategory = (slug) => {
+    if (setParentCategory) setParentCategory(slug);
+    setInternalCategory(slug);
+  };
+
   // Firestore integration state
   const [rawProducts, setRawProducts] = useState(
-    REAL_PRODUCTS.map(p => ({ ...p, isSample: true, isLive: false }))
+    [...REAL_PRODUCTS, ...ACCESSORIES].map(p => ({ ...p, isSample: true, isLive: false }))
   );
   const [dataSource, setDataSource] = useState('loading'); // 'loading' | 'live' | 'sample-empty' | 'sample-error'
   const [firestoreError, setFirestoreError] = useState(null);
@@ -34,36 +43,26 @@ export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow }) {
     setIsLoading(true);
     setFirestoreError(null);
     try {
-      const result = await fetchFirestoreProducts();
-      if (result.success && !result.isEmpty && result.data.length > 0) {
-        // Filter products that belong to smartphones/mobile category
-        const phones = result.data.filter(p => 
-          p.category.includes('mobile') || 
-          p.category.includes('smartphone') || 
-          p.category.includes('phone') ||
-          p.category === 'all'
-        );
-        if (phones.length > 0) {
-          setRawProducts(phones.map(p => ({ ...p, isLive: true, isSample: false })));
-          setDataSource('live');
-          onShowToast?.(`Loaded ${phones.length} smartphones live from Cloud Firestore!`, 'success');
-        } else {
-          // Firestore connected and has items, but no smartphone category found
-          setRawProducts(REAL_PRODUCTS.map(p => ({ ...p, isSample: true, isLive: false })));
-          setDataSource('sample-empty');
-        }
-      } else if (result.success && result.isEmpty) {
-        // Firestore connected, but products collection is empty in Cloud Firestore
-        setRawProducts(REAL_PRODUCTS.map(p => ({ ...p, isSample: true, isLive: false })));
-        setDataSource('sample-empty');
+      const [prodRes, catRes] = await Promise.allSettled([
+        fetchFirestoreProducts(),
+        fetchCategoriesFromFirestore()
+      ]);
+
+      if (catRes.status === 'fulfilled' && catRes.value.success && catRes.value.data.length > 0) {
+        setCategories(catRes.value.data.filter(c => c.isActive));
       } else {
-        // Firestore returned error (e.g. offline, permission error)
-        setRawProducts(REAL_PRODUCTS.map(p => ({ ...p, isSample: true, isLive: false })));
-        setDataSource('sample-error');
-        setFirestoreError(result.error);
+        setCategories(DEFAULT_CATEGORIES.filter(c => c.isActive));
+      }
+
+      if (prodRes.status === 'fulfilled' && prodRes.value.success && !prodRes.value.isEmpty && prodRes.value.data.length > 0) {
+        setRawProducts(prodRes.value.data.map(p => ({ ...p, isLive: true, isSample: false })));
+        setDataSource('live');
+      } else {
+        setRawProducts([...REAL_PRODUCTS, ...ACCESSORIES].map(p => ({ ...p, isSample: true, isLive: false })));
+        setDataSource('sample-empty');
       }
     } catch (err) {
-      setRawProducts(REAL_PRODUCTS.map(p => ({ ...p, isSample: true, isLive: false })));
+      setRawProducts([...REAL_PRODUCTS, ...ACCESSORIES].map(p => ({ ...p, isSample: true, isLive: false })));
       setDataSource('sample-error');
       setFirestoreError(err.message || 'Unknown network error');
     } finally {
@@ -88,6 +87,24 @@ export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow }) {
 
   const filteredProducts = useMemo(() => {
     let result = [...rawProducts];
+
+    // Filter by Active Category
+    if (activeCategory && activeCategory !== 'ALL') {
+      const catSlug = activeCategory.toLowerCase();
+      result = result.filter(p => {
+        const pCat = (p.category || '').toLowerCase();
+        if (catSlug === 'smartphones') {
+          return pCat === 'smartphones' || pCat.includes('smart') || pCat.includes('phone') || pCat.includes('mobile');
+        }
+        if (catSlug === 'accessories') {
+          return pCat === 'accessories' || pCat.includes('accessori');
+        }
+        if (catSlug === 'old_phones' || catSlug === 'old-phones') {
+          return pCat.includes('old') || p.isPreOwned;
+        }
+        return pCat === catSlug;
+      });
+    }
 
     if (selectedBrand !== 'All') {
       result = result.filter(p => p.brand.toLowerCase() === selectedBrand.toLowerCase());
@@ -188,6 +205,63 @@ export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow }) {
               </span>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Category Navigation Bar */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] flex items-center gap-1.5">
+            <Layers size={14} />
+            <span>Categories</span>
+          </span>
+          {activeCategory !== 'ALL' && (
+            <button
+              onClick={() => handleSelectCategory('ALL')}
+              className="text-xs text-gray-400 hover:text-white underline"
+            >
+              Show All Products
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          <button
+            onClick={() => handleSelectCategory('ALL')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-2 ${
+              activeCategory === 'ALL'
+                ? 'bg-[#D4AF37] text-black shadow-md'
+                : 'bg-[#141414] text-gray-300 hover:text-white border border-[#2E2E2E]'
+            }`}
+          >
+            <Layers size={14} />
+            <span>All Products ({rawProducts.length})</span>
+          </button>
+
+          {categories.map((cat) => {
+            const isSelected = activeCategory === cat.slug;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => handleSelectCategory(cat.slug)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-2 ${
+                  isSelected
+                    ? 'bg-[#D4AF37] text-black shadow-md'
+                    : 'bg-[#141414] text-gray-300 hover:text-white border border-[#2E2E2E] hover:border-[#3E3E3E]'
+                }`}
+              >
+                {cat.imageUrl && (
+                  <img
+                    src={cat.imageUrl}
+                    alt={cat.name}
+                    className="w-4 h-4 rounded-full object-cover"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                )}
+                <span>{cat.name}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -341,7 +415,7 @@ export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow }) {
                   </p>
                 ) : (
                   <p className="text-[11px] text-gray-400 pl-6">
-                    100% genuine product with {selectedProduct.warrantyDuration} coverage verified by SK Mobile Shoppy & Electronic.
+                    100% genuine product with {selectedProduct.warrantyDuration} coverage verified by SK Mobile Shoppy and Electronics.
                   </p>
                 )}
               </div>

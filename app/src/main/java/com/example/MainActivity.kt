@@ -183,6 +183,7 @@ fun SKMobileApp(
                             featuredProducts = shopUiState.products,
                             repairServices = shopUiState.repairServices,
                             customerReviews = shopUiState.reviews,
+                            categories = shopUiState.activeCategories,
                             onSelectProduct = { prod ->
                                 shopViewModel.selectProduct(prod)
                                 shopViewModel.navigateTo(AppScreen.PRODUCT_DETAIL)
@@ -196,6 +197,9 @@ fun SKMobileApp(
                                 shopViewModel.filterByCategory(cat)
                                 shopViewModel.navigateTo(AppScreen.PRODUCTS)
                             },
+                            onCategoryRecordClick = { cat ->
+                                shopViewModel.filterByCategoryRecord(cat)
+                            },
                             onNavigate = { screen -> shopViewModel.navigateTo(screen) },
                             onBookRepairProblem = { prob ->
                                 shopViewModel.bookRepairWithProblem(prob)
@@ -208,9 +212,12 @@ fun SKMobileApp(
                         ProductsScreen(
                             products = shopUiState.filteredProducts,
                             selectedCategory = shopUiState.selectedCategory,
+                            selectedCategorySlug = shopUiState.selectedCategorySlug,
+                            activeCategories = shopUiState.activeCategories,
                             searchQuery = shopUiState.searchQuery,
                             sortOption = shopUiState.sortOption,
                             onCategorySelect = { shopViewModel.filterByCategory(it) },
+                            onCategoryRecordSelect = { shopViewModel.filterByCategoryRecord(it) },
                             onSortSelect = { shopViewModel.updateSortOption(it) },
                             onClearSearch = { shopViewModel.updateSearchQuery("") },
                             onSelectProduct = { prod ->

@@ -56,9 +56,13 @@ data class CategoryRecord(
     val id: String,
     val name: String,
     val slug: String,
-    val category: ProductCategory,
+    val category: ProductCategory = ProductCategory.ACCESSORIES,
     val isActive: Boolean = true,
-    val productCount: Int = 0
+    val productCount: Int = 0,
+    val imageUrl: String = "",
+    val description: String = "",
+    val displayOrder: Int = 1,
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 data class AdminReviewRecord(
