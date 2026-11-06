@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   fetchAdminProducts, 
   saveAdminProductToFirestore, 
@@ -51,6 +52,11 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
   const [isSeeding, setIsSeeding] = useState(false);
   const [categoriesList, setCategoriesList] = useState(DEFAULT_CATEGORIES);
 
+  // Active categories loaded dynamically from Firestore categories collection
+  const activeCategories = useMemo(() => {
+    return categoriesList.filter(c => c.isActive !== false);
+  }, [categoriesList]);
+
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -69,11 +75,11 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
     description: ''
   });
 
-  // Form State
+  // Form State - category is required and defaults to empty
   const [formData, setFormData] = useState({
     name: '',
     brand: 'OnePlus',
-    category: 'smartphones',
+    category: '',
     price: '',
     originalPrice: '',
     stock: 5,
@@ -138,16 +144,24 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
         (p.brand || '').toLowerCase().includes(q) ||
         (p.id || '').toLowerCase().includes(q);
 
-      const pCat = (p.category || '').toLowerCase();
+      const pCat = (p.category || '').toLowerCase().replace(/_/g, '-');
       let matchesCat = true;
       if (categoryFilter !== 'ALL') {
-        const filterLower = categoryFilter.toLowerCase();
-        if (filterLower === 'smartphones') {
+        const filterSlug = categoryFilter.toLowerCase().replace(/_/g, '-');
+        if (filterSlug === 'smartphones') {
           matchesCat = pCat === 'smartphones' || pCat.includes('smart') || pCat.includes('phone') || pCat.includes('mobile');
-        } else if (filterLower === 'accessories') {
+        } else if (filterSlug === 'accessories') {
           matchesCat = pCat === 'accessories' || pCat.includes('accessori');
+        } else if (filterSlug === 'old-phones') {
+          matchesCat = pCat.includes('old') || p.isPreOwned;
+        } else if (filterSlug === 'chargers') {
+          matchesCat = pCat.includes('charger');
+        } else if (filterSlug === 'cables') {
+          matchesCat = pCat.includes('cable');
+        } else if (filterSlug === 'audio') {
+          matchesCat = pCat.includes('audio') || pCat.includes('headphone') || pCat.includes('earphone');
         } else {
-          matchesCat = pCat === filterLower;
+          matchesCat = pCat === filterSlug;
         }
       }
 
@@ -170,7 +184,7 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
     setFormData({
       name: '',
       brand: 'OnePlus',
-      category: 'smartphones',
+      category: '', // Required: must be selected before saving
       price: '',
       originalPrice: '',
       stock: 5,
@@ -208,10 +222,13 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
       }
     }
 
+    // Preserve product's exact category slug (or empty if unassigned)
+    const exactCategory = (prod.category || prod.categorySlug || '').toLowerCase().trim();
+
     setFormData({
       name: prod.name || '',
       brand: prod.brand || 'OnePlus',
-      category: (prod.category || 'smartphones').toLowerCase().includes('accessori') ? 'accessories' : 'smartphones',
+      category: exactCategory,
       price: prod.price || '',
       originalPrice: prod.originalPrice || '',
       stock: prod.stock !== undefined ? prod.stock : (prod.inStock ? 5 : 0),
@@ -296,6 +313,10 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
     }
     if (!formData.brand.trim()) {
       onShowToast?.('Please specify a brand name.', 'error');
+      return;
+    }
+    if (!formData.category || !formData.category.trim()) {
+      onShowToast?.('Please select a category for this product.', 'error');
       return;
     }
     const priceNum = parseFloat(formData.price);
@@ -674,7 +695,7 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-[#222222] text-[#D4AF37] border border-[#333333]">
-                      {p.category.includes('smart') || p.category.includes('phone') ? 'Smartphone' : 'Accessory'}
+                      {categoriesList.find(c => c.slug === (p.category || '').toLowerCase())?.name || p.category || 'Unassigned'}
                     </span>
 
                     <div className="flex items-center gap-1.5">
@@ -889,19 +910,37 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-300 mb-1">
-                    Store Category *
+                    Product Category * <span className="text-[#D4AF37] font-normal">(Required)</span>
                   </label>
                   <select
+                    required
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    className={`w-full bg-[#0E0E0E] border rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none transition ${
+                      !formData.category 
+                        ? 'border-amber-500/70 focus:border-amber-400' 
+                        : 'border-[#2E2E2E] focus:border-[#D4AF37]'
+                    }`}
                   >
-                    {categoriesList.map(cat => (
-                      <option key={cat.id} value={cat.slug}>
+                    <option value="">-- Select Product Category * --</option>
+                    {activeCategories.map(cat => (
+                      <option key={cat.id || cat.slug} value={cat.slug}>
                         {cat.name} ({cat.slug})
                       </option>
                     ))}
+                    {/* If editing an existing product whose category is currently inactive, display it */}
+                    {formData.category && !activeCategories.some(c => c.slug === formData.category) && (
+                      <option value={formData.category}>
+                        {formData.category} (Current)
+                      </option>
+                    )}
                   </select>
+                  {!formData.category && (
+                    <p className="text-[11px] text-amber-400 mt-1.5 flex items-center gap-1 font-medium">
+                      <AlertCircle size={13} className="shrink-0" />
+                      <span>Please select a category for this product.</span>
+                    </p>
+                  )}
                 </div>
               </div>
 

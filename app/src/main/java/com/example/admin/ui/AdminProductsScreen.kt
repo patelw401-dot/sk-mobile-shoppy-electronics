@@ -68,6 +68,7 @@ import com.example.ui.theme.ShopSuccessGreen
 @Composable
 fun AdminProductsScreen(
     products: List<Product>,
+    categories: List<com.example.admin.model.CategoryRecord> = emptyList(),
     onAddProduct: (Product) -> Unit,
     onUpdateProduct: (Product) -> Unit,
     onDeleteProduct: (String) -> Unit,
@@ -92,6 +93,7 @@ fun AdminProductsScreen(
     if (showAddDialog || productToEdit != null) {
         ProductFormDialog(
             initialProduct = productToEdit,
+            categories = categories,
             onDismiss = {
                 showAddDialog = false
                 productToEdit = null
@@ -386,6 +388,7 @@ fun AdminProductsScreen(
 @Composable
 fun ProductFormDialog(
     initialProduct: Product?,
+    categories: List<com.example.admin.model.CategoryRecord> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (Product) -> Unit
 ) {
@@ -399,6 +402,7 @@ fun ProductFormDialog(
     var inStock by remember { mutableStateOf(initialProduct?.inStock ?: true) }
     var isFeatured by remember { mutableStateOf(initialProduct?.isFeatured ?: false) }
     var selectedCategory by remember { mutableStateOf(initialProduct?.category ?: ProductCategory.MOBILE_PHONES) }
+    var selectedCategorySlug by remember { mutableStateOf(initialProduct?.categorySlug ?: "smartphones") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -468,27 +472,46 @@ fun ProductFormDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Category: ${selectedCategory.displayName}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        val currentCategoryLabel = if (categories.isNotEmpty()) {
+                            categories.find { it.slug.equals(selectedCategorySlug, true) }?.name ?: selectedCategory.displayName
+                        } else {
+                            selectedCategory.displayName
+                        }
+                        Text("Category: $currentCategoryLabel", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         Box {
                             OutlinedButton(
                                 onClick = { categoryExpanded = true },
                                 modifier = Modifier.height(34.dp),
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
                             ) {
-                                Text("Change", fontSize = 11.sp)
+                                Text("Select Category", fontSize = 11.sp)
                             }
                             DropdownMenu(
                                 expanded = categoryExpanded,
                                 onDismissRequest = { categoryExpanded = false }
                             ) {
-                                ProductCategory.entries.filterNot { it == ProductCategory.ALL }.forEach { cat ->
-                                    DropdownMenuItem(
-                                        text = { Text(cat.displayName) },
-                                        onClick = {
-                                            selectedCategory = cat
-                                            categoryExpanded = false
-                                        }
-                                    )
+                                if (categories.isNotEmpty()) {
+                                    categories.filter { it.isActive }.forEach { catRecord ->
+                                        DropdownMenuItem(
+                                            text = { Text(catRecord.name) },
+                                            onClick = {
+                                                selectedCategory = catRecord.category
+                                                selectedCategorySlug = catRecord.slug
+                                                categoryExpanded = false
+                                            }
+                                        )
+                                    }
+                                } else {
+                                    ProductCategory.entries.filterNot { it == ProductCategory.ALL }.forEach { cat ->
+                                        DropdownMenuItem(
+                                            text = { Text(cat.displayName) },
+                                            onClick = {
+                                                selectedCategory = cat
+                                                selectedCategorySlug = cat.name.lowercase().replace("_", "-")
+                                                categoryExpanded = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -534,6 +557,7 @@ fun ProductFormDialog(
                         name = if (name.isBlank()) "New Product" else name,
                         brand = if (brand.isBlank()) "SK Mobile" else brand,
                         category = selectedCategory,
+                        categorySlug = selectedCategorySlug,
                         price = pPrice,
                         originalPrice = oPrice,
                         rating = initialProduct?.rating ?: 4.8f,

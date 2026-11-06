@@ -250,6 +250,7 @@ fun AdminDashboardLayout(
                     AdminTab.PRODUCTS -> {
                         AdminProductsScreen(
                             products = uiState.products,
+                            categories = uiState.categories,
                             onAddProduct = { p -> adminViewModel.addProduct(p) },
                             onUpdateProduct = { p -> adminViewModel.updateProduct(p) },
                             onDeleteProduct = { id -> adminViewModel.deleteProduct(id) },

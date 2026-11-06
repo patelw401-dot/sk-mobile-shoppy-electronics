@@ -390,11 +390,8 @@ class LocalStorageManager(private val context: Context? = null) {
 
     private fun jsonToProduct(obj: JSONObject): Product {
         val categoryName = obj.optString("category", ProductCategory.MOBILE_PHONES.name)
-        val category = try {
-            ProductCategory.valueOf(categoryName)
-        } catch (e: Exception) {
-            ProductCategory.MOBILE_PHONES
-        }
+        val category = ProductCategory.fromSlug(categoryName)
+        val categorySlug = categoryName.lowercase().trim()
 
         val specs = mutableMapOf<String, String>()
         val specsObj = obj.optJSONObject("specifications")
@@ -411,6 +408,7 @@ class LocalStorageManager(private val context: Context? = null) {
             name = obj.getString("name"),
             brand = obj.optString("brand", "SK Mobile"),
             category = category,
+            categorySlug = categorySlug,
             price = obj.getInt("price"),
             originalPrice = obj.getInt("originalPrice"),
             rating = obj.optDouble("rating", 4.5).toFloat(),

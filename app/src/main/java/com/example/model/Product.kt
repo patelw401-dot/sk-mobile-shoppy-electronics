@@ -9,7 +9,32 @@ enum class ProductCategory(val displayName: String, val iconName: String) {
     HEADPHONES("Headphones", "headphones"),
     BLUETOOTH("Bluetooth", "bluetooth"),
     ACCESSORIES("Accessories", "accessories"),
-    REPAIR_SERVICES("Mobile Repair", "repair")
+    REPAIR_SERVICES("Mobile Repair", "repair");
+
+    companion object {
+        fun fromSlug(slug: String?): ProductCategory {
+            if (slug.isNullOrBlank()) return MOBILE_PHONES
+            val norm = slug.lowercase().replace("_", "-").trim()
+            return when {
+                norm == "all" -> ALL
+                norm == "smartphones" || norm.contains("phone") || norm.contains("mobile") -> MOBILE_PHONES
+                norm == "old-phones" || norm.contains("pre-owned") -> OLD_PHONES
+                norm == "chargers" || norm.contains("charger") -> CHARGERS
+                norm == "cables" || norm == "data-cables" || norm.contains("cable") -> DATA_CABLES
+                norm == "audio" || norm == "headphones" || norm.contains("audio") || norm.contains("headphone") || norm.contains("earphone") -> HEADPHONES
+                norm == "bluetooth" || norm.contains("wireless") -> BLUETOOTH
+                norm == "accessories" || norm.contains("accessori") || norm.contains("case") -> ACCESSORIES
+                norm == "repair" || norm.contains("repair") -> REPAIR_SERVICES
+                else -> {
+                    try {
+                        valueOf(slug)
+                    } catch (e: Exception) {
+                        entries.find { it.name.equals(slug, ignoreCase = true) } ?: MOBILE_PHONES
+                    }
+                }
+            }
+        }
+    }
 }
 
 data class Product(
@@ -17,6 +42,7 @@ data class Product(
     val name: String,
     val brand: String,
     val category: ProductCategory,
+    val categorySlug: String = category.name.lowercase().replace("_", "-"),
     val price: Int,
     val originalPrice: Int,
     val rating: Float,
@@ -53,6 +79,8 @@ data class Product(
     fun categoryMatches(targetSlug: String): Boolean {
         val target = targetSlug.lowercase().replace("_", "-").trim()
         if (target == "all") return true
+        val curSlug = categorySlug.lowercase().replace("_", "-").trim()
+        if (curSlug == target || curSlug.contains(target) || target.contains(curSlug)) return true
         val curName = category.name.lowercase().replace("_", "-").trim()
         val curDisplay = category.displayName.lowercase().replace("_", "-").trim()
         if (target == "smartphones" || target == "mobile-phones") {
@@ -63,6 +91,15 @@ data class Product(
         }
         if (target == "old-phones" || target == "old_phones") {
             return curName.contains("old") || isPreOwned
+        }
+        if (target == "chargers") {
+            return curName.contains("charger") || curDisplay.contains("charger")
+        }
+        if (target == "cables" || target == "data-cables") {
+            return curName.contains("cable") || curDisplay.contains("cable")
+        }
+        if (target == "audio" || target == "headphones") {
+            return curName.contains("headphone") || curName.contains("audio") || curDisplay.contains("headphone")
         }
         return curName == target || curDisplay == target || curName.contains(target)
     }

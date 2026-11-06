@@ -243,11 +243,8 @@ class FirestoreDataService(
                                 val name = doc.getString("name") ?: return@mapNotNull null
                                 val brand = doc.getString("brand") ?: "Generic"
                                 val catStr = doc.getString("category") ?: "ALL"
-                                val category = try {
-                                    ProductCategory.valueOf(catStr)
-                                } catch (e: Exception) {
-                                    ProductCategory.entries.find { it.name.equals(catStr, ignoreCase = true) } ?: ProductCategory.MOBILE_PHONES
-                                }
+                                val category = ProductCategory.fromSlug(catStr)
+                                val categorySlug = catStr.lowercase().trim()
                                 val price = doc.getLong("price")?.toInt() ?: 0
                                 val originalPrice = doc.getLong("originalPrice")?.toInt() ?: price
                                 val rating = doc.getDouble("rating")?.toFloat() ?: 4.5f
@@ -263,6 +260,7 @@ class FirestoreDataService(
                                     name = name,
                                     brand = brand,
                                     category = category,
+                                    categorySlug = categorySlug,
                                     price = price,
                                     originalPrice = originalPrice,
                                     rating = rating,

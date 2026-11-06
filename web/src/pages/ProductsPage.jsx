@@ -90,19 +90,28 @@ export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow, selec
 
     // Filter by Active Category
     if (activeCategory && activeCategory !== 'ALL') {
-      const catSlug = activeCategory.toLowerCase();
+      const catSlug = activeCategory.toLowerCase().replace(/_/g, '-');
       result = result.filter(p => {
-        const pCat = (p.category || '').toLowerCase();
+        const pCat = (p.category || '').toLowerCase().replace(/_/g, '-');
         if (catSlug === 'smartphones') {
           return pCat === 'smartphones' || pCat.includes('smart') || pCat.includes('phone') || pCat.includes('mobile');
         }
         if (catSlug === 'accessories') {
           return pCat === 'accessories' || pCat.includes('accessori');
         }
-        if (catSlug === 'old_phones' || catSlug === 'old-phones') {
+        if (catSlug === 'old-phones') {
           return pCat.includes('old') || p.isPreOwned;
         }
-        return pCat === catSlug;
+        if (catSlug === 'chargers') {
+          return pCat.includes('charger');
+        }
+        if (catSlug === 'cables') {
+          return pCat.includes('cable');
+        }
+        if (catSlug === 'audio') {
+          return pCat.includes('audio') || pCat.includes('headphone') || pCat.includes('earphone');
+        }
+        return pCat === catSlug || pCat.includes(catSlug);
       });
     }
 
