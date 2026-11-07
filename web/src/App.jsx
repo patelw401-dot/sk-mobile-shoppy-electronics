@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
-import { subscribeToAuthChanges } from './firebase';
+import ProductDetailsModal from './components/ProductDetailsModal';
+import { REAL_PRODUCTS, ACCESSORIES, PRE_OWNED_PHONES } from './data/storeData';
+import { subscribeToAuthChanges, fetchFirestoreProducts } from './firebase';
 
 import HomePage from './pages/HomePage';
 import ProductsPage from './pages/ProductsPage';
@@ -23,6 +25,12 @@ export default function App() {
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [selectedProductForDetails, setSelectedProductForDetails] = useState(null);
+  const [allStoreProducts, setAllStoreProducts] = useState([
+    ...REAL_PRODUCTS,
+    ...ACCESSORIES,
+    ...PRE_OWNED_PHONES
+  ]);
 
   // Cart State with LocalStorage Persistence
   const [cart, setCart] = useState(() => {
@@ -49,6 +57,22 @@ export default function App() {
       setIsAuthLoading(false);
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    async function loadCatalog() {
+      try {
+        const res = await fetchFirestoreProducts();
+        if (res.success && res.data && res.data.length > 0) {
+          const liveIds = new Set(res.data.map(p => p.id));
+          const nonDupDefaults = [...REAL_PRODUCTS, ...ACCESSORIES, ...PRE_OWNED_PHONES].filter(d => !liveIds.has(d.id));
+          setAllStoreProducts([...res.data, ...nonDupDefaults]);
+        }
+      } catch (e) {
+        // preserve defaults
+      }
+    }
+    loadCatalog();
   }, []);
 
   const showToast = (message, type = 'info') => {
@@ -114,7 +138,7 @@ export default function App() {
     setCart([]);
   };
 
-  const handleBuyNow = (product) => {
+  const handleBuyNow = (product, qty = 1) => {
     if (!product) return;
     if (product.inStock === false || (product.stock !== undefined && product.stock <= 0)) {
       showToast(`${product.name} is currently out of stock.`, 'error');
@@ -137,7 +161,7 @@ export default function App() {
           price: product.price,
           originalPrice: product.originalPrice,
           imageUrl: product.imageUrl || product.image || '',
-          quantity: 1,
+          quantity: qty || 1,
           stock: product.stock,
           inStock: product.inStock
         }
@@ -157,9 +181,15 @@ export default function App() {
         return (
           <HomePage 
             setActivePage={setActivePage} 
+            onSelectCategory={(catSlug) => {
+              setSelectedCategory(catSlug);
+              setActivePage('products');
+            }}
             onShowToast={showToast} 
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
+            onSelectProduct={setSelectedProductForDetails}
+            setSelectedProduct={setSelectedProductForDetails}
           />
         );
       case 'products':
@@ -170,6 +200,7 @@ export default function App() {
             onShowToast={showToast} 
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
+            onSelectProduct={setSelectedProductForDetails}
           />
         );
       case 'accessories':
@@ -178,6 +209,7 @@ export default function App() {
             onShowToast={showToast} 
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
+            onSelectProduct={setSelectedProductForDetails}
           />
         );
       case 'cart':
@@ -203,9 +235,9 @@ export default function App() {
       case 'my-orders':
         return (
           <MyOrdersPage 
-            currentUser={currentUser}
-            setActivePage={setActivePage}
-            onShowToast={showToast}
+            currentUser={currentUser} 
+            setActivePage={setActivePage} 
+            onShowToast={showToast} 
           />
         );
       case 'app-download':
@@ -229,6 +261,9 @@ export default function App() {
             currentUser={currentUser} 
             setActivePage={setActivePage} 
             onShowToast={showToast} 
+            onSelectProduct={setSelectedProductForDetails}
+            onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
           />
         );
       case 'login':
@@ -265,6 +300,8 @@ export default function App() {
             onShowToast={showToast} 
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
+            onSelectProduct={setSelectedProductForDetails}
+            setSelectedProduct={setSelectedProductForDetails}
           />
         );
     }
@@ -272,13 +309,15 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0A0A0A] text-[#F5F5F7] selection:bg-[#D4AF37] selection:text-black">
-      {/* Navigation Header */}
+      {/* Navigation Header with Universal Search */}
       <Navbar 
         activePage={activePage} 
         setActivePage={setActivePage} 
         currentUser={currentUser}
         cartCount={totalCartCount}
         onShowToast={showToast}
+        allProducts={allStoreProducts}
+        onSelectProduct={setSelectedProductForDetails}
       />
 
       {/* Main Page Body */}
@@ -288,6 +327,18 @@ export default function App() {
 
       {/* Footer */}
       <Footer setActivePage={setActivePage} />
+
+      {/* Universal Product Details Modal (16-point feature set for EVERY product category) */}
+      {selectedProductForDetails && (
+        <ProductDetailsModal
+          product={selectedProductForDetails}
+          onClose={() => setSelectedProductForDetails(null)}
+          onAddToCart={handleAddToCart}
+          onBuyNow={handleBuyNow}
+          onSelectProduct={setSelectedProductForDetails}
+          allProducts={allStoreProducts}
+        />
+      )}
 
       {/* Global Toast Notification */}
       {toast.message && (

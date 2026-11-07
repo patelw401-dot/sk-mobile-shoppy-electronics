@@ -19,7 +19,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 
-export default function OldPhonePage({ currentUser, setActivePage, onShowToast }) {
+export default function OldPhonePage({ currentUser, setActivePage, onShowToast, onSelectProduct, onAddToCart, onBuyNow }) {
   const [activeTab, setActiveTab] = useState('buy'); // 'buy' or 'sell'
 
   // Sell Phone form state
@@ -251,9 +251,10 @@ export default function OldPhonePage({ currentUser, setActivePage, onShowToast }
               <ProductCard
                 key={phone.id}
                 product={phone}
-                onAction={(p) => {
-                  onShowToast?.(`Inquiry for ${p.name} noted. Visit Nagar Parishad store for physical inspection!`);
-                }}
+                onSelect={onSelectProduct}
+                onAddToCart={onAddToCart}
+                onBuyNow={onBuyNow}
+                onAction={() => onSelectProduct?.(phone)}
               />
             ))}
           </div>

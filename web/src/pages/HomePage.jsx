@@ -214,9 +214,10 @@ export default function HomePage({ setActivePage, setSelectedProduct, onAddToCar
             <ProductCard
               key={phone.id}
               product={phone}
+              onSelect={onSelectProduct || setSelectedProduct}
               onAddToCart={onAddToCart}
               onBuyNow={onBuyNow}
-              onAction={() => setActivePage('products')}
+              onAction={() => (onSelectProduct || setSelectedProduct)?.(phone)}
             />
           ))}
         </div>
@@ -298,7 +299,10 @@ export default function HomePage({ setActivePage, setSelectedProduct, onAddToCar
             <ProductCard
               key={phone.id}
               product={phone}
-              onAction={() => setActivePage('old-phones')}
+              onSelect={onSelectProduct || setSelectedProduct}
+              onAddToCart={onAddToCart}
+              onBuyNow={onBuyNow}
+              onAction={() => (onSelectProduct || setSelectedProduct)?.(phone)}
             />
           ))}
         </div>

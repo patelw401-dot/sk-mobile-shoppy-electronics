@@ -152,7 +152,11 @@ data class ShopUiState(
                     it.name.lowercase().contains(q) ||
                     it.brand.lowercase().contains(q) ||
                     it.category.displayName.lowercase().contains(q) ||
-                    it.description.lowercase().contains(q)
+                    it.categorySlug.lowercase().contains(q) ||
+                    it.sku.lowercase().contains(q) ||
+                    it.description.lowercase().contains(q) ||
+                    it.specifications.keys.any { k -> k.lowercase().contains(q) } ||
+                    it.specifications.values.any { v -> v.lowercase().contains(q) }
                 }
             }
 

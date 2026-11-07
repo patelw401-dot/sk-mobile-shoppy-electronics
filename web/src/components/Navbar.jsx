@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { STORE_INFO } from '../data/storeData';
 import { 
   Smartphone, 
@@ -15,12 +15,45 @@ import {
   Sparkles,
   ShieldCheck,
   Package,
-  Download
+  Download,
+  Search,
+  Tag
 } from 'lucide-react';
 import { isUserAdmin } from '../firebase';
 
-export default function Navbar({ activePage, setActivePage, currentUser, cartCount = 0 }) {
+export default function Navbar({ 
+  activePage, 
+  setActivePage, 
+  currentUser, 
+  cartCount = 0,
+  allProducts = [],
+  onSelectProduct
+}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [navSearchQuery, setNavSearchQuery] = useState('');
+
+  // Universal search filter across all categories
+  const searchResults = useMemo(() => {
+    const q = navSearchQuery.trim().toLowerCase();
+    if (!q || !allProducts || allProducts.length === 0) return [];
+    return allProducts.filter(p => {
+      const name = (p.name || '').toLowerCase();
+      const brand = (p.brand || '').toLowerCase();
+      const cat = (p.category || p.categorySlug || '').toLowerCase();
+      const desc = (p.description || '').toLowerCase();
+      const sku = (p.sku || '').toLowerCase();
+      
+      let specMatch = false;
+      if (p.specs && typeof p.specs === 'object') {
+        specMatch = Object.entries(p.specs).some(([k, v]) => 
+          k.toLowerCase().includes(q) || String(v).toLowerCase().includes(q)
+        );
+      }
+
+      return name.includes(q) || brand.includes(q) || cat.includes(q) || desc.includes(q) || sku.includes(q) || specMatch;
+    }).slice(0, 8);
+  }, [allProducts, navSearchQuery]);
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Sparkles },
@@ -116,6 +149,109 @@ export default function Navbar({ activePage, setActivePage, currentUser, cartCou
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          {/* Universal Search Button */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(!searchOpen)}
+              className={`p-2 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition ${
+                searchOpen
+                  ? 'bg-[#D4AF37] text-black border-[#D4AF37]'
+                  : 'bg-[#161616] border-[#333333] text-gray-300 hover:text-white hover:border-[#D4AF37]'
+              }`}
+              title="Search all products across all categories"
+            >
+              <Search size={15} />
+              <span className="hidden xl:inline">Search Catalog</span>
+            </button>
+
+            {/* Universal Search Dropdown */}
+            {searchOpen && (
+              <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-[#141414] border border-[#D4AF37]/50 rounded-2xl shadow-2xl p-3 z-50 animate-in fade-in space-y-3">
+                <div className="relative">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Search chargers, cables, phones, audio..."
+                    value={navSearchQuery}
+                    onChange={(e) => setNavSearchQuery(e.target.value)}
+                    className="w-full bg-[#0A0A0A] border border-[#333333] rounded-xl pl-9 pr-8 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                  {navSearchQuery && (
+                    <button
+                      onClick={() => setNavSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Search Results List */}
+                <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
+                  {searchResults.length > 0 ? (
+                    searchResults.map(p => (
+                      <div
+                        key={p.id}
+                        onClick={() => {
+                          onSelectProduct?.(p);
+                          setSearchOpen(false);
+                          setNavSearchQuery('');
+                        }}
+                        className="p-2 rounded-xl bg-[#1A1A1A] hover:bg-[#252525] border border-transparent hover:border-[#D4AF37]/40 cursor-pointer transition flex items-center gap-3 group"
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-[#222222] flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                          {p.imageUrl || p.image ? (
+                            <img src={p.imageUrl || p.image} alt={p.name} className="w-full h-full object-contain" />
+                          ) : (
+                            <Tag size={16} className="text-[#D4AF37]" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-[#D4AF37]/20 text-[#D4AF37]">
+                              {p.category || 'Product'}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-semibold truncate">
+                              {p.brand}
+                            </span>
+                          </div>
+                          <h4 className="text-xs font-bold text-white group-hover:text-[#D4AF37] truncate transition">
+                            {p.name}
+                          </h4>
+                          <div className="text-xs font-black text-[#D4AF37]">
+                            ₹{p.price?.toLocaleString('en-IN')}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : navSearchQuery.trim() ? (
+                    <div className="p-4 text-center text-xs text-gray-400">
+                      No products found for "{navSearchQuery}".
+                    </div>
+                  ) : (
+                    <div className="p-3 text-center space-y-1">
+                      <p className="text-[11px] text-gray-400">Search products across all categories:</p>
+                      <div className="flex flex-wrap gap-1 justify-center pt-1">
+                        {['Smartphones', 'Chargers', 'Cables', 'Audio', 'Covers', 'Screen Glass'].map(tag => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => setNavSearchQuery(tag)}
+                            className="text-[10px] px-2 py-0.5 rounded-full bg-[#202020] text-gray-300 hover:text-[#D4AF37] border border-[#333333]"
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {currentUser ? (
             <button
               onClick={() => handleNavClick('login')}

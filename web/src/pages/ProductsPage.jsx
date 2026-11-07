@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { REAL_PRODUCTS, ACCESSORIES, DEFAULT_CATEGORIES, STORE_INFO } from '../data/storeData';
 import { fetchFirestoreProducts, fetchCategoriesFromFirestore, FIREBASE_PROJECT_ID } from '../firebase';
 import ProductCard from '../components/ProductCard';
+import ProductDetailsModal from '../components/ProductDetailsModal';
 import { 
   Search, 
   Filter, 
@@ -17,7 +18,14 @@ import {
   Layers
 } from 'lucide-react';
 
-export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow, selectedCategory: parentCategory, setSelectedCategory: setParentCategory }) {
+export default function ProductsPage({ 
+  onShowToast, 
+  onAddToCart, 
+  onBuyNow, 
+  selectedCategory: parentCategory, 
+  setSelectedCategory: setParentCategory,
+  onSelectProduct: parentOnSelectProduct
+}) {
   const [internalCategory, setInternalCategory] = useState(parentCategory || 'ALL');
   const activeCategory = parentCategory || internalCategory;
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
@@ -121,11 +129,20 @@ export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow, selec
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(p => 
-        p.name.toLowerCase().includes(q) || 
-        p.brand.toLowerCase().includes(q) ||
-        p.description.toLowerCase().includes(q)
-      );
+      result = result.filter(p => {
+        const nameMatch = (p.name || '').toLowerCase().includes(q);
+        const brandMatch = (p.brand || '').toLowerCase().includes(q);
+        const catMatch = (p.category || '').toLowerCase().includes(q);
+        const descMatch = (p.description || '').toLowerCase().includes(q);
+        const skuMatch = (p.sku || '').toLowerCase().includes(q);
+        let specMatch = false;
+        if (p.specs && typeof p.specs === 'object') {
+          specMatch = Object.entries(p.specs).some(([k, v]) =>
+            k.toLowerCase().includes(q) || String(v).toLowerCase().includes(q)
+          );
+        }
+        return nameMatch || brandMatch || catMatch || descMatch || skuMatch || specMatch;
+      });
     }
 
     if (sortBy === 'price-low') {
@@ -341,8 +358,8 @@ export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow, selec
             <ProductCard
               key={product.id}
               product={product}
-              onSelect={(p) => setSelectedProduct(p)}
-              onAction={(p) => setSelectedProduct(p)}
+              onSelect={(p) => (parentOnSelectProduct || setSelectedProduct)(p)}
+              onAction={(p) => (parentOnSelectProduct || setSelectedProduct)(p)}
               onAddToCart={onAddToCart}
               onBuyNow={onBuyNow}
             />
@@ -350,7 +367,7 @@ export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow, selec
         </div>
       ) : (
         <div className="text-center py-16 bg-[#141414] rounded-xl border border-[#222222]">
-          <p className="text-gray-400 text-sm mb-2">No smartphones found matching your search.</p>
+          <p className="text-gray-400 text-sm mb-2">No products found matching your search.</p>
           <button
             onClick={() => { setSelectedBrand('All'); setSearchQuery(''); }}
             className="text-xs text-[#D4AF37] font-semibold hover:underline"
@@ -362,120 +379,14 @@ export default function ProductsPage({ onShowToast, onAddToCart, onBuyNow, selec
 
       {/* Product Details Modal */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#141414] border border-[#D4AF37]/40 rounded-2xl max-w-lg w-full p-6 text-white relative max-h-[90vh] overflow-y-auto shadow-2xl">
-            <button
-              onClick={() => setSelectedProduct(null)}
-              className="absolute right-4 top-4 p-1.5 rounded-lg bg-[#222222] text-gray-400 hover:text-white"
-            >
-              <X size={18} />
-            </button>
-
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#D4AF37]/20 text-[#D4AF37]">
-                {selectedProduct.brand}
-              </span>
-              <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                <CheckCircle2 size={12} />
-                In Stock at Nagar Parishad Store
-              </span>
-            </div>
-
-            <h3 className="text-xl font-black mb-2 text-white">{selectedProduct.name}</h3>
-
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-2xl font-black text-[#D4AF37]">
-                ₹{selectedProduct.price.toLocaleString('en-IN')}
-              </span>
-              {selectedProduct.originalPrice && (
-                <span className="text-sm text-gray-500 line-through">
-                  ₹{selectedProduct.originalPrice.toLocaleString('en-IN')}
-                </span>
-              )}
-            </div>
-
-            <p className="text-xs text-gray-300 leading-relaxed mb-6">
-              {selectedProduct.description}
-            </p>
-
-            {/* Technical Specifications */}
-            <div className="space-y-2 mb-6 text-xs bg-[#0E0E0E] p-4 rounded-xl border border-[#222222]">
-              <div className="font-bold text-gray-200 border-b border-[#222222] pb-1.5 mb-2">
-                Technical Specifications
-              </div>
-              {selectedProduct.specs && Object.entries(selectedProduct.specs).map(([k, v]) => (
-                 <div key={k} className="flex justify-between py-1 border-b border-[#1A1A1A] last:border-none">
-                  <span className="text-gray-400">{k}</span>
-                  <span className="text-gray-200 font-medium text-right">{v}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Official Store Warranty - Rendered ONLY if product has active warranty */}
-            {selectedProduct.hasWarranty && selectedProduct.warrantyDuration && (
-              <div className="p-3.5 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-xs text-gray-200 mb-6 space-y-1.5">
-                <div className="flex items-center gap-2 font-bold text-[#D4AF37]">
-                  <ShieldCheck size={18} className="text-[#D4AF37] shrink-0" />
-                  <span>{selectedProduct.warrantyDuration} Official Store Warranty</span>
-                </div>
-                {selectedProduct.warrantyDescription ? (
-                  <p className="text-[11px] text-gray-300 pl-6 leading-relaxed">
-                    {selectedProduct.warrantyDescription}
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-gray-400 pl-6">
-                    100% genuine product with {selectedProduct.warrantyDuration} coverage verified by SK Mobile Shoppy and Electronics.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onAddToCart?.(selectedProduct);
-                    setSelectedProduct(null);
-                  }}
-                  className="py-3 px-4 rounded-xl text-xs font-bold bg-[#1C1C1C] hover:bg-[#282828] text-white border border-[#333333] hover:border-[#D4AF37] transition flex items-center justify-center gap-2"
-                >
-                  <ShoppingCart size={15} className="text-[#D4AF37]" />
-                  <span>Add to Cart</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    onBuyNow ? onBuyNow(selectedProduct) : onAddToCart?.(selectedProduct);
-                    setSelectedProduct(null);
-                  }}
-                  className="gold-btn !text-xs !py-3 flex items-center justify-center gap-1.5 font-bold shadow-md shadow-[#D4AF37]/20"
-                >
-                  <Zap size={15} />
-                  <span>Buy Now</span>
-                </button>
-              </div>
-
-              <div className="flex gap-3">
-                <a
-                  href={`tel:${STORE_INFO.phone}`}
-                  className="flex-1 py-2.5 px-3 rounded-xl bg-[#141414] hover:bg-[#1C1C1C] text-gray-300 hover:text-white border border-[#2E2E2E] text-xs font-semibold flex items-center justify-center gap-2 transition"
-                >
-                  <Phone size={14} className="text-[#D4AF37]" />
-                  <span>Call Store ({STORE_INFO.displayPhone})</span>
-                </a>
-                <button
-                  onClick={() => setSelectedProduct(null)}
-                  className="outline-gold-btn !text-xs px-4"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ProductDetailsModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onAddToCart={onAddToCart}
+          onBuyNow={onBuyNow}
+          onSelectProduct={setSelectedProduct}
+          allProducts={rawProducts}
+        />
       )}
     </div>
   );

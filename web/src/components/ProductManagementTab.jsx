@@ -35,6 +35,83 @@ import {
 
 const WARRANTY_PRESETS = ['7 Days', '30 Days', '3 Months', '6 Months', '1 Year', '2 Years', 'Custom'];
 
+export const SPEC_TEMPLATES = {
+  smartphones: [
+    { key: 'Display', value: '6.7" FHD+ 120Hz Fluid AMOLED' },
+    { key: 'Processor', value: 'Qualcomm Snapdragon 7 Gen 3 (4nm)' },
+    { key: 'RAM', value: '8GB LPDDR4X' },
+    { key: 'Storage', value: '128GB / 256GB UFS 3.1' },
+    { key: 'Camera', value: '50MP Sony LYT-600 (OIS) + 8MP' },
+    { key: 'Battery', value: '5500 mAh, 100W SUPERVOOC' },
+    { key: 'Operating System', value: 'Android 14' },
+    { key: 'Color', value: 'Midnight Black' },
+    { key: 'Connectivity', value: '5G Dual SIM, Wi-Fi 6, BT 5.3' }
+  ],
+  'old-phones': [
+    { key: 'Condition Grade', value: 'Grade A+ (Like New, zero scratches)' },
+    { key: 'Battery Health', value: '92% Original Tested Battery' },
+    { key: 'Display', value: '6.1" Super Retina OLED' },
+    { key: 'Processor', value: 'Apple A14 Bionic / Snapdragon Flagship' },
+    { key: 'Testing', value: '32-Point Technician Passed (SK Certified)' },
+    { key: 'Included', value: 'Device + Fast Charging Cable + Store Warranty Slip' }
+  ],
+  chargers: [
+    { key: 'Charging Power', value: '65W Max Power Delivery (GaN III)' },
+    { key: 'Input', value: '100-240V ~ 50/60Hz 1.5A Universal' },
+    { key: 'Output', value: 'Type-C: 65W Max, USB-A: 18W' },
+    { key: 'Port Type', value: '1x Type-C + 1x USB-A Dual Port' },
+    { key: 'Fast Charging', value: 'Supports VOOC, Warp, QC 4.0, PD 3.0 & PPS' },
+    { key: 'Compatibility', value: 'OnePlus, Samsung, iPhone, Vivo, Xiaomi, Laptops' },
+    { key: 'Cable Included', value: 'Adapter Only (Optional Type-C Cable)' }
+  ],
+  cables: [
+    { key: 'Length', value: '1.5 Meters (Extra Long)' },
+    { key: 'Connector Type', value: 'USB Type-C to Type-C' },
+    { key: 'Charging Speed', value: '100W (20V/5A) Power Delivery' },
+    { key: 'Data Transfer Speed', value: '480 Mbps High Speed Sync' },
+    { key: 'Cable Material', value: 'Double Ballistic Nylon Braided' },
+    { key: 'Bend Lifespan', value: '30,000+ Bends Lab Tested' }
+  ],
+  audio: [
+    { key: 'Type', value: 'Wireless In-Ear Neckband / TWS Earbuds' },
+    { key: 'Driver Size', value: '12.4mm Deep Bass Dynamic Drivers' },
+    { key: 'Connectivity', value: 'Bluetooth v5.3 (10m Range)' },
+    { key: 'Battery Life', value: 'Up to 30 Hours Playtime' },
+    { key: 'Fast Charge', value: '10 mins charge = 20 hours playback' },
+    { key: 'Latency', value: '45ms Ultra-Low Gaming Latency' },
+    { key: 'Microphone', value: 'Dual Mic AI Noise Cancellation' },
+    { key: 'Water Resistance', value: 'IP55 Water & Sweat Resistance' }
+  ],
+  speakers: [
+    { key: 'Output Power', value: '16W RMS High-Fidelity Audio' },
+    { key: 'Battery Capacity', value: '2600 mAh Built-in Rechargeable' },
+    { key: 'Playtime', value: '12 Hours Continuous Music' },
+    { key: 'Bluetooth Version', value: 'Bluetooth 5.3 + AUX Support' },
+    { key: 'Waterproof Rating', value: 'IPX7 Waterproof Protection' }
+  ],
+  'power-banks': [
+    { key: 'Battery Capacity', value: '20,000 mAh Li-Polymer' },
+    { key: 'Number of Ports', value: '2x USB-A + 1x Type-C (3 Ports)' },
+    { key: 'Output Power', value: '22.5W Fast Charging (QC + PD)' },
+    { key: 'Fast Charging Protocols', value: 'QC 3.0, PD 3.0, AFC' },
+    { key: 'Dimensions / Weight', value: 'Compact Pocket Size / 380g' }
+  ],
+  covers: [
+    { key: 'Material', value: 'Shock-Resistant TPU + Acrylic Hybrid' },
+    { key: 'Finish', value: 'Matte Frosted Anti-Fingerprint' },
+    { key: 'Shock Protection', value: 'Air-Cushion Impact Absorbing Corners' },
+    { key: 'Raised Edges', value: '1.5mm Screen Lip & 2.0mm Camera Ring' },
+    { key: 'Wireless Charging', value: '100% Compatible with Qi & MagSafe' }
+  ],
+  'screen-protectors': [
+    { key: 'Hardness', value: '9H Hardness Shatterproof Tempered Glass' },
+    { key: 'Glass Type', value: '0.33mm 2.5D Curved Edge-to-Edge' },
+    { key: 'Anti-Fingerprint Coating', value: 'Oleophobic Coating' },
+    { key: 'Edge-to-Edge Protection', value: 'Complete Screen Coverage' },
+    { key: 'Clarity', value: '99.9% Ultra HD Transparency & True Touch' }
+  ]
+};
+
 const PRESET_IMAGES = [
   { name: 'OnePlus Flagship', url: 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&auto=format&fit=crop&q=80', brand: 'OnePlus', category: 'smartphones' },
   { name: 'Samsung Galaxy', url: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=500&auto=format&fit=crop&q=80', brand: 'Samsung', category: 'smartphones' },
@@ -75,6 +152,9 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
     description: ''
   });
 
+  // Specs Editor View Mode: 'builder' | 'raw'
+  const [specsEditorMode, setSpecsEditorMode] = useState('builder');
+
   // Form State - category is required and defaults to empty
   const [formData, setFormData] = useState({
     name: '',
@@ -93,6 +173,7 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
     customDuration: '',
     warrantyDuration: '',
     warrantyDescription: '',
+    specsList: [],
     specsText: ''
   });
 
@@ -179,6 +260,21 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
     });
   }, [products, searchQuery, categoryFilter, brandFilter, stockFilter]);
 
+  const getTemplateForCategory = (catSlug) => {
+    if (!catSlug) return [];
+    const norm = catSlug.toLowerCase().replace(/_/g, '-');
+    if (norm.includes('charger')) return SPEC_TEMPLATES.chargers;
+    if (norm.includes('cable')) return SPEC_TEMPLATES.cables;
+    if (norm.includes('audio') || norm.includes('headphone') || norm.includes('earphone')) return SPEC_TEMPLATES.audio;
+    if (norm.includes('speaker')) return SPEC_TEMPLATES.speakers;
+    if (norm.includes('power-bank') || norm.includes('powerbank') || norm.includes('battery')) return SPEC_TEMPLATES['power-banks'];
+    if (norm.includes('cover') || norm.includes('case')) return SPEC_TEMPLATES.covers;
+    if (norm.includes('screen') || norm.includes('guard') || norm.includes('protector')) return SPEC_TEMPLATES['screen-protectors'];
+    if (norm.includes('old') || norm.includes('pre-owned')) return SPEC_TEMPLATES['old-phones'];
+    if (norm.includes('phone') || norm.includes('mobile') || norm.includes('smart')) return SPEC_TEMPLATES.smartphones;
+    return [];
+  };
+
   const handleOpenAdd = () => {
     setEditingProduct(null);
     setFormData({
@@ -198,17 +294,20 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
       customDuration: '',
       warrantyDuration: '',
       warrantyDescription: '',
-      specsText: 'Display: 6.7" AMOLED\nProcessor: Snapdragon 7 Gen 3\nCamera: 50MP Sony OIS\nBattery: 5500 mAh'
+      specsList: [],
+      specsText: ''
     });
+    setSpecsEditorMode('builder');
     setShowModal(true);
   };
 
   const handleOpenEdit = (prod) => {
     setEditingProduct(prod);
-    let specsStr = '';
+    let list = [];
     if (prod.specs && typeof prod.specs === 'object') {
-      specsStr = Object.entries(prod.specs).map(([k, v]) => `${k}: ${v}`).join('\n');
+      list = Object.entries(prod.specs).map(([k, v]) => ({ key: k, value: String(v) }));
     }
+    const specsStr = list.map(item => `${item.key}: ${item.value}`).join('\n');
 
     const hasW = Boolean(prod.hasWarranty);
     let preset = '1 Year';
@@ -242,8 +341,10 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
       customDuration: custom,
       warrantyDuration: prod.warrantyDuration || '',
       warrantyDescription: prod.warrantyDescription || '',
+      specsList: list,
       specsText: specsStr
     });
+    setSpecsEditorMode('builder');
     setShowModal(true);
   };
 
@@ -331,6 +432,18 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
         ? (formData.warrantyPreset === 'Custom' ? (formData.customDuration || '').trim() : formData.warrantyPreset)
         : '';
 
+      // Resolve specifications dynamically from builder rows or text
+      let finalSpecs = {};
+      if (specsEditorMode === 'builder' && formData.specsList && formData.specsList.length > 0) {
+        formData.specsList.forEach(item => {
+          if (item.key && item.key.trim()) {
+            finalSpecs[item.key.trim()] = (item.value || '').trim();
+          }
+        });
+      } else if (formData.specsText) {
+        finalSpecs = parseSpecs(formData.specsText);
+      }
+
       const payload = {
         name: formData.name.trim(),
         brand: formData.brand.trim(),
@@ -347,7 +460,7 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
         hasWarranty: Boolean(formData.hasWarranty),
         warrantyDuration: effectiveWarrantyDuration,
         warrantyDescription: formData.hasWarranty ? (formData.warrantyDescription || '').trim() : '',
-        specs: parseSpecs(formData.specsText)
+        specs: finalSpecs
       };
 
       if (editingProduct && editingProduct.id) {
@@ -915,7 +1028,20 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
                   <select
                     required
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    onChange={(e) => {
+                      const newCat = e.target.value;
+                      setFormData(prev => {
+                        const updated = { ...prev, category: newCat };
+                        if ((!prev.specsList || prev.specsList.length === 0) && newCat) {
+                          const tmpl = getTemplateForCategory(newCat);
+                          if (tmpl.length > 0) {
+                            updated.specsList = tmpl.map(t => ({ ...t }));
+                            updated.specsText = tmpl.map(t => `${t.key}: ${t.value}`).join('\n');
+                          }
+                        }
+                        return updated;
+                      });
+                    }}
                     className={`w-full bg-[#0E0E0E] border rounded-lg px-3.5 py-2.5 text-xs text-white focus:outline-none transition ${
                       !formData.category 
                         ? 'border-amber-500/70 focus:border-amber-400' 
@@ -1259,18 +1385,186 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
                 />
               </div>
 
-              {/* Specifications (key: value per line) */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">
-                  Specifications <span className="text-gray-500 font-normal">(Format: Key: Value per line)</span>
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Processor: Qualcomm Snapdragon 7 Gen 3&#10;Display: 6.7 inch AMOLED 120Hz&#10;Battery: 5500 mAh"
-                  value={formData.specsText}
-                  onChange={(e) => setFormData({ ...formData, specsText: e.target.value })}
-                  className="w-full font-mono bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
-                />
+              {/* Category-Aware Specifications Editor */}
+              <div className="p-4 rounded-xl bg-[#0E0E0E] border border-[#2E2E2E] space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#222222] pb-2.5">
+                  <div>
+                    <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Layers size={14} className="text-[#D4AF37]" />
+                      <span>Category-Aware Specifications</span>
+                    </label>
+                    <p className="text-[11px] text-gray-400">
+                      Customize technical specifications tailored to this product category (not only smartphones).
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (specsEditorMode === 'builder') {
+                          // sync to text
+                          const text = (formData.specsList || []).map(i => `${i.key}: ${i.value}`).join('\n');
+                          setFormData(prev => ({ ...prev, specsText: text }));
+                          setSpecsEditorMode('raw');
+                        } else {
+                          // sync to builder
+                          const parsed = parseSpecs(formData.specsText);
+                          const list = Object.entries(parsed).map(([k, v]) => ({ key: k, value: String(v) }));
+                          setFormData(prev => ({ ...prev, specsList: list }));
+                          setSpecsEditorMode('builder');
+                        }
+                      }}
+                      className="text-[10px] font-semibold px-2 py-1 rounded bg-[#202020] text-gray-300 hover:text-white border border-[#333333] transition"
+                    >
+                      {specsEditorMode === 'builder' ? 'Switch to Quick Text' : 'Switch to Row Builder'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Preset Templates */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider block">
+                    Load Category Template:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: 'Smartphone', key: 'smartphones' },
+                      { label: 'Charger', key: 'chargers' },
+                      { label: 'Data Cable', key: 'cables' },
+                      { label: 'Audio / Buds', key: 'audio' },
+                      { label: 'BT Speaker', key: 'speakers' },
+                      { label: 'Power Bank', key: 'power-banks' },
+                      { label: 'Mobile Cover', key: 'covers' },
+                      { label: 'Screen Glass', key: 'screen-protectors' },
+                      { label: 'Old Phone', key: 'old-phones' }
+                    ].map(tmpl => (
+                      <button
+                        key={tmpl.key}
+                        type="button"
+                        onClick={() => {
+                          const t = SPEC_TEMPLATES[tmpl.key] || [];
+                          const cloned = t.map(item => ({ ...item }));
+                          const text = cloned.map(item => `${item.key}: ${item.value}`).join('\n');
+                          setFormData(prev => ({
+                            ...prev,
+                            specsList: cloned,
+                            specsText: text
+                          }));
+                          onShowToast?.(`Loaded ${tmpl.label} specifications template!`, 'info');
+                        }}
+                        className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[#181818] hover:bg-[#252525] text-gray-300 hover:text-[#D4AF37] border border-[#2D2D2D] transition"
+                      >
+                        {tmpl.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, specsList: [], specsText: '' }));
+                      }}
+                      className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-red-950/20 text-red-400 hover:bg-red-900/30 border border-red-900/30 transition"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Structured Builder Mode */}
+                {specsEditorMode === 'builder' ? (
+                  <div className="space-y-2 pt-1">
+                    {(formData.specsList || []).length === 0 ? (
+                      <div className="p-3 rounded-lg bg-[#141414] border border-dashed border-[#333333] text-center space-y-1">
+                        <p className="text-xs text-gray-400">No specifications added yet.</p>
+                        <p className="text-[10px] text-gray-500">
+                          Click a template button above or click "+ Add Custom Specification Row" below.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                        {(formData.specsList || []).map((row, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder="Spec Name (e.g. Charging Power)"
+                              value={row.key}
+                              onChange={(e) => {
+                                const newKey = e.target.value;
+                                setFormData(prev => {
+                                  const list = [...(prev.specsList || [])];
+                                  list[idx] = { ...list[idx], key: newKey };
+                                  return { ...prev, specsList: list };
+                                });
+                              }}
+                              className="w-1/3 bg-[#141414] border border-[#2C2C2C] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Value (e.g. 65W GaN III Fast Charge)"
+                              value={row.value}
+                              onChange={(e) => {
+                                const newVal = e.target.value;
+                                setFormData(prev => {
+                                  const list = [...(prev.specsList || [])];
+                                  list[idx] = { ...list[idx], value: newVal };
+                                  return { ...prev, specsList: list };
+                                });
+                              }}
+                              className="flex-1 bg-[#141414] border border-[#2C2C2C] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => {
+                                  const list = (prev.specsList || []).filter((_, i) => i !== idx);
+                                  return { ...prev, specsList: list };
+                                });
+                              }}
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-[#202020] transition"
+                              title="Delete Row"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="pt-1 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            specsList: [...(prev.specsList || []), { key: '', value: '' }]
+                          }));
+                        }}
+                        className="py-1.5 px-3 rounded-lg bg-[#181818] hover:bg-[#222222] text-[#D4AF37] border border-[#333333] hover:border-[#D4AF37] text-xs font-semibold flex items-center gap-1.5 transition"
+                      >
+                        <Plus size={13} />
+                        <span>Add Custom Specification Row</span>
+                      </button>
+
+                      <span className="text-[10px] text-gray-500">
+                        {(formData.specsList || []).length} specifications configured
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Raw Text Mode */
+                  <div className="space-y-1.5">
+                    <textarea
+                      rows={4}
+                      placeholder="Charging Power: 65W GaN III&#10;Port Type: Dual Port Type-C + USB-A&#10;Compatibility: Universal Smartphones & Laptops"
+                      value={formData.specsText}
+                      onChange={(e) => setFormData({ ...formData, specsText: e.target.value })}
+                      className="w-full font-mono bg-[#141414] border border-[#2A2A2A] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                    />
+                    <p className="text-[10px] text-gray-500">
+                      Enter each specification as <code className="text-[#D4AF37]">Key: Value</code> on a new line.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}

@@ -552,6 +552,12 @@ fun ProductFormDialog(
                     val parsedStock = (stockQuantity.toIntOrNull() ?: 15).coerceAtLeast(0)
                     val effectiveInStock = inStock && parsedStock > 0
 
+                    val resolvedSpecs = if (!initialProduct?.specifications.isNullOrEmpty()) {
+                        initialProduct!!.specifications
+                    } else {
+                        com.example.ui.screens.getCategoryAwareDefaultSpecs(selectedCategorySlug, brand)
+                    }
+
                     val newProduct = Product(
                         id = initialProduct?.id ?: "prod-${System.currentTimeMillis()}",
                         name = if (name.isBlank()) "New Product" else name,
@@ -563,7 +569,7 @@ fun ProductFormDialog(
                         rating = initialProduct?.rating ?: 4.8f,
                         reviewCount = initialProduct?.reviewCount ?: 12,
                         description = if (description.isBlank()) "Genuine product backed by SK Mobile warranty." else description,
-                        specifications = mapOf("SKU" to sku, "Stock" to "$parsedStock Units", "Warranty" to "1 Year Brand Warranty"),
+                        specifications = resolvedSpecs,
                         stock = parsedStock,
                         sku = sku,
                         images = initialProduct?.images ?: emptyList(),
