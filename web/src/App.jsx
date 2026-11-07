@@ -26,10 +26,10 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [selectedProductForDetails, setSelectedProductForDetails] = useState(null);
-  const [allStoreProducts, setAllStoreProducts] = useState([
-    ...REAL_PRODUCTS,
-    ...ACCESSORIES,
-    ...PRE_OWNED_PHONES
+  const [allStoreProducts, setAllStoreProducts] = useState(() => [
+    ...(Array.isArray(REAL_PRODUCTS) ? REAL_PRODUCTS : []),
+    ...(Array.isArray(ACCESSORIES) ? ACCESSORIES : []),
+    ...(Array.isArray(PRE_OWNED_PHONES) ? PRE_OWNED_PHONES : [])
   ]);
 
   // Cart State with LocalStorage Persistence
@@ -63,13 +63,19 @@ export default function App() {
     async function loadCatalog() {
       try {
         const res = await fetchFirestoreProducts();
-        if (res.success && res.data && res.data.length > 0) {
-          const liveIds = new Set(res.data.map(p => p.id));
-          const nonDupDefaults = [...REAL_PRODUCTS, ...ACCESSORIES, ...PRE_OWNED_PHONES].filter(d => !liveIds.has(d.id));
-          setAllStoreProducts([...res.data, ...nonDupDefaults]);
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const validLiveProds = res.data.filter(p => p && p.id);
+          const liveIds = new Set(validLiveProds.map(p => p.id));
+          const allDefaults = [
+            ...(Array.isArray(REAL_PRODUCTS) ? REAL_PRODUCTS : []),
+            ...(Array.isArray(ACCESSORIES) ? ACCESSORIES : []),
+            ...(Array.isArray(PRE_OWNED_PHONES) ? PRE_OWNED_PHONES : [])
+          ];
+          const nonDupDefaults = allDefaults.filter(d => d && d.id && !liveIds.has(d.id));
+          setAllStoreProducts([...validLiveProds, ...nonDupDefaults]);
         }
       } catch (e) {
-        // preserve defaults
+        console.warn('Could not load dynamic products from Firestore:', e);
       }
     }
     loadCatalog();

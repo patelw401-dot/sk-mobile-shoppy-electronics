@@ -2,8 +2,13 @@ import React from 'react';
 import { Star, ShieldCheck, BatteryCharging, Tag, ShoppingCart, Zap } from 'lucide-react';
 
 export default function ProductCard({ product, onSelect, onAction, onAddToCart, onBuyNow }) {
-  const discountPercent = product.originalPrice && product.originalPrice > product.price
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  if (!product) return null;
+
+  const numPrice = typeof product.price === 'number' ? product.price : parseFloat(product.price) || 0;
+  const numOriginalPrice = typeof product.originalPrice === 'number' ? product.originalPrice : (parseFloat(product.originalPrice) || 0);
+
+  const discountPercent = numOriginalPrice > numPrice && numPrice > 0
+    ? Math.round(((numOriginalPrice - numPrice) / numOriginalPrice) * 100)
     : 0;
 
   return (
@@ -16,7 +21,7 @@ export default function ProductCard({ product, onSelect, onAction, onAddToCart, 
           </span>
         ) : (
           <span className="text-[10px] uppercase font-semibold text-gray-500">
-            {product.brand}
+            {product.brand || 'SK Mobile'}
           </span>
         )}
 
@@ -32,10 +37,10 @@ export default function ProductCard({ product, onSelect, onAction, onAddToCart, 
         onClick={() => onSelect?.(product)}
         className="h-44 rounded-xl bg-gradient-to-b from-[#1C1C1C] to-[#121212] border border-[#222222] flex flex-col items-center justify-center p-3 text-center mb-4 relative overflow-hidden group-hover:border-[#D4AF37]/30 transition-all cursor-pointer"
       >
-        {product.imageUrl ? (
+        {product.imageUrl || product.image ? (
           <img 
-            src={product.imageUrl} 
-            alt={product.name} 
+            src={product.imageUrl || product.image} 
+            alt={product.name || 'Product'} 
             className="w-full h-28 object-contain mb-1 transition-transform group-hover:scale-105 duration-300"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
@@ -46,13 +51,13 @@ export default function ProductCard({ product, onSelect, onAction, onAddToCart, 
           />
         ) : null}
         <div 
-          style={{ display: product.imageUrl ? 'none' : 'flex' }}
+          style={{ display: (product.imageUrl || product.image) ? 'none' : 'flex' }}
           className="w-16 h-16 rounded-2xl bg-[#222222] items-center justify-center mb-2 border border-[#333333] shadow-inner"
         >
           <Tag className="text-[#D4AF37]" size={28} />
         </div>
         <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest truncate max-w-full">
-          {product.brand}
+          {product.brand || 'SK Mobile'}
         </span>
         {product.conditionGrade && (
           <div className="absolute bottom-2 left-2 right-2 flex items-center justify-center gap-1 bg-[#0A0A0A]/90 py-1 px-2 rounded-md border border-[#2C2C2C] text-[10px] text-amber-300 font-medium">
@@ -68,7 +73,7 @@ export default function ProductCard({ product, onSelect, onAction, onAddToCart, 
           onClick={() => onSelect?.(product)}
           className="text-sm font-bold text-white group-hover:text-[#D4AF37] transition-colors line-clamp-2 mb-1 cursor-pointer"
         >
-          {product.name}
+          {product.name || 'SK Mobile Item'}
         </h3>
 
         {/* Rating */}
@@ -97,12 +102,14 @@ export default function ProductCard({ product, onSelect, onAction, onAddToCart, 
         )}
 
         {/* Specs Highlights */}
-        {product.specs && (
+        {product.specs && typeof product.specs === 'object' && !Array.isArray(product.specs) && (
           <div className="space-y-1 mb-4 text-[11px] text-gray-400">
             {Object.entries(product.specs).slice(0, 2).map(([key, value]) => (
               <div key={key} className="flex justify-between border-b border-[#1F1F1F] pb-0.5">
                 <span className="text-gray-500">{key}:</span>
-                <span className="text-gray-300 font-medium truncate max-w-[170px]">{value}</span>
+                <span className="text-gray-300 font-medium truncate max-w-[170px]">
+                  {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                </span>
               </div>
             ))}
           </div>
@@ -114,11 +121,11 @@ export default function ProductCard({ product, onSelect, onAction, onAddToCart, 
             <div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-base font-extrabold text-[#D4AF37]">
-                  ₹{product.price.toLocaleString('en-IN')}
+                  ₹{numPrice.toLocaleString('en-IN')}
                 </span>
-                {product.originalPrice && product.originalPrice > product.price && (
+                {numOriginalPrice > numPrice && (
                   <span className="text-xs text-gray-500 line-through">
-                    ₹{product.originalPrice.toLocaleString('en-IN')}
+                    ₹{numOriginalPrice.toLocaleString('en-IN')}
                   </span>
                 )}
               </div>

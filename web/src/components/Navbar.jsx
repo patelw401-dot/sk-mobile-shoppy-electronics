@@ -36,8 +36,9 @@ export default function Navbar({
   // Universal search filter across all categories
   const searchResults = useMemo(() => {
     const q = navSearchQuery.trim().toLowerCase();
-    if (!q || !allProducts || allProducts.length === 0) return [];
+    if (!q || !Array.isArray(allProducts) || allProducts.length === 0) return [];
     return allProducts.filter(p => {
+      if (!p) return false;
       const name = (p.name || '').toLowerCase();
       const brand = (p.brand || '').toLowerCase();
       const cat = (p.category || p.categorySlug || '').toLowerCase();
@@ -45,7 +46,7 @@ export default function Navbar({
       const sku = (p.sku || '').toLowerCase();
       
       let specMatch = false;
-      if (p.specs && typeof p.specs === 'object') {
+      if (p.specs && typeof p.specs === 'object' && !Array.isArray(p.specs)) {
         specMatch = Object.entries(p.specs).some(([k, v]) => 
           k.toLowerCase().includes(q) || String(v).toLowerCase().includes(q)
         );
@@ -221,7 +222,7 @@ export default function Navbar({
                             {p.name}
                           </h4>
                           <div className="text-xs font-black text-[#D4AF37]">
-                            ₹{p.price?.toLocaleString('en-IN')}
+                            ₹{(typeof p.price === 'number' ? p.price : (parseFloat(p.price) || 0)).toLocaleString('en-IN')}
                           </div>
                         </div>
                       </div>

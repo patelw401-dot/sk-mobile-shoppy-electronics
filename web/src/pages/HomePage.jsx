@@ -19,10 +19,19 @@ import {
 } from 'lucide-react';
 import AppDownloadSection from '../components/AppDownloadSection';
 
-export default function HomePage({ setActivePage, setSelectedProduct, onAddToCart, onBuyNow, onShowToast, onSelectCategory }) {
-  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
-  const featuredPhones = REAL_PRODUCTS.slice(0, 4);
-  const featuredOldPhones = PRE_OWNED_PHONES.slice(0, 3);
+export default function HomePage({ 
+  setActivePage, 
+  setSelectedProduct, 
+  onSelectProduct, 
+  onAddToCart, 
+  onBuyNow, 
+  onShowToast, 
+  onSelectCategory 
+}) {
+  const handleSelectProduct = onSelectProduct || setSelectedProduct;
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES || []);
+  const featuredPhones = Array.isArray(REAL_PRODUCTS) ? REAL_PRODUCTS.slice(0, 4) : [];
+  const featuredOldPhones = Array.isArray(PRE_OWNED_PHONES) ? PRE_OWNED_PHONES.slice(0, 3) : [];
 
   useEffect(() => {
     async function loadActiveCategories() {
@@ -157,32 +166,38 @@ export default function HomePage({ setActivePage, setSelectedProduct, onAddToCar
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3.5">
-          {categories.map((cat) => (
-            <div
-              key={cat.id}
-              onClick={() => {
-                onSelectCategory?.(cat.slug);
-                setActivePage('products');
-              }}
-              className="group cursor-pointer rounded-xl bg-[#141414] border border-[#262626] hover:border-[#D4AF37] p-3 text-center transition flex flex-col items-center justify-between shadow-md hover:shadow-[#D4AF37]/5"
-            >
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-[#1F1F1F] border border-[#333333] overflow-hidden mb-2.5 relative group-hover:scale-105 transition">
-                <img
-                  src={cat.imageUrl}
-                  alt={cat.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&auto=format&fit=crop&q=80';
-                  }}
-                />
+          {Array.isArray(categories) && categories.length > 0 ? (
+            categories.map((cat) => (
+              <div
+                key={cat.id || cat.slug || Math.random()}
+                onClick={() => {
+                  onSelectCategory?.(cat.slug);
+                  setActivePage('products');
+                }}
+                className="group cursor-pointer rounded-xl bg-[#141414] border border-[#262626] hover:border-[#D4AF37] p-3 text-center transition flex flex-col items-center justify-between shadow-md hover:shadow-[#D4AF37]/5"
+              >
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-[#1F1F1F] border border-[#333333] overflow-hidden mb-2.5 relative group-hover:scale-105 transition">
+                  <img
+                    src={cat.imageUrl || 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&auto=format&fit=crop&q=80'}
+                    alt={cat.name || 'Category'}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&auto=format&fit=crop&q=80';
+                    }}
+                  />
+                </div>
+                <h3 className="text-xs font-bold text-white group-hover:text-[#D4AF37] transition truncate w-full">
+                  {cat.name}
+                </h3>
+                <span className="text-[10px] text-gray-500 mt-0.5">Explore deals &rarr;</span>
               </div>
-              <h3 className="text-xs font-bold text-white group-hover:text-[#D4AF37] transition truncate w-full">
-                {cat.name}
-              </h3>
-              <span className="text-[10px] text-gray-500 mt-0.5">Explore deals &rarr;</span>
+            ))
+          ) : (
+            <div className="col-span-full p-4 rounded-xl bg-[#141414] text-center text-xs text-gray-400">
+              Categories loading or currently updating from store catalog...
             </div>
-          ))}
+          )}
         </div>
       </section>
 
@@ -214,10 +229,10 @@ export default function HomePage({ setActivePage, setSelectedProduct, onAddToCar
             <ProductCard
               key={phone.id}
               product={phone}
-              onSelect={onSelectProduct || setSelectedProduct}
+              onSelect={handleSelectProduct}
               onAddToCart={onAddToCart}
               onBuyNow={onBuyNow}
-              onAction={() => (onSelectProduct || setSelectedProduct)?.(phone)}
+              onAction={() => handleSelectProduct?.(phone)}
             />
           ))}
         </div>
@@ -299,10 +314,10 @@ export default function HomePage({ setActivePage, setSelectedProduct, onAddToCar
             <ProductCard
               key={phone.id}
               product={phone}
-              onSelect={onSelectProduct || setSelectedProduct}
+              onSelect={handleSelectProduct}
               onAddToCart={onAddToCart}
               onBuyNow={onBuyNow}
-              onAction={() => (onSelectProduct || setSelectedProduct)?.(phone)}
+              onAction={() => handleSelectProduct?.(phone)}
             />
           ))}
         </div>

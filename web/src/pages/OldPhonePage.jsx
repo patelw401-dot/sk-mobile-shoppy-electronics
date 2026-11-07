@@ -247,9 +247,9 @@ export default function OldPhonePage({ currentUser, setActivePage, onShowToast, 
 
           {/* Cards Grid */}
           <div className="grid-cards">
-            {PRE_OWNED_PHONES.map((phone) => (
+            {Array.isArray(PRE_OWNED_PHONES) && PRE_OWNED_PHONES.map((phone) => (
               <ProductCard
-                key={phone.id}
+                key={phone.id || Math.random()}
                 product={phone}
                 onSelect={onSelectProduct}
                 onAddToCart={onAddToCart}

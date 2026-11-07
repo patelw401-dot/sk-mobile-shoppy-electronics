@@ -136,7 +136,7 @@ export default function ProductsPage({
         const descMatch = (p.description || '').toLowerCase().includes(q);
         const skuMatch = (p.sku || '').toLowerCase().includes(q);
         let specMatch = false;
-        if (p.specs && typeof p.specs === 'object') {
+        if (p.specs && typeof p.specs === 'object' && !Array.isArray(p.specs)) {
           specMatch = Object.entries(p.specs).some(([k, v]) =>
             k.toLowerCase().includes(q) || String(v).toLowerCase().includes(q)
           );
@@ -146,11 +146,11 @@ export default function ProductsPage({
     }
 
     if (sortBy === 'price-low') {
-      result.sort((a, b) => a.price - b.price);
+      result.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
     } else if (sortBy === 'price-high') {
-      result.sort((a, b) => b.price - a.price);
+      result.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
     } else if (sortBy === 'rating') {
-      result.sort((a, b) => b.rating - a.rating);
+      result.sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
     }
 
     return result;

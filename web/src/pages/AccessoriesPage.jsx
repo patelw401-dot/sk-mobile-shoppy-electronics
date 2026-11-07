@@ -193,9 +193,9 @@ export default function AccessoriesPage({ onShowToast, onAddToCart, onBuyNow, on
 
       {/* Accessories Grid */}
       <div className="grid-cards">
-        {filteredAccessories.map((item) => (
+        {Array.isArray(filteredAccessories) && filteredAccessories.map((item) => (
           <ProductCard
-            key={item.id}
+            key={item.id || Math.random()}
             product={item}
             onSelect={onSelectProduct}
             onAddToCart={onAddToCart}

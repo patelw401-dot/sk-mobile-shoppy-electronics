@@ -166,12 +166,15 @@ export default function ProductDetailsModal({
 
   if (!product) return null;
 
-  const discountPercent = product.originalPrice && product.originalPrice > product.price
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  const numPrice = typeof product.price === 'number' ? product.price : parseFloat(product.price) || 0;
+  const numOriginalPrice = typeof product.originalPrice === 'number' ? product.originalPrice : (parseFloat(product.originalPrice) || 0);
+
+  const discountPercent = numOriginalPrice > numPrice && numPrice > 0
+    ? Math.round(((numOriginalPrice - numPrice) / numOriginalPrice) * 100)
     : 0;
 
-  const savingsAmount = product.originalPrice && product.originalPrice > product.price
-    ? product.originalPrice - product.price
+  const savingsAmount = numOriginalPrice > numPrice && numPrice > 0
+    ? numOriginalPrice - numPrice
     : 0;
 
   const isOutOfStock = product.inStock === false || (product.stock !== undefined && product.stock <= 0);
@@ -179,7 +182,7 @@ export default function ProductDetailsModal({
   // Specifications resolution: use product's custom specs, or fall back to category-aware template
   const rawSpecs = product.specs || product.specifications;
   const resolvedSpecs = useMemo(() => {
-    if (rawSpecs && typeof rawSpecs === 'object' && Object.keys(rawSpecs).length > 0) {
+    if (rawSpecs && typeof rawSpecs === 'object' && !Array.isArray(rawSpecs) && Object.keys(rawSpecs).length > 0) {
       return rawSpecs;
     }
     return getCategoryAwareDefaultSpecs(product.category || product.categorySlug, product.brand);
@@ -437,13 +440,13 @@ export default function ProductDetailsModal({
               <div className="p-4 rounded-xl bg-[#151515] border border-[#242424] space-y-2">
                 <div className="flex items-baseline gap-3 flex-wrap">
                   <span className="text-3xl font-black text-[#D4AF37] tracking-tight">
-                    ₹{product.price.toLocaleString('en-IN')}
+                    ₹{numPrice.toLocaleString('en-IN')}
                   </span>
 
-                  {product.originalPrice && product.originalPrice > product.price && (
+                  {numOriginalPrice > numPrice && (
                     <>
                       <span className="text-sm text-gray-500 line-through">
-                        MRP ₹{product.originalPrice.toLocaleString('en-IN')}
+                        MRP ₹{numOriginalPrice.toLocaleString('en-IN')}
                       </span>
                       <span className="text-xs font-extrabold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                         Save {discountPercent}%
@@ -566,14 +569,14 @@ export default function ProductDetailsModal({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              {Object.entries(resolvedSpecs).map(([key, value], idx) => (
+              {Object.entries(resolvedSpecs && typeof resolvedSpecs === 'object' ? resolvedSpecs : {}).map(([key, value]) => (
                 <div 
                   key={key} 
                   className="flex items-center justify-between p-2.5 rounded-lg bg-[#181818] border border-[#222222] hover:border-[#333333] transition"
                 >
                   <span className="text-gray-400 font-medium">{key}</span>
                   <span className="text-gray-200 font-bold text-right max-w-[60%] truncate">
-                    {value}
+                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                   </span>
                 </div>
               ))}
@@ -590,7 +593,9 @@ export default function ProductDetailsModal({
                 <span>
                   {product.hasWarranty && product.warrantyDuration
                     ? `${product.warrantyDuration} Store / Brand Warranty`
-                    : (product.warranty || '1 Year Store & Brand Warranty')}
+                    : (typeof product.warranty === 'string' && product.warranty.trim()
+                        ? product.warranty 
+                        : '1 Year Store & Brand Warranty')}
                 </span>
               </div>
               <p className="text-xs text-gray-300 leading-relaxed">
@@ -643,7 +648,7 @@ export default function ProductDetailsModal({
                     <span className="text-[10px] text-gray-500">{rev.date}</span>
                   </div>
                   <div className="flex items-center gap-1 text-amber-400">
-                    {Array.from({ length: rev.rating }).map((_, i) => (
+                    {Array.from({ length: Math.max(1, Math.min(5, Math.round(Number(rev.rating) || 5))) }).map((_, i) => (
                       <Star key={i} size={12} className="fill-amber-400" />
                     ))}
                   </div>
@@ -673,34 +678,37 @@ export default function ProductDetailsModal({
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {relatedProducts.map((rel) => (
-                  <div
-                    key={rel.id}
-                    onClick={() => {
-                      onSelectProduct?.(rel);
-                    }}
-                    className="p-3 rounded-xl bg-[#141414] border border-[#242424] hover:border-[#D4AF37] cursor-pointer transition flex flex-col justify-between group"
-                  >
-                    <div className="h-24 rounded-lg bg-[#1C1C1C] flex items-center justify-center p-2 mb-2 overflow-hidden">
-                      {rel.imageUrl || rel.image ? (
-                        <img 
-                          src={rel.imageUrl || rel.image} 
-                          alt={rel.name} 
-                          className="w-full h-full object-contain group-hover:scale-105 transition"
-                        />
-                      ) : (
-                        <Tag size={20} className="text-[#D4AF37]" />
-                      )}
+                {relatedProducts.map((rel) => {
+                  const relPrice = typeof rel.price === 'number' ? rel.price : (parseFloat(rel.price) || 0);
+                  return (
+                    <div
+                      key={rel.id || Math.random()}
+                      onClick={() => {
+                        onSelectProduct?.(rel);
+                      }}
+                      className="p-3 rounded-xl bg-[#141414] border border-[#242424] hover:border-[#D4AF37] cursor-pointer transition flex flex-col justify-between group"
+                    >
+                      <div className="h-24 rounded-lg bg-[#1C1C1C] flex items-center justify-center p-2 mb-2 overflow-hidden">
+                        {rel.imageUrl || rel.image ? (
+                          <img 
+                            src={rel.imageUrl || rel.image} 
+                            alt={rel.name || 'Related Product'} 
+                            className="w-full h-full object-contain group-hover:scale-105 transition"
+                          />
+                        ) : (
+                          <Tag size={20} className="text-[#D4AF37]" />
+                        )}
+                      </div>
+                      <div className="text-[10px] uppercase font-bold text-gray-500 truncate">{rel.brand || 'SK Mobile'}</div>
+                      <h4 className="text-xs font-bold text-white group-hover:text-[#D4AF37] transition line-clamp-1 mb-1">
+                        {rel.name || 'Store Item'}
+                      </h4>
+                      <div className="text-xs font-black text-[#D4AF37]">
+                        ₹{relPrice.toLocaleString('en-IN')}
+                      </div>
                     </div>
-                    <div className="text-[10px] uppercase font-bold text-gray-500 truncate">{rel.brand}</div>
-                    <h4 className="text-xs font-bold text-white group-hover:text-[#D4AF37] transition line-clamp-1 mb-1">
-                      {rel.name}
-                    </h4>
-                    <div className="text-xs font-black text-[#D4AF37]">
-                      ₹{rel.price.toLocaleString('en-IN')}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
