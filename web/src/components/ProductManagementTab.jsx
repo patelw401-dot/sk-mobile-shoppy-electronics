@@ -5,7 +5,8 @@ import {
   deleteAdminProductFromFirestore, 
   seedDefaultProductsToFirestore,
   quickUpdateProductWarranty,
-  fetchCategoriesFromFirestore
+  fetchCategoriesFromFirestore,
+  subscribeToFirestoreProducts
 } from '../firebase';
 import { REAL_PRODUCTS, ACCESSORIES, DEFAULT_CATEGORIES } from '../data/storeData';
 import { 
@@ -205,6 +206,14 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
 
   useEffect(() => {
     loadProducts();
+    const unsubscribe = subscribeToFirestoreProducts((res) => {
+      if (res && res.success && Array.isArray(res.data)) {
+        setProducts(res.data);
+      }
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   // Compute available brands

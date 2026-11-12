@@ -21,6 +21,7 @@ import com.example.model.ReelItem
 import com.example.model.RepairBooking
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -171,6 +172,66 @@ class FirestoreDataService(
         }
     }
 
+    // -------------------------------------------------------------
+    // SAFE FIRESTORE FIELD EXTRACTION HELPERS
+    // Fixes ClassCastException when fields are saved as Double from Web
+    // -------------------------------------------------------------
+    private fun extractInt(doc: DocumentSnapshot, field: String, default: Int = 0): Int {
+        val raw = doc.get(field) ?: return default
+        return when (raw) {
+            is Number -> raw.toInt()
+            is String -> raw.toDoubleOrNull()?.toInt() ?: default
+            else -> default
+        }
+    }
+
+    private fun extractLong(doc: DocumentSnapshot, field: String, default: Long = 0L): Long {
+        val raw = doc.get(field) ?: return default
+        return when (raw) {
+            is Number -> raw.toLong()
+            is String -> raw.toDoubleOrNull()?.toLong() ?: default
+            else -> default
+        }
+    }
+
+    private fun extractFloat(doc: DocumentSnapshot, field: String, default: Float = 0.0f): Float {
+        val raw = doc.get(field) ?: return default
+        return when (raw) {
+            is Number -> raw.toFloat()
+            is String -> raw.toFloatOrNull() ?: default
+            else -> default
+        }
+    }
+
+    private fun extractBoolean(doc: DocumentSnapshot, field: String, default: Boolean = false): Boolean {
+        val raw = doc.get(field) ?: return default
+        return when (raw) {
+            is Boolean -> raw
+            is String -> raw.toBooleanStrictOrNull() ?: default
+            is Number -> raw.toInt() != 0
+            else -> default
+        }
+    }
+
+    private fun extractStringList(doc: DocumentSnapshot, field: String): List<String> {
+        val raw = doc.get(field) ?: return emptyList()
+        return when (raw) {
+            is List<*> -> raw.mapNotNull { it?.toString()?.takeIf { s -> s.isNotBlank() } }
+            is String -> if (raw.isNotBlank()) listOf(raw) else emptyList()
+            else -> emptyList()
+        }
+    }
+
+    private fun extractSpecifications(doc: DocumentSnapshot): Map<String, String> {
+        val rawSpecs = doc.get("specifications") ?: doc.get("specs")
+        if (rawSpecs is Map<*, *>) {
+            return rawSpecs.entries.mapNotNull { (k, v) ->
+                if (k != null && v != null) k.toString() to v.toString() else null
+            }.toMap()
+        }
+        return emptyMap()
+    }
+
     private fun setupCategoriesListener() {
         categoriesListener = firestore.collection(COLLECTION_CATEGORIES)
             .addSnapshotListener { snapshot, error ->
@@ -188,11 +249,11 @@ class FirestoreDataService(
                             val catEnum = try { ProductCategory.valueOf(catEnumName) } catch (e: Exception) {
                                 ProductCategory.entries.find { it.name.equals(catEnumName, ignoreCase = true) } ?: ProductCategory.ACCESSORIES
                             }
-                            val isActive = doc.getBoolean("isActive") ?: true
-                            val displayOrder = doc.getLong("displayOrder")?.toInt() ?: 99
+                            val isActive = extractBoolean(doc, "isActive", true)
+                            val displayOrder = extractInt(doc, "displayOrder", 99)
                             val imageUrl = doc.getString("imageUrl") ?: ""
                             val description = doc.getString("description") ?: ""
-                            val createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis()
+                            val createdAt = extractLong(doc, "createdAt", System.currentTimeMillis())
                             CategoryRecord(
                                 id = id,
                                 name = name,
@@ -219,7 +280,7 @@ class FirestoreDataService(
     }
 
     // -------------------------------------------------------------
-    // PRODUCTS
+    // PRODUCTS - REAL-TIME BIDIRECTIONAL SYNC
     // -------------------------------------------------------------
     private fun setupProductsListener() {
         firestore.collection(COLLECTION_PRODUCTS)
@@ -233,52 +294,81 @@ class FirestoreDataService(
                 }
 
                 if (snapshot != null) {
-                    if (snapshot.isEmpty) {
-                        // Keep catalog populated locally for customers without attempting unauthorized writes to Cloud Firestore
-                        _productsFlow.value = localStorage.loadProducts().ifEmpty { MockData.products }
-                    } else {
-                        val productList = snapshot.documents.mapNotNull { doc ->
-                            try {
-                                val id = doc.getString("id") ?: doc.id
-                                val name = doc.getString("name") ?: return@mapNotNull null
-                                val brand = doc.getString("brand") ?: "Generic"
-                                val catStr = doc.getString("category") ?: "ALL"
-                                val category = ProductCategory.fromSlug(catStr)
-                                val categorySlug = catStr.lowercase().trim()
-                                val price = doc.getLong("price")?.toInt() ?: 0
-                                val originalPrice = doc.getLong("originalPrice")?.toInt() ?: price
-                                val rating = doc.getDouble("rating")?.toFloat() ?: 4.5f
-                                val reviewCount = doc.getLong("reviewCount")?.toInt() ?: 0
-                                val description = doc.getString("description") ?: ""
-                                val stock = doc.getLong("stock")?.toInt() ?: 10
-                                val sku = doc.getString("sku") ?: "SKM-$id"
-                                val active = doc.getBoolean("active") ?: true
-                                val featured = doc.getBoolean("featured") ?: false
+                    val productList = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            val id = doc.getString("id")?.takeIf { it.isNotBlank() } ?: doc.id
+                            val name = doc.getString("name")?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                            val brand = doc.getString("brand") ?: "Generic"
+                            val catStr = doc.getString("category") ?: doc.getString("categorySlug") ?: "smartphones"
+                            val category = ProductCategory.fromSlug(catStr)
+                            val categorySlug = catStr.lowercase().trim()
+                            val price = extractInt(doc, "price", 0)
+                            val originalPrice = extractInt(doc, "originalPrice", price)
+                            val rating = extractFloat(doc, "rating", 4.5f)
+                            val reviewCount = extractInt(doc, "reviewCount", 0)
+                            val description = doc.getString("description") ?: ""
+                            val stock = extractInt(doc, "stock", 10)
+                            val sku = doc.getString("sku") ?: "SKM-$id"
+                            val inStock = extractBoolean(doc, "inStock", stock > 0)
+                            val active = extractBoolean(doc, "active", inStock)
+                            val featured = extractBoolean(doc, "featured", extractBoolean(doc, "isFeatured", false))
 
-                                Product(
-                                    id = id,
-                                    name = name,
-                                    brand = brand,
-                                    category = category,
-                                    categorySlug = categorySlug,
-                                    price = price,
-                                    originalPrice = originalPrice,
-                                    rating = rating,
-                                    reviewCount = reviewCount,
-                                    description = description,
-                                    specifications = emptyMap(),
-                                    stock = stock,
-                                    sku = sku,
-                                    active = active,
-                                    featured = featured,
-                                    isFeatured = featured
-                                )
-                            } catch (e: Exception) {
-                                null
+                            // Images: prioritize imageUrl, fallback to images array
+                            val singleImageUrl = doc.getString("imageUrl") ?: doc.getString("image") ?: doc.getString("primaryImage") ?: ""
+                            val imagesList = extractStringList(doc, "images")
+                            val finalImages = if (imagesList.isNotEmpty()) {
+                                imagesList
+                            } else if (singleImageUrl.isNotBlank()) {
+                                listOf(singleImageUrl)
+                            } else {
+                                emptyList()
                             }
+                            val finalImageUrl = singleImageUrl.ifBlank { finalImages.firstOrNull() ?: "" }
+
+                            // Warranty
+                            val hasWarranty = extractBoolean(doc, "hasWarranty", false)
+                            val warrantyDuration = doc.getString("warrantyDuration") ?: doc.getString("warranty") ?: ""
+                            val warrantyDescription = doc.getString("warrantyDescription") ?: ""
+
+                            // Specifications
+                            val specs = extractSpecifications(doc)
+
+                            Product(
+                                id = id,
+                                name = name,
+                                brand = brand,
+                                category = category,
+                                categorySlug = categorySlug,
+                                price = price,
+                                originalPrice = originalPrice,
+                                rating = rating,
+                                reviewCount = reviewCount,
+                                description = description,
+                                specifications = specs,
+                                stock = stock,
+                                sku = sku,
+                                active = active,
+                                inStock = inStock,
+                                featured = featured,
+                                isFeatured = featured,
+                                imageUrl = finalImageUrl,
+                                images = finalImages,
+                                hasWarranty = hasWarranty,
+                                warrantyDuration = warrantyDuration,
+                                warrantyDescription = warrantyDescription
+                            )
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Error parsing product doc ${doc.id}", e)
+                            null
                         }
+                    }
+
+                    if (productList.isNotEmpty()) {
                         _productsFlow.value = productList
                         localStorage.saveProducts(productList)
+                    } else if (snapshot.isEmpty) {
+                        _productsFlow.value = emptyList()
+                        localStorage.saveProducts(emptyList())
                     }
                 }
             }
@@ -341,24 +431,54 @@ class FirestoreDataService(
             val doc = firestore.collection(COLLECTION_PRODUCTS).document(id).get().await()
             if (doc.exists()) {
                 val name = doc.getString("name") ?: ""
-                val brand = doc.getString("brand") ?: ""
-                val price = doc.getLong("price")?.toInt() ?: 0
-                val originalPrice = doc.getLong("originalPrice")?.toInt() ?: price
-                val catStr = doc.getString("category") ?: "ALL"
-                val category = ProductCategory.entries.find { it.name.equals(catStr, true) } ?: ProductCategory.MOBILE_PHONES
+                val brand = doc.getString("brand") ?: "Generic"
+                val catStr = doc.getString("category") ?: doc.getString("categorySlug") ?: "smartphones"
+                val category = ProductCategory.fromSlug(catStr)
+                val categorySlug = catStr.lowercase().trim()
+                val price = extractInt(doc, "price", 0)
+                val originalPrice = extractInt(doc, "originalPrice", price)
+                val rating = extractFloat(doc, "rating", 4.5f)
+                val reviewCount = extractInt(doc, "reviewCount", 0)
+                val description = doc.getString("description") ?: ""
+                val stock = extractInt(doc, "stock", 10)
+                val sku = doc.getString("sku") ?: "SKM-$id"
+                val inStock = extractBoolean(doc, "inStock", stock > 0)
+                val active = extractBoolean(doc, "active", inStock)
+                val featured = extractBoolean(doc, "featured", extractBoolean(doc, "isFeatured", false))
+
+                val singleImageUrl = doc.getString("imageUrl") ?: doc.getString("image") ?: doc.getString("primaryImage") ?: ""
+                val imagesList = extractStringList(doc, "images")
+                val finalImages = if (imagesList.isNotEmpty()) imagesList else if (singleImageUrl.isNotBlank()) listOf(singleImageUrl) else emptyList()
+                val finalImageUrl = singleImageUrl.ifBlank { finalImages.firstOrNull() ?: "" }
+
+                val hasWarranty = extractBoolean(doc, "hasWarranty", false)
+                val warrantyDuration = doc.getString("warrantyDuration") ?: doc.getString("warranty") ?: ""
+                val warrantyDescription = doc.getString("warrantyDescription") ?: ""
+                val specs = extractSpecifications(doc)
+
                 Product(
                     id = id,
                     name = name,
                     brand = brand,
                     category = category,
+                    categorySlug = categorySlug,
                     price = price,
                     originalPrice = originalPrice,
-                    rating = doc.getDouble("rating")?.toFloat() ?: 4.5f,
-                    reviewCount = doc.getLong("reviewCount")?.toInt() ?: 0,
-                    description = doc.getString("description") ?: "",
-                    specifications = emptyMap(),
-                    stock = doc.getLong("stock")?.toInt() ?: 10,
-                    sku = doc.getString("sku") ?: "SKM-$id"
+                    rating = rating,
+                    reviewCount = reviewCount,
+                    description = description,
+                    specifications = specs,
+                    stock = stock,
+                    sku = sku,
+                    active = active,
+                    inStock = inStock,
+                    featured = featured,
+                    isFeatured = featured,
+                    imageUrl = finalImageUrl,
+                    images = finalImages,
+                    hasWarranty = hasWarranty,
+                    warrantyDuration = warrantyDuration,
+                    warrantyDescription = warrantyDescription
                 )
             } else null
         } catch (e: Exception) {
@@ -369,21 +489,40 @@ class FirestoreDataService(
     override suspend fun createProduct(product: Product): Result<Product> {
         return try {
             val docRef = firestore.collection(COLLECTION_PRODUCTS).document(product.id)
+            val effectiveSlug = if (product.categorySlug.isNotBlank()) product.categorySlug else product.category.slug
+            val imageList = if (product.images.isNotEmpty()) {
+                product.images
+            } else if (product.primaryImage.isNotBlank()) {
+                listOf(product.primaryImage)
+            } else {
+                emptyList()
+            }
             val data = hashMapOf(
                 "id" to product.id,
                 "name" to product.name,
                 "brand" to product.brand,
-                "category" to product.category.name,
+                "category" to effectiveSlug,
+                "categorySlug" to effectiveSlug,
                 "price" to product.price,
                 "originalPrice" to product.originalPrice,
                 "rating" to product.rating.toDouble(),
                 "reviewCount" to product.reviewCount,
                 "description" to product.description,
                 "stock" to product.stock,
+                "inStock" to (product.stock > 0),
                 "sku" to product.sku,
                 "active" to product.active,
                 "featured" to product.isFeatured,
-                "createdAt" to System.currentTimeMillis()
+                "isFeatured" to product.isFeatured,
+                "imageUrl" to product.primaryImage,
+                "images" to imageList,
+                "hasWarranty" to product.hasWarranty,
+                "warrantyDuration" to product.warrantyDuration,
+                "warrantyDescription" to product.warrantyDescription,
+                "specifications" to product.specifications,
+                "specs" to product.specifications,
+                "createdAt" to System.currentTimeMillis(),
+                "updatedAt" to System.currentTimeMillis()
             )
             docRef.set(data).await()
             Result.success(product)
@@ -396,18 +535,39 @@ class FirestoreDataService(
     override suspend fun updateProduct(product: Product): Result<Product> {
         return try {
             val docRef = firestore.collection(COLLECTION_PRODUCTS).document(product.id)
+            val effectiveSlug = if (product.categorySlug.isNotBlank()) product.categorySlug else product.category.slug
+            val imageList = if (product.images.isNotEmpty()) {
+                product.images
+            } else if (product.primaryImage.isNotBlank()) {
+                listOf(product.primaryImage)
+            } else {
+                emptyList()
+            }
             val updates = hashMapOf<String, Any>(
+                "id" to product.id,
                 "name" to product.name,
                 "brand" to product.brand,
-                "category" to product.category.name,
+                "category" to effectiveSlug,
+                "categorySlug" to effectiveSlug,
                 "price" to product.price,
                 "originalPrice" to product.originalPrice,
                 "description" to product.description,
                 "stock" to product.stock,
+                "inStock" to (product.stock > 0),
+                "sku" to product.sku,
                 "active" to product.active,
-                "featured" to product.isFeatured
+                "featured" to product.isFeatured,
+                "isFeatured" to product.isFeatured,
+                "imageUrl" to product.primaryImage,
+                "images" to imageList,
+                "hasWarranty" to product.hasWarranty,
+                "warrantyDuration" to product.warrantyDuration,
+                "warrantyDescription" to product.warrantyDescription,
+                "specifications" to product.specifications,
+                "specs" to product.specifications,
+                "updatedAt" to System.currentTimeMillis()
             )
-            docRef.update(updates).await()
+            docRef.set(updates, SetOptions.merge()).await()
             Result.success(product)
         } catch (e: Exception) {
             Log.e(TAG, "updateProduct failed", e)

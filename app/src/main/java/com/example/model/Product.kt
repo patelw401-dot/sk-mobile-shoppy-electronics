@@ -11,6 +11,19 @@ enum class ProductCategory(val displayName: String, val iconName: String) {
     ACCESSORIES("Accessories", "accessories"),
     REPAIR_SERVICES("Mobile Repair", "repair");
 
+    val slug: String
+        get() = when (this) {
+            MOBILE_PHONES -> "smartphones"
+            OLD_PHONES -> "old-phones"
+            CHARGERS -> "chargers"
+            DATA_CABLES -> "data-cables"
+            HEADPHONES -> "audio"
+            BLUETOOTH -> "bluetooth"
+            ACCESSORIES -> "accessories"
+            REPAIR_SERVICES -> "repair"
+            ALL -> "all"
+        }
+
     companion object {
         fun fromSlug(slug: String?): ProductCategory {
             if (slug.isNullOrBlank()) return MOBILE_PHONES
@@ -29,7 +42,7 @@ enum class ProductCategory(val displayName: String, val iconName: String) {
                     try {
                         valueOf(slug)
                     } catch (e: Exception) {
-                        entries.find { it.name.equals(slug, ignoreCase = true) } ?: MOBILE_PHONES
+                        entries.find { it.name.equals(slug, ignoreCase = true) } ?: ACCESSORIES
                     }
                 }
             }
@@ -57,16 +70,23 @@ data class Product(
     val conditionGrade: String? = null,
     val batteryHealth: String? = null,
     val warranty: String = "1 Year Brand Warranty",
+    val hasWarranty: Boolean = false,
+    val warrantyDuration: String = "",
+    val warrantyDescription: String = "",
     val deliveryInfo: String = "Free Delivery in Udgir (Same Day)",
     val highlightBadge: String? = null,
     val releaseOrder: Int = 100, // Higher number = newer
     val stock: Int = 12,
     val sku: String = "SKM-${id.uppercase()}",
+    val imageUrl: String = "",
     val images: List<String> = emptyList(),
     val featured: Boolean = isFeatured,
     val active: Boolean = true,
     val createdAt: Long = System.currentTimeMillis()
 ) {
+    val primaryImage: String
+        get() = if (imageUrl.isNotBlank()) imageUrl else (images.firstOrNull() ?: "")
+
     val discount: Int
         get() = if (originalPrice > price) (((originalPrice - price).toDouble() / originalPrice) * 100).toInt() else 0
 
@@ -78,30 +98,33 @@ data class Product(
 
     fun categoryMatches(targetSlug: String): Boolean {
         val target = targetSlug.lowercase().replace("_", "-").trim()
-        if (target == "all") return true
+        if (target == "all" || target.isBlank()) return true
         val curSlug = categorySlug.lowercase().replace("_", "-").trim()
         if (curSlug == target || curSlug.contains(target) || target.contains(curSlug)) return true
         val curName = category.name.lowercase().replace("_", "-").trim()
         val curDisplay = category.displayName.lowercase().replace("_", "-").trim()
         if (target == "smartphones" || target == "mobile-phones") {
-            return curName.contains("phone") || curName.contains("mobile") || curDisplay.contains("phone")
+            return curName.contains("phone") || curName.contains("mobile") || curDisplay.contains("phone") || curSlug.contains("phone") || curSlug.contains("smart")
         }
         if (target == "accessories") {
-            return curName.contains("accessori") || curDisplay.contains("accessori")
+            return curName.contains("accessori") || curDisplay.contains("accessori") || curSlug.contains("accessori") || curSlug.contains("cover") || curSlug.contains("case") || curSlug.contains("power") || curSlug.contains("guard")
         }
         if (target == "old-phones" || target == "old_phones") {
-            return curName.contains("old") || isPreOwned
+            return curName.contains("old") || curSlug.contains("old") || curSlug.contains("pre-owned") || isPreOwned
         }
         if (target == "chargers") {
-            return curName.contains("charger") || curDisplay.contains("charger")
+            return curName.contains("charger") || curDisplay.contains("charger") || curSlug.contains("charger")
         }
         if (target == "cables" || target == "data-cables") {
-            return curName.contains("cable") || curDisplay.contains("cable")
+            return curName.contains("cable") || curDisplay.contains("cable") || curSlug.contains("cable")
         }
         if (target == "audio" || target == "headphones") {
-            return curName.contains("headphone") || curName.contains("audio") || curDisplay.contains("headphone")
+            return curName.contains("headphone") || curName.contains("audio") || curDisplay.contains("headphone") || curSlug.contains("audio") || curSlug.contains("headphone") || curSlug.contains("earphone")
         }
-        return curName == target || curDisplay == target || curName.contains(target)
+        if (target == "bluetooth" || target == "speakers") {
+            return curName.contains("bluetooth") || curSlug.contains("bluetooth") || curSlug.contains("speaker")
+        }
+        return curName == target || curDisplay == target || curName.contains(target) || curSlug == target
     }
 }
 

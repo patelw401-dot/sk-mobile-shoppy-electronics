@@ -363,6 +363,7 @@ class LocalStorageManager(private val context: Context? = null) {
         obj.put("name", p.name)
         obj.put("brand", p.brand)
         obj.put("category", p.category.name)
+        obj.put("categorySlug", p.categorySlug)
         obj.put("price", p.price)
         obj.put("originalPrice", p.originalPrice)
         obj.put("rating", p.rating.toDouble())
@@ -376,11 +377,19 @@ class LocalStorageManager(private val context: Context? = null) {
         p.conditionGrade?.let { obj.put("conditionGrade", it) }
         p.batteryHealth?.let { obj.put("batteryHealth", it) }
         obj.put("warranty", p.warranty)
+        obj.put("hasWarranty", p.hasWarranty)
+        obj.put("warrantyDuration", p.warrantyDuration)
+        obj.put("warrantyDescription", p.warrantyDescription)
         obj.put("deliveryInfo", p.deliveryInfo)
         p.highlightBadge?.let { obj.put("highlightBadge", it) }
         obj.put("releaseOrder", p.releaseOrder)
         obj.put("stock", p.stock)
         obj.put("sku", p.sku)
+        obj.put("imageUrl", p.primaryImage)
+
+        val imgArray = JSONArray()
+        p.images.forEach { imgArray.put(it) }
+        obj.put("images", imgArray)
 
         val specsObj = JSONObject()
         p.specifications.forEach { (k, v) -> specsObj.put(k, v) }
@@ -390,8 +399,8 @@ class LocalStorageManager(private val context: Context? = null) {
 
     private fun jsonToProduct(obj: JSONObject): Product {
         val categoryName = obj.optString("category", ProductCategory.MOBILE_PHONES.name)
-        val category = ProductCategory.fromSlug(categoryName)
-        val categorySlug = categoryName.lowercase().trim()
+        val categorySlugSaved = obj.optString("categorySlug", "").ifBlank { categoryName.lowercase().trim() }
+        val category = ProductCategory.fromSlug(if (categorySlugSaved.isNotBlank()) categorySlugSaved else categoryName)
 
         val specs = mutableMapOf<String, String>()
         val specsObj = obj.optJSONObject("specifications")
@@ -403,31 +412,52 @@ class LocalStorageManager(private val context: Context? = null) {
             }
         }
 
+        val imagesList = mutableListOf<String>()
+        val imagesArray = obj.optJSONArray("images")
+        if (imagesArray != null) {
+            for (i in 0 until imagesArray.length()) {
+                val url = imagesArray.optString(i, "")
+                if (url.isNotBlank()) imagesList.add(url)
+            }
+        }
+        val singleImageUrl = obj.optString("imageUrl", "")
+        if (singleImageUrl.isNotBlank() && !imagesList.contains(singleImageUrl)) {
+            imagesList.add(0, singleImageUrl)
+        }
+
+        val parsedStock = obj.optInt("stock", 10)
+        val inStockBool = obj.optBoolean("inStock", parsedStock > 0)
+
         return Product(
             id = obj.getString("id"),
             name = obj.getString("name"),
             brand = obj.optString("brand", "SK Mobile"),
             category = category,
-            categorySlug = categorySlug,
+            categorySlug = categorySlugSaved,
             price = obj.getInt("price"),
             originalPrice = obj.getInt("originalPrice"),
             rating = obj.optDouble("rating", 4.5).toFloat(),
             reviewCount = obj.optInt("reviewCount", 12),
             description = obj.optString("description", ""),
             specifications = specs,
-            inStock = obj.optBoolean("inStock", true),
-            stockStatus = obj.optString("stockStatus", "In Stock"),
+            inStock = inStockBool,
+            stockStatus = obj.optString("stockStatus", if (inStockBool) "In Stock" else "Out of Stock"),
             isFeatured = obj.optBoolean("isFeatured", false),
             isBestSeller = obj.optBoolean("isBestSeller", false),
             isPreOwned = obj.optBoolean("isPreOwned", false),
             conditionGrade = if (obj.has("conditionGrade")) obj.getString("conditionGrade") else null,
             batteryHealth = if (obj.has("batteryHealth")) obj.getString("batteryHealth") else null,
             warranty = obj.optString("warranty", "1 Year Brand Warranty"),
+            hasWarranty = obj.optBoolean("hasWarranty", false),
+            warrantyDuration = obj.optString("warrantyDuration", ""),
+            warrantyDescription = obj.optString("warrantyDescription", ""),
             deliveryInfo = obj.optString("deliveryInfo", "Free Delivery in Udgir"),
             highlightBadge = if (obj.has("highlightBadge")) obj.getString("highlightBadge") else null,
             releaseOrder = obj.optInt("releaseOrder", 100),
-            stock = obj.optInt("stock", 10),
-            sku = obj.optString("sku", "SKM-PROD-${obj.getString("id")}")
+            stock = parsedStock,
+            sku = obj.optString("sku", "SKM-PROD-${obj.getString("id")}"),
+            imageUrl = singleImageUrl.ifBlank { imagesList.firstOrNull() ?: "" },
+            images = imagesList
         )
     }
 

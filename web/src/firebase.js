@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { 
   getAuth, 
   onAuthStateChanged, 
@@ -130,6 +130,73 @@ export async function fetchFirestoreProducts() {
       error: error.message || 'Failed to read products from Firestore'
     };
   }
+}
+
+/**
+ * Real-time listener for Firestore collection 'products'.
+ * Bidirectionally synchronizes product updates from Android APK or Web Admin immediately without reload.
+ */
+export function subscribeToFirestoreProducts(onSuccess, onError) {
+  const productsRef = collection(db, 'products');
+  return onSnapshot(productsRef, (querySnapshot) => {
+    if (querySnapshot.empty) {
+      if (onSuccess) onSuccess({ success: true, data: [], isLive: true, isEmpty: true, error: null });
+      return;
+    }
+
+    const items = [];
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      const priceNum = typeof data.price === 'number' ? data.price : (parseInt(data.price, 10) || 0);
+      const origPriceNum = typeof data.originalPrice === 'number' ? data.originalPrice : (data.originalPrice ? parseInt(data.originalPrice, 10) : undefined);
+      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? parseInt(data.stock, 10) : 10);
+      const inStockBool = data.inStock !== undefined ? Boolean(data.inStock) : stockNum > 0;
+      const catSlug = (data.categorySlug || data.category || 'smartphones').toLowerCase();
+      const singleImg = data.imageUrl || data.image || data.primaryImage || '';
+      const imgArray = Array.isArray(data.images) && data.images.length > 0 ? data.images : (singleImg ? [singleImg] : []);
+
+      items.push({
+        id: docSnap.id,
+        ...data,
+        category: catSlug,
+        categorySlug: catSlug,
+        price: priceNum,
+        originalPrice: origPriceNum,
+        stock: stockNum,
+        inStock: inStockBool,
+        rating: data.rating || 4.7,
+        reviewCount: data.reviewCount || 12,
+        brand: data.brand || 'SK Mobile',
+        name: data.name || 'Product',
+        description: data.description || '',
+        imageUrl: singleImg || (imgArray[0] || ''),
+        images: imgArray,
+        badge: data.badge || (data.isFeatured ? 'Featured' : (data.isBestSeller ? 'Best Seller' : '')),
+        isFeatured: Boolean(data.isFeatured || data.featured),
+        isBestSeller: Boolean(data.isBestSeller),
+        hasWarranty: Boolean(data.hasWarranty),
+        warrantyDuration: data.hasWarranty ? (data.warrantyDuration || data.warranty || '') : '',
+        warrantyDescription: data.hasWarranty ? (data.warrantyDescription || '') : '',
+        specs: data.specifications || data.specs || {},
+        specifications: data.specifications || data.specs || {},
+        createdAt: data.createdAt || null,
+        updatedAt: data.updatedAt || null
+      });
+    });
+
+    if (onSuccess) {
+      onSuccess({
+        success: true,
+        data: items,
+        isLive: true,
+        isEmpty: false,
+        error: null
+      });
+    }
+  }, (err) => {
+    console.error("Firestore onSnapshot error on 'products' collection:", err);
+    if (onError) onError(err);
+  });
 }
 
 /**
@@ -439,25 +506,36 @@ export async function saveAdminProductToFirestore(productData, currentUser) {
   const warrantyDuration = hasWarranty ? (productData.warrantyDuration || '').trim() : '';
   const warrantyDescription = hasWarranty ? (productData.warrantyDescription || '').trim() : '';
 
+  const catSlug = (productData.category || productData.categorySlug || 'smartphones').toLowerCase();
+  const singleImage = (productData.imageUrl || productData.image || '').trim();
+  const imageList = Array.isArray(productData.images) && productData.images.length > 0
+    ? productData.images
+    : (singleImage ? [singleImage] : []);
+
   const payload = {
     id: docId,
     name,
     brand,
-    category: (productData.category || 'smartphones').toLowerCase(),
+    category: catSlug,
+    categorySlug: catSlug,
     price,
     stock,
     inStock,
     description: (productData.description || '').trim(),
-    imageUrl: (productData.imageUrl || productData.image || '').trim(),
+    imageUrl: singleImage,
+    images: imageList,
     badge: (productData.badge || '').trim(),
     isFeatured: Boolean(productData.isFeatured),
+    featured: Boolean(productData.isFeatured),
     isBestSeller: Boolean(productData.isBestSeller),
     hasWarranty,
     warrantyDuration,
     warrantyDescription,
+    warranty: hasWarranty ? (warrantyDuration || '1 Year Brand Warranty') : 'No Warranty',
     rating: productData.rating || 4.7,
     reviewCount: productData.reviewCount || 10,
-    specs: productData.specs || {},
+    specs: productData.specs || productData.specifications || {},
+    specifications: productData.specs || productData.specifications || {},
     lastUpdatedBy: currentUser.email || 'Store Admin',
     updatedAt: serverTimestamp()
   };

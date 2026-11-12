@@ -4,7 +4,7 @@ import Footer from './components/Footer';
 import Toast from './components/Toast';
 import ProductDetailsModal from './components/ProductDetailsModal';
 import { REAL_PRODUCTS, ACCESSORIES, PRE_OWNED_PHONES } from './data/storeData';
-import { subscribeToAuthChanges, fetchFirestoreProducts } from './firebase';
+import { subscribeToAuthChanges, fetchFirestoreProducts, subscribeToFirestoreProducts } from './firebase';
 
 import HomePage from './pages/HomePage';
 import ProductsPage from './pages/ProductsPage';
@@ -60,25 +60,26 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    async function loadCatalog() {
-      try {
-        const res = await fetchFirestoreProducts();
-        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-          const validLiveProds = res.data.filter(p => p && p.id);
-          const liveIds = new Set(validLiveProds.map(p => p.id));
-          const allDefaults = [
-            ...(Array.isArray(REAL_PRODUCTS) ? REAL_PRODUCTS : []),
-            ...(Array.isArray(ACCESSORIES) ? ACCESSORIES : []),
-            ...(Array.isArray(PRE_OWNED_PHONES) ? PRE_OWNED_PHONES : [])
-          ];
-          const nonDupDefaults = allDefaults.filter(d => d && d.id && !liveIds.has(d.id));
-          setAllStoreProducts([...validLiveProds, ...nonDupDefaults]);
-        }
-      } catch (e) {
-        console.warn('Could not load dynamic products from Firestore:', e);
+    const unsubscribe = subscribeToFirestoreProducts((res) => {
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const validLiveProds = res.data.filter(p => p && p.id);
+        const liveIds = new Set(validLiveProds.map(p => p.id));
+        const allDefaults = [
+          ...(Array.isArray(REAL_PRODUCTS) ? REAL_PRODUCTS : []),
+          ...(Array.isArray(ACCESSORIES) ? ACCESSORIES : []),
+          ...(Array.isArray(PRE_OWNED_PHONES) ? PRE_OWNED_PHONES : [])
+        ];
+        const nonDupDefaults = allDefaults.filter(d => d && d.id && !liveIds.has(d.id));
+        setAllStoreProducts([...validLiveProds, ...nonDupDefaults]);
+      } else if (res && res.success && res.isEmpty) {
+        setAllStoreProducts([]);
       }
-    }
-    loadCatalog();
+    }, (err) => {
+      console.warn('Real-time products subscription notice:', err);
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const showToast = (message, type = 'info') => {

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { REAL_PRODUCTS, ACCESSORIES, DEFAULT_CATEGORIES, STORE_INFO } from '../data/storeData';
-import { fetchFirestoreProducts, fetchCategoriesFromFirestore, FIREBASE_PROJECT_ID } from '../firebase';
+import { fetchFirestoreProducts, fetchCategoriesFromFirestore, subscribeToFirestoreProducts, FIREBASE_PROJECT_ID } from '../firebase';
 import ProductCard from '../components/ProductCard';
 import ProductDetailsModal from '../components/ProductDetailsModal';
 import { 
@@ -80,6 +80,16 @@ export default function ProductsPage({
 
   useEffect(() => {
     loadProducts();
+    const unsubscribe = subscribeToFirestoreProducts((res) => {
+      if (res && res.success && !res.isEmpty && Array.isArray(res.data) && res.data.length > 0) {
+        setRawProducts(res.data.map(p => ({ ...p, isLive: true, isSample: false })));
+        setDataSource('live');
+        setIsLoading(false);
+      }
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const brands = useMemo(() => {

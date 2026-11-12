@@ -211,8 +211,13 @@ fun ProductDetailScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
+                        val currentProductView = if (product.images.isNotEmpty() && selectedImageIndex in product.images.indices) {
+                            product.copy(imageUrl = product.images[selectedImageIndex])
+                        } else {
+                            product
+                        }
                         ProductVisualBox(
-                            product = product,
+                            product = currentProductView,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(220.dp)

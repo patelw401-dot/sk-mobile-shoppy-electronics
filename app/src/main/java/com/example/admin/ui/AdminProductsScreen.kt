@@ -403,6 +403,9 @@ fun ProductFormDialog(
     var isFeatured by remember { mutableStateOf(initialProduct?.isFeatured ?: false) }
     var selectedCategory by remember { mutableStateOf(initialProduct?.category ?: ProductCategory.MOBILE_PHONES) }
     var selectedCategorySlug by remember { mutableStateOf(initialProduct?.categorySlug ?: "smartphones") }
+    var imageUrl by remember { mutableStateOf(initialProduct?.primaryImage ?: "") }
+    var hasWarranty by remember { mutableStateOf(initialProduct?.hasWarranty ?: true) }
+    var warrantyDuration by remember { mutableStateOf(if (initialProduct?.warrantyDuration.isNullOrBlank()) (initialProduct?.warranty ?: "1 Year Brand Warranty") else initialProduct.warrantyDuration) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -524,7 +527,34 @@ fun ProductFormDialog(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = imageUrl,
+                        onValueChange = { imageUrl = it },
+                        label = { Text("Product Image URL (https://...)") },
+                        modifier = Modifier.fillMaxWidth().testTag("product_form_image_url"),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Has Store / Brand Warranty", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        Switch(checked = hasWarranty, onCheckedChange = { hasWarranty = it })
+                    }
+                    if (hasWarranty) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = warrantyDuration,
+                            onValueChange = { warrantyDuration = it },
+                            label = { Text("Warranty Duration (e.g. 1 Year Brand Warranty)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -558,6 +588,13 @@ fun ProductFormDialog(
                         com.example.ui.screens.getCategoryAwareDefaultSpecs(selectedCategorySlug, brand)
                     }
 
+                    val finalImageUrl = imageUrl.trim()
+                    val imagesList = if (finalImageUrl.isNotBlank()) {
+                        listOf(finalImageUrl)
+                    } else {
+                        initialProduct?.images ?: emptyList()
+                    }
+
                     val newProduct = Product(
                         id = initialProduct?.id ?: "prod-${System.currentTimeMillis()}",
                         name = if (name.isBlank()) "New Product" else name,
@@ -572,7 +609,12 @@ fun ProductFormDialog(
                         specifications = resolvedSpecs,
                         stock = parsedStock,
                         sku = sku,
-                        images = initialProduct?.images ?: emptyList(),
+                        imageUrl = finalImageUrl.ifBlank { imagesList.firstOrNull() ?: "" },
+                        images = imagesList,
+                        hasWarranty = hasWarranty,
+                        warrantyDuration = if (hasWarranty) warrantyDuration.trim() else "",
+                        warrantyDescription = if (hasWarranty) "Official warranty backed with GST invoice" else "",
+                        warranty = if (hasWarranty) (warrantyDuration.trim().ifBlank { "1 Year Brand Warranty" }) else "No Warranty",
                         active = effectiveInStock,
                         inStock = effectiveInStock,
                         stockStatus = if (effectiveInStock) "In Stock ($parsedStock units)" else "Out of Stock",

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -37,12 +38,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.ui.theme.ShopAccentAmber
@@ -310,6 +313,7 @@ fun ProductVisualBox(
     modifier: Modifier = Modifier
 ) {
     val (gradientColors, iconVector) = getCategoryStyling(product.category)
+    val hasValidImage = product.primaryImage.isNotBlank()
 
     Box(
         modifier = modifier
@@ -317,30 +321,41 @@ fun ProductVisualBox(
             .background(Brush.verticalGradient(gradientColors)),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = iconVector,
+        if (hasValidImage) {
+            AsyncImage(
+                model = product.primaryImage,
                 contentDescription = product.name,
-                tint = ShopPrimaryBlue,
-                modifier = Modifier.size(54.dp)
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(6.dp)
             )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Surface(
-                color = Color.White.copy(alpha = 0.85f),
-                shape = RoundedCornerShape(12.dp)
+        } else {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = product.brand,
-                    color = ShopTextPrimary,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                Icon(
+                    imageVector = iconVector,
+                    contentDescription = product.name,
+                    tint = ShopPrimaryBlue,
+                    modifier = Modifier.size(54.dp)
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Surface(
+                    color = Color.White.copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = product.brand,
+                        color = ShopTextPrimary,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
             }
         }
 
