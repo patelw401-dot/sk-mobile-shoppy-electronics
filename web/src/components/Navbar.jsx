@@ -403,7 +403,7 @@ export default function Navbar({
               <span className={`text-[10px] px-2 py-0.5 rounded font-extrabold border ${
                 activePage === 'app-download' ? 'bg-black text-[#D4AF37] border-black' : 'bg-[#D4AF37]/20 text-[#D4AF37] border-[#D4AF37]/30'
               }`}>
-                v1.2.0
+                Latest
               </span>
             </button>
           </div>

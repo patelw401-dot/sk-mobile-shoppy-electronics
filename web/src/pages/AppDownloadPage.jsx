@@ -33,7 +33,7 @@ export default function AppDownloadPage({ setActivePage, onShowToast }) {
 
           <div className="flex items-center gap-2 text-xs text-gray-400">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Version {APP_DOWNLOAD_CONFIG.version} Available</span>
+            <span>{APP_DOWNLOAD_CONFIG.version} Available</span>
           </div>
         </div>
       </div>

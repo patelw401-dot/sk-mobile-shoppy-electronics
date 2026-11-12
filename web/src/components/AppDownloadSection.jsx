@@ -1,21 +1,13 @@
 import React, { useState } from 'react';
-import { APP_DOWNLOAD_CONFIG, STORE_INFO } from '../data/storeData';
+import { APP_DOWNLOAD_CONFIG } from '../data/storeData';
 import { 
   Download, 
   Smartphone, 
   ShieldCheck, 
   CheckCircle2, 
-  AlertCircle, 
-  X, 
-  Info, 
-  ExternalLink, 
-  Phone, 
-  Sparkles, 
-  ArrowRight,
-  Layers,
+  X,
   HelpCircle,
   Clock,
-  Cpu,
   FileCheck
 } from 'lucide-react';
 
@@ -36,32 +28,18 @@ function AndroidIcon({ className = "w-5 h-5", size = 20 }) {
 }
 
 export default function AppDownloadSection({ onShowToast }) {
-  const [showConfigModal, setShowConfigModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
 
-  const hasRealUrl = Boolean(
-    APP_DOWNLOAD_CONFIG.downloadUrl && 
-    APP_DOWNLOAD_CONFIG.downloadUrl.trim().length > 0 &&
-    (APP_DOWNLOAD_CONFIG.downloadUrl.startsWith('http://') || 
-     APP_DOWNLOAD_CONFIG.downloadUrl.startsWith('https://') || 
-     APP_DOWNLOAD_CONFIG.downloadUrl.startsWith('/'))
-  );
-
   const handleDownloadClick = () => {
-    if (hasRealUrl) {
-      onShowToast?.("Starting SK Mobile Android APK download...", "success");
-      // Create temporary anchor to trigger native download
-      const a = document.createElement('a');
-      a.href = APP_DOWNLOAD_CONFIG.downloadUrl;
-      a.download = APP_DOWNLOAD_CONFIG.fallbackFilename || 'SK-Mobile.apk';
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } else {
-      setShowConfigModal(true);
-    }
+    onShowToast?.("Starting SK Mobile Android APK download...", "success");
+    const a = document.createElement('a');
+    a.href = APP_DOWNLOAD_CONFIG.downloadUrl;
+    a.download = APP_DOWNLOAD_CONFIG.fallbackFilename;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
@@ -91,19 +69,15 @@ export default function AppDownloadSection({ onShowToast }) {
               </p>
             </div>
 
-            {/* Technical Metadata Chips */}
+            {/* APK availability details */}
             <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-gray-300">
               <span className="px-2.5 py-1 rounded-lg bg-[#1C1C1C] border border-[#2E2E2E] font-mono text-[#D4AF37] font-semibold flex items-center gap-1.5">
                 <FileCheck size={13} />
                 {APP_DOWNLOAD_CONFIG.version}
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-[#1C1C1C] border border-[#2E2E2E] font-medium flex items-center gap-1.5">
-                <Cpu size={13} className="text-gray-400" />
-                APK Size: <strong>{APP_DOWNLOAD_CONFIG.fileSize}</strong>
-              </span>
-              <span className="px-2.5 py-1 rounded-lg bg-[#1C1C1C] border border-[#2E2E2E] font-medium flex items-center gap-1.5">
                 <AndroidIcon className="w-3 h-3 text-emerald-400" size={12} />
-                {APP_DOWNLOAD_CONFIG.androidRequirement}
+                {APP_DOWNLOAD_CONFIG.minAndroid}
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold flex items-center gap-1.5">
                 <ShieldCheck size={13} />
@@ -214,7 +188,7 @@ export default function AppDownloadSection({ onShowToast }) {
                     className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#D4AF37]/20"
                   >
                     <Download size={13} />
-                    <span>Install v1.2.0 (28.5 MB)</span>
+                    <span>Download Latest APK</span>
                   </button>
                 </div>
 
@@ -229,92 +203,7 @@ export default function AppDownloadSection({ onShowToast }) {
         </div>
       </div>
 
-      {/* ----------------- MODAL 1: APK CONFIGURATION / PLACEHOLDER GUIDE ----------------- */}
-      {showConfigModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-[#141414] border border-[#D4AF37]/50 rounded-2xl max-w-lg w-full p-6 text-white relative shadow-2xl space-y-5">
-            <button
-              onClick={() => setShowConfigModal(false)}
-              className="absolute right-4 top-4 p-1.5 rounded-lg bg-[#222222] text-gray-400 hover:text-white"
-            >
-              <X size={18} />
-            </button>
-
-            <div className="flex items-center gap-3 border-b border-[#262626] pb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 flex items-center justify-center text-[#D4AF37]">
-                <AndroidIcon className="w-6 h-6 text-[#D4AF37]" size={24} />
-              </div>
-              <div>
-                <h3 className="text-base font-black text-white">SK Mobile Android APK Release</h3>
-                <span className="text-[11px] text-[#D4AF37] font-semibold">{APP_DOWNLOAD_CONFIG.version} • {APP_DOWNLOAD_CONFIG.fileSize}</span>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-xs text-gray-300">
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 space-y-1">
-                <div className="font-bold flex items-center gap-1.5 text-amber-300">
-                  <Info size={14} />
-                  <span>Configurable Download URL</span>
-                </div>
-                <p className="text-[11px] text-gray-300 leading-relaxed">
-                  The APK download feature is connected and ready. A public download URL has not been attached yet in the configuration file.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#0E0E0E] border border-[#262626] space-y-2">
-                <span className="text-[11px] uppercase font-bold text-gray-400 block">
-                  How to configure your public APK URL:
-                </span>
-                <ol className="list-decimal list-inside space-y-1.5 text-[11px] text-gray-300 leading-relaxed">
-                  <li>
-                    Open <strong className="text-white font-mono">web/src/data/storeData.js</strong>.
-                  </li>
-                  <li>
-                    Locate <strong className="text-[#D4AF37] font-mono">APP_DOWNLOAD_CONFIG.downloadUrl</strong>.
-                  </li>
-                  <li>
-                    Paste your direct APK URL (e.g., GitHub Releases, Firebase Storage, Google Drive direct download, or upload <code className="text-gray-300">sk-mobile.apk</code> to <code className="text-gray-300">web/public/</code>).
-                  </li>
-                  <li>
-                    Alternatively, set environment variable <strong className="text-white font-mono">VITE_SK_MOBILE_APK_URL</strong> in your hosting settings (e.g. Vercel).
-                  </li>
-                </ol>
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1">
-                <span>Want to test in-store?</span>
-                <a 
-                  href={`tel:${STORE_INFO.phone}`} 
-                  className="text-[#D4AF37] hover:underline font-semibold flex items-center gap-1"
-                >
-                  <Phone size={12} />
-                  <span>Call {STORE_INFO.phone}</span>
-                </a>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-[#222222] flex gap-3">
-              <button
-                onClick={() => {
-                  setShowConfigModal(false);
-                  setShowGuideModal(true);
-                }}
-                className="outline-gold-btn flex-1 !text-xs !py-2.5 font-bold"
-              >
-                <span>View Installation Steps</span>
-              </button>
-              <button
-                onClick={() => setShowConfigModal(false)}
-                className="gold-btn !text-xs !py-2.5 !px-5 font-bold"
-              >
-                <span>Understood</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ----------------- MODAL 2: STEP-BY-STEP INSTALLATION GUIDE ----------------- */}
+      {/* ----------------- STEP-BY-STEP INSTALLATION GUIDE ----------------- */}
       {showGuideModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-[#141414] border border-[#2E2E2E] rounded-2xl max-w-lg w-full p-6 text-white relative shadow-2xl space-y-5">

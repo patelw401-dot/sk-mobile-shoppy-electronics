@@ -13,17 +13,10 @@ export const STORE_INFO = {
 };
 
 export const APP_DOWNLOAD_CONFIG = {
-  // Configurable public APK download URL.
-  // Set to your public release APK URL (e.g. hosted on GitHub Releases, Firebase Storage, or direct public link).
-  // You can also override this via the VITE_SK_MOBILE_APK_URL environment variable.
-  // If empty (""), the website shows a clear "APK In Preparation / Config Guide" modal.
-  downloadUrl: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SK_MOBILE_APK_URL) || "",
-  fallbackFilename: "SK-Mobile-Udgir-v1.2.0.apk",
+  downloadUrl: "https://github.com/patelw401-dot/sk-mobile-shoppy-electronics/releases/latest/download/sk-mobile-shoppy.apk",
+  fallbackFilename: "sk-mobile-shoppy.apk",
   appName: "SK Mobile Shoppy and Electronics",
-  version: "v1.2.0 (Official Release)",
-  versionCode: "12",
-  fileSize: "28.5 MB",
-  updatedDate: "October 2026",
+  version: "Latest APK",
   minAndroid: "Android 8.0 (Oreo) or higher",
   packageName: "com.example",
   developer: "SK Mobile Udgir",
