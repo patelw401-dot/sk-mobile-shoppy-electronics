@@ -20,6 +20,7 @@ import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 
@@ -251,6 +252,8 @@ object CustomerAuthService {
             val user = authResult.user ?: return Result.failure(Exception("User is null after sign-in"))
             syncCustomerProfileToFirestore(user)
             Result.success(user)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Result.failure(e)
         }

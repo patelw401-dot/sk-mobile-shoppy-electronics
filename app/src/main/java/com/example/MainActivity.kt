@@ -439,7 +439,15 @@ fun SKMobileApp(
         ProfileSheet(
             uiState = shopUiState,
             onGoogleSignIn = { idToken, onComplete ->
-                shopViewModel.signInCustomerWithGoogle(idToken, onComplete)
+                shopViewModel.signInCustomerWithGoogle(idToken) { success, error ->
+                    onComplete(success, error)
+                    if (success) {
+                        shopViewModel.setLoginSheetVisible(false)
+                    }
+                }
+            },
+            onGoogleSignInError = { error ->
+                shopViewModel.setCustomerAuthError(error)
             },
             onLogout = { shopViewModel.logoutCustomer() },
             onClearAuthError = { shopViewModel.setCustomerAuthError(null) },

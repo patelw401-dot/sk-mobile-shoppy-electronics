@@ -101,6 +101,7 @@ private fun Context.findActivity(): Activity? {
 fun ProfileSheet(
     uiState: ShopUiState,
     onGoogleSignIn: (idToken: String, onComplete: (Boolean, String?) -> Unit) -> Unit,
+    onGoogleSignInError: (String) -> Unit,
     onLogout: () -> Unit,
     onClearAuthError: () -> Unit,
     onUpdateProfile: (name: String, phone: String, address: String) -> Unit,
@@ -125,17 +126,24 @@ fun ProfileSheet(
         val webClientId = try {
             context.getString(R.string.default_web_client_id)
         } catch (e: Exception) {
-            "Google Web Client ID is not configured."
+            onGoogleSignInError("Google sign-in is not configured. Please contact support.")
+            return
         }
 
-        if (webClientId.contains("not configured", ignoreCase = true)) {
+        if (webClientId.isBlank() || webClientId.contains("not configured", ignoreCase = true)) {
+            onGoogleSignInError("Google sign-in is not configured. Please contact support.")
             return
         }
 
         isGoogleLoading = true
         coroutineScope.launch {
             try {
-                val hostActivity = context.findActivity() ?: (context as? Activity) ?: context
+                val hostActivity = context.findActivity()
+                if (hostActivity == null) {
+                    onGoogleSignInError("Unable to start Google sign-in. Please try again.")
+                    isGoogleLoading = false
+                    return@launch
+                }
                 val credentialManager = CredentialManager.create(hostActivity)
                 val googleIdOption = GetSignInWithGoogleOption.Builder(webClientId)
                     .build()
@@ -156,14 +164,17 @@ fun ProfileSheet(
                     val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
                     onGoogleSignIn(googleIdToken) { _, _ -> isGoogleLoading = false }
                 } else {
+                    onGoogleSignInError("Google did not return a valid sign-in credential. Please try again.")
                     isGoogleLoading = false
                 }
             } catch (e: GetCredentialException) {
                 isGoogleLoading = false
-                Log.w("ProfileSheet", "Google Sign-In CredentialManager: ${e.message}")
+                Log.w("ProfileSheet", "Google Sign-In CredentialManager request failed", e)
+                onGoogleSignInError("Google sign-in could not be completed. Please try again.")
             } catch (e: Exception) {
                 isGoogleLoading = false
-                Log.e("ProfileSheet", "Google Sign-In failed: ${e.message}")
+                Log.e("ProfileSheet", "Google Sign-In failed", e)
+                onGoogleSignInError("Google sign-in failed. Please try again.")
             }
         }
     }
