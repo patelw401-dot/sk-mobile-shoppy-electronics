@@ -2,6 +2,7 @@ package com.example
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.example.auth.CustomerAuthService
 import com.example.admin.model.AdminTab
 import com.example.model.MockData
 import com.example.model.ReelItem
@@ -103,6 +104,19 @@ class ExampleRobolectricTest {
     assertTrue("Must mention SHA-1", parsed.contains("SHA-1", ignoreCase = true))
     assertTrue("Must mention package name", parsed.contains("com.aistudio.skmobile.udgirs", ignoreCase = true))
     assertTrue("Must mention Firebase Console", parsed.contains("Firebase Console", ignoreCase = true))
+  }
+
+  @Test
+  fun `customer Google auth errors include Firebase code and backend details`() {
+    val error = com.google.firebase.auth.FirebaseAuthException(
+      "ERROR_INVALID_CREDENTIAL",
+      "Google ID token audience did not match"
+    )
+
+    val parsed = CustomerAuthService.parseGoogleSignInError(error)
+
+    assertTrue(parsed.contains("ERROR_INVALID_CREDENTIAL"))
+    assertTrue(parsed.contains("Google ID token audience did not match"))
   }
 
   @Test

@@ -16,6 +16,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
@@ -156,6 +157,18 @@ object CustomerAuthService {
         }
     }
 
+    fun parseGoogleSignInError(error: Throwable?): String {
+        val friendlyMessage = parseAuthError(error)
+        val diagnostic = when (error) {
+            is FirebaseAuthException ->
+                "Firebase ${error.errorCode}: ${error.message ?: "No additional details returned."}"
+            null -> "No exception details returned."
+            else ->
+                "${error.javaClass.simpleName}: ${error.localizedMessage ?: "No additional details returned."}"
+        }
+        return "$friendlyMessage\n$diagnostic"
+    }
+
     /**
      * Validates Indian phone numbers (10 digits, starts with 6, 7, 8, or 9).
      * Returns the formatted E.164 phone string: +91XXXXXXXXXX, or null if invalid.
@@ -249,6 +262,28 @@ object CustomerAuthService {
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val authResult = auth.signInWithCredential(credential).await()
+            val user = authResult.user ?: return Result.failure(Exception("User is null after sign-in"))
+            syncCustomerProfileToFirestore(user)
+            Result.success(user)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Firebase-hosted Google OAuth fallback for devices where Credential Manager cannot obtain a token.
+     */
+    suspend fun signInWithGoogleProvider(activity: Activity): Result<FirebaseUser> {
+        val auth = getFirebaseAuth() ?: return Result.failure(Exception("Firebase Auth unavailable"))
+        return try {
+            val provider = OAuthProvider.newBuilder("google.com").apply {
+                addCustomParameter("prompt", "select_account")
+            }.build()
+            val authTask = auth.pendingAuthResult
+                ?: auth.startActivityForSignInWithProvider(activity, provider)
+            val authResult = authTask.await()
             val user = authResult.user ?: return Result.failure(Exception("User is null after sign-in"))
             syncCustomerProfileToFirestore(user)
             Result.success(user)

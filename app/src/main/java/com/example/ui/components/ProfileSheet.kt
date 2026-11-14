@@ -76,6 +76,7 @@ import androidx.compose.ui.unit.sp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import coil.compose.AsyncImage
 import com.example.R
 import androidx.compose.foundation.BorderStroke
@@ -101,6 +102,7 @@ private fun Context.findActivity(): Activity? {
 fun ProfileSheet(
     uiState: ShopUiState,
     onGoogleSignIn: (idToken: String, onComplete: (Boolean, String?) -> Unit) -> Unit,
+    onGoogleSignInProvider: (Activity, (Boolean, String?) -> Unit) -> Unit,
     onGoogleSignInError: (String) -> Unit,
     onLogout: () -> Unit,
     onClearAuthError: () -> Unit,
@@ -168,13 +170,36 @@ fun ProfileSheet(
                     isGoogleLoading = false
                 }
             } catch (e: GetCredentialException) {
-                isGoogleLoading = false
-                Log.w("ProfileSheet", "Google Sign-In CredentialManager request failed", e)
-                onGoogleSignInError("Google sign-in could not be completed. Please try again.")
+                val type = e.type.orEmpty().ifBlank { e.javaClass.simpleName }
+                val detail = "Credential Manager failure [$type]: ${e.message ?: "No additional details returned."}"
+                Log.w("ProfileSheet", detail, e)
+                if (e is GetCredentialCancellationException) {
+                    isGoogleLoading = false
+                    onGoogleSignInError("$detail. Sign-in was cancelled.")
+                    return@launch
+                }
+
+                val hostActivity = context.findActivity()
+                if (hostActivity == null) {
+                    isGoogleLoading = false
+                    onGoogleSignInError("$detail. Firebase OAuth fallback is unavailable because the Activity context is missing.")
+                    return@launch
+                }
+
+                onGoogleSignInProvider(hostActivity) { success, fallbackError ->
+                    isGoogleLoading = false
+                    if (!success) {
+                        onGoogleSignInError(
+                            "$detail\nFirebase Google OAuth fallback failed: ${fallbackError ?: "No additional details returned."}"
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 isGoogleLoading = false
                 Log.e("ProfileSheet", "Google Sign-In failed", e)
-                onGoogleSignInError("Google sign-in failed. Please try again.")
+                onGoogleSignInError(
+                    "Google sign-in failed (${e.javaClass.simpleName}): ${e.localizedMessage ?: "No additional details returned."}"
+                )
             }
         }
     }

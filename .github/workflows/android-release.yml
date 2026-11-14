@@ -60,18 +60,48 @@ jobs:
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
           python3 -m json.tool app/google-services.json >/dev/null
 
-      - name: Provide CI fallback for missing OAuth resource
+      - name: Validate production Firebase app configuration
         run: |
-          if [ ! -f app/google-services.json ]; then
-            mkdir -p app/src/debug/res/values
-            printf '%s\n' \
-              '<resources>' \
-              '  <string name="default_web_client_id" translatable="false">23597341071-4f8sr6sum748fcm30eba02332i2n3isr.apps.googleusercontent.com</string>' \
-              '</resources>' > app/src/debug/res/values/ci-google-oauth.xml
-          fi
+          python3 - <<'PY'
+          import json
 
-      - name: Build debug APK
-        run: gradle :app:assembleDebug
+          expected_project = "gen-lang-client-0232823199"
+          expected_package = "com.aistudio.skmobile.udgirs"
+          expected_web_client_id = "23597341071-4f8sr6sum748fcm30eba02332i2n3isr.apps.googleusercontent.com"
+          with open("app/google-services.json", encoding="utf-8") as config_file:
+              config = json.load(config_file)
+
+          if config.get("project_info", {}).get("project_id") != expected_project:
+              raise SystemExit("GOOGLE_SERVICES_JSON is not the existing production Firebase project")
+
+          app_client = next(
+              (
+                  client
+                  for client in config.get("client", [])
+                  if client.get("client_info", {}).get("android_client_info", {}).get("package_name")
+                  == expected_package
+              ),
+              None,
+          )
+          if app_client is None:
+              raise SystemExit(f"GOOGLE_SERVICES_JSON has no Android app for {expected_package}")
+
+          if not any(
+              oauth_client.get("client_type") == 3
+              and oauth_client.get("client_id") == expected_web_client_id
+              for oauth_client in app_client.get("oauth_client", [])
+          ):
+              raise SystemExit("GOOGLE_SERVICES_JSON has no expected production Google Web OAuth client")
+          PY
+
+      - name: Build debug APK and process both Firebase variants
+        run: |
+          gradle :app:processDebugGoogleServices :app:processReleaseGoogleServices :app:assembleDebug
+          for variant in debug release; do
+            resources="app/build/generated/res/process${variant^}GoogleServices/values/values.xml"
+            grep -Fq '<string name="project_id" translatable="false">gen-lang-client-0232823199</string>' "$resources"
+            grep -Fq '<string name="default_web_client_id" translatable="false">23597341071-4f8sr6sum748fcm30eba02332i2n3isr.apps.googleusercontent.com</string>' "$resources"
+          done
 
       - name: Prepare release asset
         run: |

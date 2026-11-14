@@ -823,9 +823,24 @@ class ShopViewModel(
      * Customer Google Sign-In via Credential Manager token.
      */
     fun signInCustomerWithGoogle(idToken: String, onComplete: (Boolean, String?) -> Unit) {
+        runCustomerGoogleSignIn(onComplete) {
+            CustomerAuthService.signInWithGoogle(idToken)
+        }
+    }
+
+    fun signInCustomerWithGoogleProvider(activity: Activity, onComplete: (Boolean, String?) -> Unit) {
+        runCustomerGoogleSignIn(onComplete) {
+            CustomerAuthService.signInWithGoogleProvider(activity)
+        }
+    }
+
+    private fun runCustomerGoogleSignIn(
+        onComplete: (Boolean, String?) -> Unit,
+        signIn: suspend () -> Result<FirebaseUser>
+    ) {
         _uiState.update { it.copy(isLoading = true, customerAuthError = null) }
         viewModelScope.launch {
-            val result = CustomerAuthService.signInWithGoogle(idToken)
+            val result = signIn()
             _uiState.update { it.copy(isLoading = false) }
             result.fold(
                 onSuccess = { user ->
@@ -837,7 +852,7 @@ class ShopViewModel(
                     onComplete(true, null)
                 },
                 onFailure = { error ->
-                    val errorMsg = CustomerAuthService.parseAuthError(error)
+                    val errorMsg = CustomerAuthService.parseGoogleSignInError(error)
                     _uiState.update { it.copy(customerAuthError = errorMsg) }
                     onComplete(false, errorMsg)
                 }

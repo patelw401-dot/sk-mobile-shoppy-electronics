@@ -446,6 +446,14 @@ fun SKMobileApp(
                     }
                 }
             },
+            onGoogleSignInProvider = { activity, onComplete ->
+                shopViewModel.signInCustomerWithGoogleProvider(activity) { success, error ->
+                    onComplete(success, error)
+                    if (success) {
+                        shopViewModel.setLoginSheetVisible(false)
+                    }
+                }
+            },
             onGoogleSignInError = { error ->
                 shopViewModel.setCustomerAuthError(error)
             },
