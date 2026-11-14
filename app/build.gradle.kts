@@ -32,9 +32,9 @@ android {
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
+      storePassword = System.getenv("ANDROID_SIGNING_STORE_PASSWORD") ?: "android"
+      keyAlias = System.getenv("ANDROID_SIGNING_KEY_ALIAS") ?: "androiddebugkey"
+      keyPassword = System.getenv("ANDROID_SIGNING_KEY_PASSWORD") ?: "android"
     }
   }
 

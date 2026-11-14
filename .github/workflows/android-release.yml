@@ -37,17 +37,29 @@ jobs:
         with:
           packages: platforms;android-36 build-tools;36.0.0
 
-      - name: Create temporary debug signing key
+      - name: Restore persistent APK signing key
+        env:
+          ANDROID_SIGNING_KEYSTORE_BASE64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
+          ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
         run: |
-          keytool -genkeypair -v \
-            -keystore debug.keystore \
-            -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=Android Debug,O=Android,C=US"
+          if [ -z "$ANDROID_SIGNING_KEYSTORE_BASE64" ] \
+            || [ -z "$ANDROID_SIGNING_STORE_PASSWORD" ] \
+            || [ -z "$ANDROID_SIGNING_KEY_ALIAS" ] \
+            || [ -z "$ANDROID_SIGNING_KEY_PASSWORD" ]; then
+            echo "::error::All ANDROID_SIGNING_* Actions secrets are required to preserve APK signing"
+            exit 1
+          fi
+          printf '%s' "$ANDROID_SIGNING_KEYSTORE_BASE64" | base64 --decode > debug.keystore
+          actual_sha1="$(keytool -list -v -keystore debug.keystore \
+            -storepass "$ANDROID_SIGNING_STORE_PASSWORD" \
+            -alias "$ANDROID_SIGNING_KEY_ALIAS" \
+            | awk -F': ' '/SHA1:/{print toupper($2); exit}' | tr -d ':')"
+          if [ "$actual_sha1" != "6EB2412560AD775197BFA8674808D1C844442A0E" ]; then
+            echo "::error::Signing keystore SHA-1 does not match the current APK certificate"
+            exit 1
+          fi
 
       - name: Restore Firebase configuration
         env:
@@ -95,6 +107,10 @@ jobs:
           PY
 
       - name: Build debug APK and process both Firebase variants
+        env:
+          ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
         run: |
           gradle :app:processDebugGoogleServices :app:processReleaseGoogleServices :app:assembleDebug
           for variant in debug release; do
@@ -109,6 +125,12 @@ jobs:
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk dist/sk-mobile-shoppy.apk
           test -s dist/sk-mobile-shoppy.apk
+          apk_sha1="$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/sk-mobile-shoppy.apk \
+            | awk -F': ' '/certificate SHA-1 digest:/{print toupper($2); exit}' | tr -d ':')"
+          if [ "$apk_sha1" != "6EB2412560AD775197BFA8674808D1C844442A0E" ]; then
+            echo "::error::Built APK SHA-1 does not match the current APK certificate"
+            exit 1
+          fi
 
       - name: Publish APK to GitHub Release
         uses: softprops/action-gh-release@v2
