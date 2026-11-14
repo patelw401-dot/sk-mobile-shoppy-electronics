@@ -43,24 +43,21 @@ jobs:
           ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
           ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
           ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+          EXPECTED_ANDROID_SIGNING_SHA1: 74:4C:A0:C0:DC:20:2E:56:5F:9A:B9:F2:54:81:BF:9C:86:A7:51:57
         run: |
-          if [ -z "$ANDROID_SIGNING_KEYSTORE_BASE64" ] \
-            || [ -z "$ANDROID_SIGNING_STORE_PASSWORD" ] \
-            || [ -z "$ANDROID_SIGNING_KEY_ALIAS" ] \
-            || [ -z "$ANDROID_SIGNING_KEY_PASSWORD" ]; then
-            echo "::error::All ANDROID_SIGNING_* Actions secrets are required to preserve APK signing"
+          set -euo pipefail
+          if [ -z "$ANDROID_SIGNING_KEYSTORE_BASE64" ] || [ -z "$ANDROID_SIGNING_STORE_PASSWORD" ] || [ -z "$ANDROID_SIGNING_KEY_ALIAS" ] || [ -z "$ANDROID_SIGNING_KEY_PASSWORD" ]; then
+            echo "Android signing secrets are not fully configured" >&2
             exit 1
           fi
           printf '%s' "$ANDROID_SIGNING_KEYSTORE_BASE64" | base64 --decode > debug.keystore
-          actual_sha1="$(keytool -list -v -keystore debug.keystore \
-            -storepass "$ANDROID_SIGNING_STORE_PASSWORD" \
-            -alias "$ANDROID_SIGNING_KEY_ALIAS" \
-            | awk -F': ' '/SHA1:/{print toupper($2); exit}' | tr -d ':')"
-          if [ "$actual_sha1" != "6EB2412560AD775197BFA8674808D1C844442A0E" ]; then
-            echo "::error::Signing keystore SHA-1 does not match the current APK certificate"
+          chmod 600 debug.keystore
+          actual_sha1="$(keytool -list -v -keystore debug.keystore -storepass "$ANDROID_SIGNING_STORE_PASSWORD" -alias "$ANDROID_SIGNING_KEY_ALIAS" | awk -F': ' '/SHA1:/{print $2; exit}' | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          expected_sha1="$(printf '%s' "$EXPECTED_ANDROID_SIGNING_SHA1" | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          if [ "$actual_sha1" != "$expected_sha1" ]; then
+            echo "Configured signing keystore SHA-1 does not match the expected release certificate" >&2
             exit 1
           fi
-
       - name: Restore Firebase configuration
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
@@ -106,13 +103,16 @@ jobs:
               raise SystemExit("GOOGLE_SERVICES_JSON has no expected production Google Web OAuth client")
           PY
 
-      - name: Build debug APK and process both Firebase variants
+      - name: Build debug and release APKs and process Firebase variants
         env:
           ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
           ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
           ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+          KEYSTORE_PATH: ${{ github.workspace }}/debug.keystore
+          STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
         run: |
-          gradle :app:processDebugGoogleServices :app:processReleaseGoogleServices :app:assembleDebug
+          gradle :app:processDebugGoogleServices :app:processReleaseGoogleServices :app:assembleDebug :app:assembleRelease
           for variant in debug release; do
             resources="app/build/generated/res/process${variant^}GoogleServices/values/values.xml"
             grep -Fq '<string name="project_id" translatable="false">gen-lang-client-0232823199</string>' "$resources"
@@ -120,18 +120,20 @@ jobs:
           done
 
       - name: Prepare release asset
+        env:
+          EXPECTED_ANDROID_SIGNING_SHA1: 74:4C:A0:C0:DC:20:2E:56:5F:9A:B9:F2:54:81:BF:9C:86:A7:51:57
         run: |
-          test -s app/build/outputs/apk/debug/app-debug.apk
+          set -euo pipefail
+          test -s app/build/outputs/apk/release/app-release.apk
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/sk-mobile-shoppy.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/sk-mobile-shoppy.apk
           test -s dist/sk-mobile-shoppy.apk
-          apk_sha1="$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/sk-mobile-shoppy.apk \
-            | awk -F': ' '/certificate SHA-1 digest:/{print toupper($2); exit}' | tr -d ':')"
-          if [ "$apk_sha1" != "6EB2412560AD775197BFA8674808D1C844442A0E" ]; then
-            echo "::error::Built APK SHA-1 does not match the current APK certificate"
+          apk_sha1="$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs dist/sk-mobile-shoppy.apk | awk -F': ' '/certificate SHA-1 digest:/{print $NF; exit}' | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          expected_sha1="$(printf '%s' "$EXPECTED_ANDROID_SIGNING_SHA1" | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          if [ "$apk_sha1" != "$expected_sha1" ]; then
+            echo "Release APK signing SHA-1 does not match the configured release certificate" >&2
             exit 1
           fi
-
       - name: Publish APK to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
