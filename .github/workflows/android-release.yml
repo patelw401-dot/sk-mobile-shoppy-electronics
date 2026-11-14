@@ -49,6 +49,17 @@ jobs:
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
 
+      - name: Restore Firebase configuration
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::error::The GOOGLE_SERVICES_JSON Actions secret is required"
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          python3 -m json.tool app/google-services.json >/dev/null
+
       - name: Provide CI fallback for missing OAuth resource
         run: |
           if [ ! -f app/google-services.json ]; then
