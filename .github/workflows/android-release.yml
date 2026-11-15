@@ -50,11 +50,30 @@ jobs:
             echo "Android signing secrets are not fully configured" >&2
             exit 1
           fi
-          printf '%s' "$ANDROID_SIGNING_KEYSTORE_BASE64" | base64 --decode > debug.keystore
+          decode_succeeded=false
+          if printf '%s' "$ANDROID_SIGNING_KEYSTORE_BASE64" | base64 --decode > debug.keystore 2>/dev/null; then
+            decode_succeeded=true
+          fi
           chmod 600 debug.keystore
-          actual_sha1="$(keytool -list -v -keystore debug.keystore -storepass "$ANDROID_SIGNING_STORE_PASSWORD" -alias "$ANDROID_SIGNING_KEY_ALIAS" | awk -F': ' '/SHA1:/{print $2; exit}' | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          keystore_size="$(stat -c '%s' debug.keystore)"
+          actual_sha1=""
+          if [ "$decode_succeeded" = true ] && [ "$keystore_size" -gt 0 ]; then
+            if keytool_output="$(keytool -list -v -keystore debug.keystore -storepass "$ANDROID_SIGNING_STORE_PASSWORD" -alias "$ANDROID_SIGNING_KEY_ALIAS" 2>/dev/null)"; then
+              actual_sha1="$(printf '%s\n' "$keytool_output" | awk -F': ' '/SHA1:/{if (sha1 == "") sha1=$2} END{print sha1}')"
+            fi
+          fi
+          actual_sha1_normalized="$(printf '%s' "$actual_sha1" | tr -d ':' | tr '[:lower:]' '[:upper:]')"
           expected_sha1="$(printf '%s' "$EXPECTED_ANDROID_SIGNING_SHA1" | tr -d ':' | tr '[:lower:]' '[:upper:]')"
-          if [ "$actual_sha1" != "$expected_sha1" ]; then
+          sha1_matches=false
+          if [ -n "$actual_sha1_normalized" ] && [ "$actual_sha1_normalized" = "$expected_sha1" ]; then
+            sha1_matches=true
+          fi
+          echo "Base64 decoding succeeded: $decode_succeeded"
+          echo "Decoded keystore size (bytes): $keystore_size"
+          echo "Actual SHA-1: ${actual_sha1:-unavailable}"
+          echo "Expected SHA-1: $EXPECTED_ANDROID_SIGNING_SHA1"
+          echo "SHA-1 match: $sha1_matches"
+          if [ "$sha1_matches" != true ]; then
             echo "Configured signing keystore SHA-1 does not match the expected release certificate" >&2
             exit 1
           fi
