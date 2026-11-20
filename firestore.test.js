@@ -307,3 +307,80 @@ test("Google-Only Auth: Authorized Gmail allowlist grants admin; normal customer
   );
 });
 
+
+// ---------------------------------------------------------------------------
+// Web <-> Android sync: stock bookkeeping, canonical order payload
+// ---------------------------------------------------------------------------
+test("Customer can place a canonical order (Order Placed, stockTracking true, stockDeducted false)", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  await assertSucceeds(
+    aliceDb.collection("orders").doc("order_canonical").set({
+      id: "order_canonical",
+      customerId: ALICE_UID,
+      customerName: "Alice",
+      phone: "9823109313",
+      address: "Udgir Market",
+      pinCode: "413517",
+      deliveryMethod: "Store Pickup (Udgir Showroom)",
+      items: [{ id: "prod_1", name: "iPhone 15", price: 79999, quantity: 1 }],
+      subtotal: 79999,
+      deliveryCharge: 0,
+      total: 79999,
+      orderStatus: "Order Placed",
+      paymentStatus: "Pending",
+      stockTracking: true,
+      stockDeducted: false,
+    })
+  );
+});
+
+test("Customer cannot create an order that claims stock was already deducted", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  await assertFails(
+    aliceDb.collection("orders").doc("order_fake_stock").set({
+      id: "order_fake_stock",
+      customerId: ALICE_UID,
+      customerName: "Alice",
+      phone: "9823109313",
+      address: "Udgir Market",
+      items: [{ id: "prod_1", name: "iPhone 15", price: 79999, quantity: 1 }],
+      total: 79999,
+      orderStatus: "Order Placed",
+      paymentStatus: "Pending",
+      stockTracking: true,
+      stockDeducted: true, // must be rejected
+    })
+  );
+});
+
+test("Customer cancel is allowed (with history) but cannot touch stock flags", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  await assertFails(
+    aliceDb.collection("orders").doc("order_alice").update({
+      orderStatus: "Cancelled",
+      stockDeducted: false,
+    })
+  );
+  await assertSucceeds(
+    aliceDb.collection("orders").doc("order_alice").update({
+      orderStatus: "Cancelled",
+      cancellationReason: "Changed my mind",
+      updatedAt: new Date(),
+      statusHistory: [{ status: "Cancelled", timestamp: Date.now(), note: "Cancelled by customer", updatedBy: "Customer" }],
+    })
+  );
+});
+
+test("Only admin can change product stock and the order stock flags (stock transaction)", async () => {
+  const adminDb = testEnv.authenticatedContext(ADMIN_UID).firestore();
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  await assertFails(aliceDb.collection("products").doc("prod_1").update({ stock: 9999 }));
+  await assertSucceeds(adminDb.runTransaction(async (tx) => {
+    const productRef = adminDb.collection("products").doc("prod_1");
+    const orderRef = adminDb.collection("orders").doc("order_alice");
+    await tx.get(productRef);
+    await tx.get(orderRef);
+    tx.update(productRef, { stock: 4, inStock: true });
+    tx.update(orderRef, { stockDeducted: true });
+  }));
+});

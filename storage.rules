@@ -24,6 +24,17 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // Product images (uploaded from the website admin panel and the Android admin app):
+    // Public read so the storefront and the APK can display them; only admins can upload
+    // (max 5MB, image/* content type) or delete. Path: products/{productId}/{timestamp}.jpg
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() &&
+                   request.resource.size < 5 * 1024 * 1024 &&
+                   request.resource.contentType.matches('image/.*');
+      allow delete: if isAdmin();
+    }
+
     // Video thumbnails: Public read; Admin write
     match /thumbnails/{thumbFile} {
       allow read: if true;
