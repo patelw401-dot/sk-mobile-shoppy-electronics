@@ -83,6 +83,32 @@ jobs:
 
           echo "KEYSTORE_PATH=${KEYSTORE_FILE}" >> "${GITHUB_ENV}"
 
+      - name: Restore app/google-services.json
+        env:
+          GOOGLE_SERVICES_JSON_RAW: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GOOGLE_SERVICES_JSON_RAW}" ]; then
+            echo "::error::Secret GOOGLE_SERVICES_JSON is missing or empty."
+            exit 1
+          fi
+
+          TRIMMED="$(printf '%s' "${GOOGLE_SERVICES_JSON_RAW}" | sed -e 's/^[[:space:]]*//')"
+          if [[ "${TRIMMED}" == \{* ]]; then
+            printf '%s\n' "${GOOGLE_SERVICES_JSON_RAW}" > app/google-services.json
+          else
+            if ! printf '%s' "${GOOGLE_SERVICES_JSON_RAW}" | tr -d '\r\n ' | base64 --decode > app/google-services.json; then
+              echo "::error::Failed to Base64-decode GOOGLE_SERVICES_JSON."
+              exit 1
+            fi
+          fi
+
+          if [ ! -s app/google-services.json ] || ! python3 -c "import json; json.load(open('app/google-services.json'))" >/dev/null 2>&1; then
+            echo "::error::Restored app/google-services.json is empty or invalid JSON."
+            exit 1
+          fi
+
       - name: Build Signed Release APK
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
