@@ -16,7 +16,11 @@ object FirebaseConfig {
     fun isConfigured(context: Context): Boolean {
         return try {
             val dbId = context.getString(R.string.firestore_database_id)
-            dbId.isNotBlank() && FirebaseApp.getApps(context).isNotEmpty()
+            if (dbId.isBlank()) return false
+            if (FirebaseApp.getApps(context).isEmpty()) {
+                FirebaseApp.initializeApp(context)
+            }
+            FirebaseApp.getApps(context).isNotEmpty()
         } catch (e: Exception) {
             false
         }

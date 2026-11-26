@@ -314,6 +314,19 @@ fun ProductVisualBox(
 ) {
     val (gradientColors, iconVector) = getCategoryStyling(product.category)
     val hasValidImage = product.primaryImage.isNotBlank()
+    val imageModel: Any = androidx.compose.runtime.remember(product.primaryImage) {
+        val src = product.primaryImage.trim()
+        if (src.startsWith("data:image/", ignoreCase = true) && src.contains("base64,", ignoreCase = true)) {
+            try {
+                val base64Part = src.substringAfter("base64,")
+                android.util.Base64.decode(base64Part, android.util.Base64.DEFAULT)
+            } catch (_: Exception) {
+                src
+            }
+        } else {
+            src
+        }
+    }
 
     Box(
         modifier = modifier
@@ -323,7 +336,7 @@ fun ProductVisualBox(
     ) {
         if (hasValidImage) {
             AsyncImage(
-                model = product.primaryImage,
+                model = imageModel,
                 contentDescription = product.name,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier

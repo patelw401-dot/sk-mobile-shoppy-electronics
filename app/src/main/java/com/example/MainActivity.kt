@@ -26,6 +26,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.admin.ui.AdminDashboardLayout
 import com.example.admin.ui.AdminLoginScreen
 import com.example.admin.viewmodel.AdminViewModel
+import com.example.data.service.DataServiceLocator
+import com.example.data.storage.LocalStorageManager
 import com.example.model.ProductCategory
 import com.example.ui.components.AppBottomNavBar
 import com.example.ui.components.AppHeader
@@ -53,6 +55,8 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LocalStorageManager.getInstance(applicationContext)
+        DataServiceLocator.initialize(applicationContext)
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {

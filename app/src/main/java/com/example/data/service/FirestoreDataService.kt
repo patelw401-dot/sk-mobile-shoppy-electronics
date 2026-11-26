@@ -60,8 +60,10 @@ class FirestoreDataService(
 
         fun getInstance(context: Context): FirestoreDataService {
             return instance ?: synchronized(this) {
+                val appContext = context.applicationContext
                 instance ?: FirestoreDataService(
-                    FirebaseConfig.getFirestore(context.applicationContext)
+                    firestore = FirebaseConfig.getFirestore(appContext),
+                    localStorage = LocalStorageManager.getInstance(appContext)
                 ).also { instance = it }
             }
         }
@@ -189,6 +191,7 @@ class FirestoreDataService(
         val raw = doc.get(field) ?: return default
         return when (raw) {
             is Number -> raw.toLong()
+            is com.google.firebase.Timestamp -> raw.toDate().time
             is String -> raw.toDoubleOrNull()?.toLong() ?: default
             else -> default
         }
@@ -282,6 +285,94 @@ class FirestoreDataService(
     // -------------------------------------------------------------
     // PRODUCTS - REAL-TIME BIDIRECTIONAL SYNC
     // -------------------------------------------------------------
+    private fun parseProductDocument(doc: DocumentSnapshot): Product? {
+        return try {
+            val id = doc.getString("id")?.takeIf { it.isNotBlank() } ?: doc.id
+            val name = (doc.getString("name") ?: doc.getString("title"))?.takeIf { it.isNotBlank() } ?: return null
+            val brand = doc.getString("brand")?.takeIf { it.isNotBlank() } ?: "Generic"
+            val catStr = doc.getString("category") ?: doc.getString("categorySlug") ?: "smartphones"
+            val category = ProductCategory.fromSlug(catStr)
+            val categorySlug = catStr.lowercase().trim()
+            val price = extractInt(doc, "price", 0)
+            val rawOriginalPrice = extractInt(doc, "originalPrice", price)
+            val originalPrice = if (rawOriginalPrice > 0) rawOriginalPrice else price
+            val rating = extractFloat(doc, "rating", 4.5f)
+            val reviewCount = extractInt(doc, "reviewCount", 0)
+            val description = doc.getString("description") ?: ""
+            val stock = extractInt(doc, "stock", 10)
+            val sku = doc.getString("sku")?.takeIf { it.isNotBlank() } ?: "SKM-$id"
+            val inStock = extractBoolean(doc, "inStock", stock > 0)
+            val active = extractBoolean(doc, "active", true)
+            val featured = extractBoolean(doc, "featured", extractBoolean(doc, "isFeatured", false))
+            val isBestSeller = extractBoolean(doc, "isBestSeller", false)
+            val highlightBadge = doc.getString("badge")?.takeIf { it.isNotBlank() }
+                ?: doc.getString("highlightBadge")?.takeIf { it.isNotBlank() }
+            val isPreOwned = extractBoolean(doc, "isPreOwned", category == ProductCategory.OLD_PHONES)
+            val conditionGrade = doc.getString("conditionGrade")?.takeIf { it.isNotBlank() }
+            val batteryHealth = doc.getString("batteryHealth")?.takeIf { it.isNotBlank() }
+            val stockStatus = doc.getString("stockStatus")?.takeIf { it.isNotBlank() }
+                ?: if (inStock) (if (stock in 1..3) "Only $stock left" else "In Stock") else "Out of Stock"
+            val createdAt = extractLong(doc, "createdAt", System.currentTimeMillis())
+            val releaseOrder = extractInt(doc, "releaseOrder", (createdAt / 1000L).toInt())
+
+            // Images: prioritize imageUrl, fallback to images array
+            val singleImageUrl = doc.getString("imageUrl") ?: doc.getString("image") ?: doc.getString("primaryImage") ?: ""
+            val imagesList = extractStringList(doc, "images")
+            val finalImages = if (imagesList.isNotEmpty()) {
+                imagesList
+            } else if (singleImageUrl.isNotBlank()) {
+                listOf(singleImageUrl)
+            } else {
+                emptyList()
+            }
+            val finalImageUrl = singleImageUrl.ifBlank { finalImages.firstOrNull() ?: "" }
+
+            // Warranty
+            val hasWarranty = extractBoolean(doc, "hasWarranty", false)
+            val warrantyDuration = doc.getString("warrantyDuration") ?: doc.getString("warranty") ?: ""
+            val warrantyDescription = doc.getString("warrantyDescription") ?: ""
+
+            // Specifications
+            val specs = extractSpecifications(doc)
+
+            Product(
+                id = id,
+                name = name,
+                brand = brand,
+                category = category,
+                categorySlug = categorySlug,
+                price = price,
+                originalPrice = originalPrice,
+                rating = rating,
+                reviewCount = reviewCount,
+                description = description,
+                specifications = specs,
+                inStock = inStock,
+                stockStatus = stockStatus,
+                isFeatured = featured,
+                isBestSeller = isBestSeller,
+                isPreOwned = isPreOwned,
+                conditionGrade = conditionGrade,
+                batteryHealth = batteryHealth,
+                hasWarranty = hasWarranty,
+                warrantyDuration = warrantyDuration,
+                warrantyDescription = warrantyDescription,
+                highlightBadge = highlightBadge,
+                releaseOrder = releaseOrder,
+                stock = stock,
+                sku = sku,
+                imageUrl = finalImageUrl,
+                images = finalImages,
+                featured = featured,
+                active = active,
+                createdAt = createdAt
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Error parsing product doc ${doc.id}", e)
+            null
+        }
+    }
+
     private fun setupProductsListener() {
         firestore.collection(COLLECTION_PRODUCTS)
             .addSnapshotListener { snapshot, error ->
@@ -294,74 +385,8 @@ class FirestoreDataService(
                 }
 
                 if (snapshot != null) {
-                    val productList = snapshot.documents.mapNotNull { doc ->
-                        try {
-                            val id = doc.getString("id")?.takeIf { it.isNotBlank() } ?: doc.id
-                            val name = doc.getString("name")?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                            val brand = doc.getString("brand") ?: "Generic"
-                            val catStr = doc.getString("category") ?: doc.getString("categorySlug") ?: "smartphones"
-                            val category = ProductCategory.fromSlug(catStr)
-                            val categorySlug = catStr.lowercase().trim()
-                            val price = extractInt(doc, "price", 0)
-                            val originalPrice = extractInt(doc, "originalPrice", price)
-                            val rating = extractFloat(doc, "rating", 4.5f)
-                            val reviewCount = extractInt(doc, "reviewCount", 0)
-                            val description = doc.getString("description") ?: ""
-                            val stock = extractInt(doc, "stock", 10)
-                            val sku = doc.getString("sku") ?: "SKM-$id"
-                            val inStock = extractBoolean(doc, "inStock", stock > 0)
-                            val active = extractBoolean(doc, "active", inStock)
-                            val featured = extractBoolean(doc, "featured", extractBoolean(doc, "isFeatured", false))
-
-                            // Images: prioritize imageUrl, fallback to images array
-                            val singleImageUrl = doc.getString("imageUrl") ?: doc.getString("image") ?: doc.getString("primaryImage") ?: ""
-                            val imagesList = extractStringList(doc, "images")
-                            val finalImages = if (imagesList.isNotEmpty()) {
-                                imagesList
-                            } else if (singleImageUrl.isNotBlank()) {
-                                listOf(singleImageUrl)
-                            } else {
-                                emptyList()
-                            }
-                            val finalImageUrl = singleImageUrl.ifBlank { finalImages.firstOrNull() ?: "" }
-
-                            // Warranty
-                            val hasWarranty = extractBoolean(doc, "hasWarranty", false)
-                            val warrantyDuration = doc.getString("warrantyDuration") ?: doc.getString("warranty") ?: ""
-                            val warrantyDescription = doc.getString("warrantyDescription") ?: ""
-
-                            // Specifications
-                            val specs = extractSpecifications(doc)
-
-                            Product(
-                                id = id,
-                                name = name,
-                                brand = brand,
-                                category = category,
-                                categorySlug = categorySlug,
-                                price = price,
-                                originalPrice = originalPrice,
-                                rating = rating,
-                                reviewCount = reviewCount,
-                                description = description,
-                                specifications = specs,
-                                stock = stock,
-                                sku = sku,
-                                active = active,
-                                inStock = inStock,
-                                featured = featured,
-                                isFeatured = featured,
-                                imageUrl = finalImageUrl,
-                                images = finalImages,
-                                hasWarranty = hasWarranty,
-                                warrantyDuration = warrantyDuration,
-                                warrantyDescription = warrantyDescription
-                            )
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Error parsing product doc ${doc.id}", e)
-                            null
-                        }
-                    }
+                    val productList = snapshot.documents.mapNotNull { parseProductDocument(it) }
+                    Log.i(TAG, "Firestore /products snapshot received: ${snapshot.size()} docs, parsed ${productList.size} products")
 
                     if (productList.isNotEmpty()) {
                         _productsFlow.value = productList
@@ -429,58 +454,7 @@ class FirestoreDataService(
     override suspend fun getProductById(id: String): Product? {
         return _productsFlow.value.find { it.id == id } ?: try {
             val doc = firestore.collection(COLLECTION_PRODUCTS).document(id).get().await()
-            if (doc.exists()) {
-                val name = doc.getString("name") ?: ""
-                val brand = doc.getString("brand") ?: "Generic"
-                val catStr = doc.getString("category") ?: doc.getString("categorySlug") ?: "smartphones"
-                val category = ProductCategory.fromSlug(catStr)
-                val categorySlug = catStr.lowercase().trim()
-                val price = extractInt(doc, "price", 0)
-                val originalPrice = extractInt(doc, "originalPrice", price)
-                val rating = extractFloat(doc, "rating", 4.5f)
-                val reviewCount = extractInt(doc, "reviewCount", 0)
-                val description = doc.getString("description") ?: ""
-                val stock = extractInt(doc, "stock", 10)
-                val sku = doc.getString("sku") ?: "SKM-$id"
-                val inStock = extractBoolean(doc, "inStock", stock > 0)
-                val active = extractBoolean(doc, "active", inStock)
-                val featured = extractBoolean(doc, "featured", extractBoolean(doc, "isFeatured", false))
-
-                val singleImageUrl = doc.getString("imageUrl") ?: doc.getString("image") ?: doc.getString("primaryImage") ?: ""
-                val imagesList = extractStringList(doc, "images")
-                val finalImages = if (imagesList.isNotEmpty()) imagesList else if (singleImageUrl.isNotBlank()) listOf(singleImageUrl) else emptyList()
-                val finalImageUrl = singleImageUrl.ifBlank { finalImages.firstOrNull() ?: "" }
-
-                val hasWarranty = extractBoolean(doc, "hasWarranty", false)
-                val warrantyDuration = doc.getString("warrantyDuration") ?: doc.getString("warranty") ?: ""
-                val warrantyDescription = doc.getString("warrantyDescription") ?: ""
-                val specs = extractSpecifications(doc)
-
-                Product(
-                    id = id,
-                    name = name,
-                    brand = brand,
-                    category = category,
-                    categorySlug = categorySlug,
-                    price = price,
-                    originalPrice = originalPrice,
-                    rating = rating,
-                    reviewCount = reviewCount,
-                    description = description,
-                    specifications = specs,
-                    stock = stock,
-                    sku = sku,
-                    active = active,
-                    inStock = inStock,
-                    featured = featured,
-                    isFeatured = featured,
-                    imageUrl = finalImageUrl,
-                    images = finalImages,
-                    hasWarranty = hasWarranty,
-                    warrantyDuration = warrantyDuration,
-                    warrantyDescription = warrantyDescription
-                )
-            } else null
+            if (doc.exists()) parseProductDocument(doc) else null
         } catch (e: Exception) {
             null
         }

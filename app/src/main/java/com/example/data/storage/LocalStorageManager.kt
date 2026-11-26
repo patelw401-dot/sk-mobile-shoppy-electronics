@@ -1136,8 +1136,17 @@ class LocalStorageManager(private val context: Context? = null) {
         private var INSTANCE: LocalStorageManager? = null
 
         fun getInstance(context: Context? = null): LocalStorageManager {
-            return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: LocalStorageManager(context?.applicationContext ?: context).also { INSTANCE = it }
+            val existing = INSTANCE
+            if (existing != null && (existing.context != null || context == null)) {
+                return existing
+            }
+            return synchronized(this) {
+                val current = INSTANCE
+                if (current != null && (current.context != null || context == null)) {
+                    current
+                } else {
+                    LocalStorageManager(context?.applicationContext ?: context).also { INSTANCE = it }
+                }
             }
         }
     }
