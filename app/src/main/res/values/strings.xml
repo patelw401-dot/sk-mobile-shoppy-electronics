@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">SK Mobile Shoppy and Electronics</string>
+    <string name="default_web_client_id" translatable="false">23597341071-4f8sr6sum748fcm30eba02332i2n3isr.apps.googleusercontent.com</string>
 </resources>
