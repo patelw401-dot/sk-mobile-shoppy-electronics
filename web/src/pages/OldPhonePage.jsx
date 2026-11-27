@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PRE_OWNED_PHONES, STORE_INFO } from '../data/storeData';
 import ProductCard from '../components/ProductCard';
+import ExchangeComingSoonCard from '../components/ExchangeComingSoonCard';
 import { saveOldPhoneRequestToFirestore, signInWithGooglePopup } from '../firebase';
 import { 
   RefreshCw, 
@@ -226,6 +227,8 @@ export default function OldPhonePage({ currentUser, setActivePage, onShowToast, 
           </button>
         </div>
       </div>
+
+      <ExchangeComingSoonCard onShowToast={onShowToast} />
 
       {/* Tab 1: Buy Pre-Owned Phones */}
       {activeTab === 'buy' && (

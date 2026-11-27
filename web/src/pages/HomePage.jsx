@@ -18,6 +18,7 @@ import {
   Layers
 } from 'lucide-react';
 import AppDownloadSection from '../components/AppDownloadSection';
+import ExchangeComingSoonCard from '../components/ExchangeComingSoonCard';
 
 export default function HomePage({ 
   setActivePage, 
@@ -320,6 +321,10 @@ export default function HomePage({
               onAction={() => handleSelectProduct?.(phone)}
             />
           ))}
+        </div>
+
+        <div className="mt-6">
+          <ExchangeComingSoonCard onShowToast={onShowToast} />
         </div>
       </section>
 

@@ -215,7 +215,7 @@ fun DynamicCategoryCardItem(
             ) {
                 if (category.imageUrl.isNotBlank()) {
                     AsyncImage(
-                        model = category.imageUrl,
+                        model = rememberImageModel(category.imageUrl),
                         contentDescription = category.name,
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                         modifier = Modifier

@@ -1,5 +1,8 @@
 package com.example.admin.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,10 +22,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
@@ -39,6 +45,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -55,12 +62,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -70,6 +79,9 @@ import coil.compose.AsyncImage
 import com.example.admin.model.CategoryRecord
 import com.example.model.Product
 import com.example.model.ProductCategory
+import com.example.ui.components.compressUriToDataUri
+import com.example.ui.components.rememberImageModel
+import kotlinx.coroutines.launch
 
 private val GoldPrimary = Color(0xFFD4AF37)
 private val GoldLight = Color(0xFFF6E05E)
@@ -99,6 +111,9 @@ fun AdminCategoriesScreen(
     onDeleteCategory: (categoryId: String, reassignToSlug: String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("ALL") } // ALL, ACTIVE, INACTIVE
 
@@ -112,6 +127,26 @@ fun AdminCategoriesScreen(
     var formDescription by remember { mutableStateOf("") }
     var formOrder by remember { mutableStateOf("1") }
     var formIsActive by remember { mutableStateOf(true) }
+    var isCompressingImage by remember { mutableStateOf(false) }
+    var imagePickError by remember { mutableStateOf<String?>(null) }
+
+    val galleryPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            isCompressingImage = true
+            imagePickError = null
+            coroutineScope.launch {
+                val dataUri = compressUriToDataUri(context = context, uri = uri, maxDimension = 512, jpegQuality = 80)
+                if (dataUri != null) {
+                    formImageUrl = dataUri
+                } else {
+                    imagePickError = "Unable to read the selected image. Try another photo."
+                }
+                isCompressingImage = false
+            }
+        }
+    }
 
     // Delete confirmation state
     var categoryToDelete by remember { mutableStateOf<CategoryRecord?>(null) }
@@ -138,6 +173,7 @@ fun AdminCategoriesScreen(
         formDescription = ""
         formOrder = nextOrder
         formIsActive = true
+        imagePickError = null
         showFormDialog = true
     }
 
@@ -149,6 +185,7 @@ fun AdminCategoriesScreen(
         formDescription = cat.description
         formOrder = cat.displayOrder.toString()
         formIsActive = cat.isActive
+        imagePickError = null
         showFormDialog = true
     }
 
@@ -178,8 +215,11 @@ fun AdminCategoriesScreen(
                 }
             },
             text = {
+                val isDataUri = formImageUrl.startsWith("data:image/", ignoreCase = true)
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     OutlinedTextField(
@@ -235,10 +275,128 @@ fun AdminCategoriesScreen(
                         )
                     }
 
+                    // Live Thumbnail Preview + Gallery Upload Button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(DarkSurface)
+                            .border(1.dp, DarkBorder, RoundedCornerShape(10.dp))
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(DarkBackground)
+                                .border(1.dp, GoldPrimary.copy(alpha = 0.4f), RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (formImageUrl.isNotBlank()) {
+                                AsyncImage(
+                                    model = rememberImageModel(formImageUrl),
+                                    contentDescription = "Category image preview",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Category,
+                                    contentDescription = "No image selected",
+                                    tint = GoldPrimary
+                                )
+                            }
+                        }
+
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    galleryPickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                },
+                                enabled = !isCompressingImage,
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = GoldLight),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, GoldPrimary),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 40.dp)
+                                    .testTag("category_upload_gallery_btn")
+                            ) {
+                                if (isCompressingImage) {
+                                    CircularProgressIndicator(
+                                        color = GoldPrimary,
+                                        modifier = Modifier.size(14.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Compressing...", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.AddPhotoAlternate,
+                                        contentDescription = "Upload from Gallery",
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Upload Image from Gallery", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            if (isDataUri) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Gallery photo ready",
+                                        fontSize = 10.sp,
+                                        color = Color(0xFF4ADE80),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = "Clear",
+                                        fontSize = 10.sp,
+                                        color = Color(0xFFF87171),
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier
+                                            .clickable { formImageUrl = "" }
+                                            .padding(horizontal = 4.dp)
+                                    )
+                                }
+                            }
+
+                            imagePickError?.let { errMsg ->
+                                Text(
+                                    text = errMsg,
+                                    fontSize = 10.sp,
+                                    color = Color(0xFFF87171)
+                                )
+                            }
+                        }
+                    }
+
                     OutlinedTextField(
-                        value = formImageUrl,
-                        onValueChange = { formImageUrl = it },
+                        value = if (isDataUri) "" else formImageUrl,
+                        onValueChange = {
+                            imagePickError = null
+                            formImageUrl = it
+                        },
                         label = { Text("Category Image URL", color = Color.Gray) },
+                        placeholder = {
+                            Text(
+                                text = if (isDataUri) "Gallery photo active (paste URL to replace)" else "https://...",
+                                fontSize = 11.sp,
+                                color = Color.Gray
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth().testTag("category_image_input"),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -641,7 +799,7 @@ fun AdminCategoriesScreen(
                         ) {
                             if (cat.imageUrl.isNotBlank()) {
                                 AsyncImage(
-                                    model = cat.imageUrl,
+                                    model = rememberImageModel(cat.imageUrl),
                                     contentDescription = cat.name,
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop

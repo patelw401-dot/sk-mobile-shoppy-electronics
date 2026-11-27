@@ -18,7 +18,8 @@ import {
   Plus,
   Package,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  Upload
 } from 'lucide-react';
 import { DEFAULT_CATEGORIES } from '../data/storeData';
 import { 
@@ -198,6 +199,41 @@ export default function CategoryManagementTab({ currentUser, onShowToast }) {
     } else {
       setFormData(prev => ({ ...prev, name: newName }));
     }
+  };
+
+  // Compress local image to max 512px JPEG data URI
+  const handleDeviceImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (loadEvent) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 512;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.max(1, Math.round(width * scale));
+          height = Math.max(1, Math.round(height * scale));
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setFormData(prev => ({ ...prev, imageUrl: compressedDataUrl }));
+        onShowToast?.('Category image compressed & ready!', 'success');
+      };
+      img.onerror = () => {
+        onShowToast?.('Unable to decode selected image.', 'error');
+      };
+      img.src = loadEvent.target?.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   // Save Category (Create or Edit)
@@ -616,22 +652,49 @@ export default function CategoryManagementTab({ currentUser, onShowToast }) {
                 </div>
               </div>
 
-              {/* Category Image URL */}
+              {/* Category Image URL & Device Upload */}
               <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1.5">
-                  Category Image URL
-                </label>
-                <div className="flex gap-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-300">
+                    Category Image URL or Upload
+                  </label>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#D4AF37]/15 border border-[#D4AF37]/50 text-[11px] font-bold text-[#D4AF37] hover:bg-[#D4AF37]/25 transition">
+                    <Upload size={12} />
+                    <span>Upload Image</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleDeviceImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                <div className="flex gap-2 items-center">
                   <input
-                    type="url"
-                    placeholder="https://images.unsplash.com/..."
-                    value={formData.imageUrl}
+                    type="text"
+                    placeholder={
+                      (formData.imageUrl || '').startsWith('data:image/')
+                        ? 'Uploaded image active (paste URL to replace)'
+                        : 'https://images.unsplash.com/...'
+                    }
+                    value={(formData.imageUrl || '').startsWith('data:image/') ? '' : formData.imageUrl}
                     onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
                     className="flex-1 bg-[#1C1C1C] border border-[#333333] rounded-lg px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37]"
                   />
                   {formData.imageUrl && (
-                    <div className="w-9 h-9 rounded-lg border border-[#333333] overflow-hidden flex-shrink-0">
-                      <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="w-9 h-9 rounded-lg border border-[#333333] overflow-hidden">
+                        <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                      {(formData.imageUrl || '').startsWith('data:image/') && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                          className="text-[10px] font-bold text-red-400 hover:text-red-300 px-1.5 py-1 rounded bg-red-500/10 border border-red-500/30"
+                        >
+                          Clear
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

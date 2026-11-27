@@ -53,6 +53,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +79,8 @@ import com.example.model.ProductCategory
 import com.example.model.RepairService
 import com.example.ui.theme.*
 import com.example.ui.components.CategoryData
+import com.example.ui.components.ExchangeComingSoonBanner
+import com.example.ui.components.ExchangeComingSoonDialog
 import com.example.ui.components.ProductCard
 import com.example.ui.components.formatInr
 import com.example.ui.theme.ShopAccentAmber
@@ -103,6 +109,13 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    var showExchangeComingSoonDialog by remember { mutableStateOf(false) }
+
+    if (showExchangeComingSoonDialog) {
+        ExchangeComingSoonDialog(
+            onDismiss = { showExchangeComingSoonDialog = false }
+        )
+    }
 
     LazyColumn(
         modifier = modifier
@@ -335,6 +348,11 @@ fun HomeScreen(
             OldMobilesBannerSection(
                 onBuyOld = { onNavigate(AppScreen.OLD_PHONE_BUY) },
                 onSellOld = { onNavigate(AppScreen.SELL_OLD_PHONE) }
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            ExchangeComingSoonBanner(
+                onClick = { showExchangeComingSoonDialog = true },
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
 

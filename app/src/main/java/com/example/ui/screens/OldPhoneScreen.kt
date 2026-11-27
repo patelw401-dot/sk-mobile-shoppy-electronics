@@ -68,6 +68,8 @@ import com.example.model.MockData
 import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.model.SellRequest
+import com.example.ui.components.ExchangeComingSoonBanner
+import com.example.ui.components.ExchangeComingSoonDialog
 import com.example.ui.components.ProductCard
 import com.example.ui.components.formatInr
 import com.example.ui.theme.ShopOutlineLight
@@ -104,6 +106,13 @@ fun OldPhoneScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableIntStateOf(initialTab) }
+    var showExchangeComingSoonDialog by remember { mutableStateOf(false) }
+
+    if (showExchangeComingSoonDialog) {
+        ExchangeComingSoonDialog(
+            onDismiss = { showExchangeComingSoonDialog = false }
+        )
+    }
 
     // Valuation Confirmation Dialog
     if (lastConfirmedSellRequest != null) {
@@ -312,6 +321,10 @@ fun OldPhoneScreen(
                             )
                         }
                     }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ExchangeComingSoonBanner(
+                        onClick = { showExchangeComingSoonDialog = true }
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
@@ -333,6 +346,7 @@ fun OldPhoneScreen(
                 defaultPhone = defaultPhone,
                 defaultAddress = defaultAddress,
                 activeSellRequests = activeSellRequests,
+                onExchangeComingSoonClick = { showExchangeComingSoonDialog = true },
                 onSubmit = onSubmitSellRequest
             )
         }
@@ -345,6 +359,7 @@ fun SellOldPhoneForm(
     defaultPhone: String,
     defaultAddress: String,
     activeSellRequests: List<SellRequest>,
+    onExchangeComingSoonClick: () -> Unit = {},
     onSubmit: (
         customerName: String,
         mobileNumber: String,
@@ -385,6 +400,13 @@ fun SellOldPhoneForm(
             .padding(horizontal = 16.dp),
         contentPadding = PaddingValues(vertical = 16.dp)
     ) {
+        item {
+            ExchangeComingSoonBanner(
+                onClick = onExchangeComingSoonClick
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+        }
+
         // Step 1: Customer Info
         item {
             Card(
