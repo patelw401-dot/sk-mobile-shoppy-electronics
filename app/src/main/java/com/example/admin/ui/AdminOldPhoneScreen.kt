@@ -127,76 +127,75 @@ fun AdminOldPhoneScreen(
         )
     }
 
-    Column(
+    val displayList = if (selectedTab == 0) {
+        sellRequests
+    } else {
+        sellRequests.filter { it.status == "Purchased" || it.status == "Accepted" }
+    }
+
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF1F5F9))
-            .testTag("admin_old_phones_screen")
+            .testTag("admin_old_phones_screen"),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Text(
-                    text = "Old Mobiles Management",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
-                )
-                Text(
-                    text = "Manage customer sell valuations & certified pre-owned purchases",
-                    fontSize = 11.sp,
-                    color = Color(0xFF64748B)
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                TabRow(selectedTabIndex = selectedTab, containerColor = Color.White, contentColor = ShopPrimaryBlue) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("Customer Sell Requests (${sellRequests.size})", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "Old Mobiles Management",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
                     )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("Purchased Inventory (${sellRequests.count { it.status == "Purchased" }})", fontSize = 12.sp, fontWeight = FontWeight.Bold) }
+                    Text(
+                        text = "Manage customer sell valuations & certified pre-owned purchases",
+                        fontSize = 11.sp,
+                        color = Color(0xFF64748B)
                     )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    TabRow(selectedTabIndex = selectedTab, containerColor = Color.White, contentColor = ShopPrimaryBlue) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = { Text("Sell Requests (${sellRequests.size})", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                        )
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = { Text("Purchased (${sellRequests.count { it.status == "Purchased" }})", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
+                        )
+                    }
                 }
             }
         }
 
-        val displayList = if (selectedTab == 0) {
-            sellRequests
-        } else {
-            sellRequests.filter { it.status == "Purchased" || it.status == "Accepted" }
-        }
-
         if (displayList.isEmpty()) {
-            com.example.ui.components.EmptyStateView(
-                icon = Icons.Default.PhoneAndroid,
-                title = if (selectedTab == 0) "No Sell Requests" else "No Purchased Phones",
-                message = if (selectedTab == 0) "No customers have requested to sell an old phone yet." else "No pre-owned phones have been marked as purchased yet.",
-                modifier = Modifier.weight(1f)
-            )
+            item {
+                com.example.ui.components.EmptyStateView(
+                    icon = Icons.Default.PhoneAndroid,
+                    title = if (selectedTab == 0) "No Sell Requests" else "No Purchased Phones",
+                    message = if (selectedTab == 0) "No customers have requested to sell an old phone yet." else "No pre-owned phones have been marked as purchased yet.",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp)
+                )
+            }
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                items(displayList) { req ->
+            items(displayList) { req ->
                 var showStatusMenu by remember { mutableStateOf(false) }
 
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 5.dp)
                         .testTag("admin_sell_request_${req.requestId}"),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -212,8 +211,13 @@ fun AdminOldPhoneScreen(
                                 text = req.requestId,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = ShopPrimaryBlue
+                                color = ShopPrimaryBlue,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
                             )
+
+                            Spacer(modifier = Modifier.width(8.dp))
 
                             // Status Dropdown Menu
                             Box {
@@ -235,6 +239,8 @@ fun AdminOldPhoneScreen(
                                             text = req.status,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            softWrap = false,
                                             color = when (req.status) {
                                                 "Purchased", "Accepted" -> Color(0xFF166534)
                                                 "Rejected" -> Color(0xFF991B1B)
@@ -295,7 +301,8 @@ fun AdminOldPhoneScreen(
                                 text = "Offered Quote: ${formatInr(req.estimatedQuoteMin)} - ${formatInr(req.estimatedQuoteMax)}",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF166534)
+                                color = Color(0xFF166534),
+                                modifier = Modifier.weight(1f)
                             )
 
                             OutlinedButton(
@@ -304,13 +311,13 @@ fun AdminOldPhoneScreen(
                                     offerMaxText = req.estimatedQuoteMax.toString()
                                     requestToSetOffer = req
                                 },
-                                modifier = Modifier.height(30.dp),
+                                modifier = Modifier.height(32.dp),
                                 shape = RoundedCornerShape(6.dp),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                             ) {
                                 Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(13.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Set Offer", fontSize = 11.sp)
+                                Text("Set Offer", fontSize = 11.sp, maxLines = 1, softWrap = false)
                             }
                         }
                     }
@@ -318,5 +325,4 @@ fun AdminOldPhoneScreen(
             }
         }
     }
-}
 }

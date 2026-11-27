@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -296,175 +297,181 @@ fun AdminOrdersScreen(
         )
     }
 
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF1F5F9))
-            .testTag("admin_orders_screen")
+            .testTag("admin_orders_screen"),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Header Search
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Text(
-                    text = "Customer Orders (${orders.size})",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
-                )
-                Text(
-                    text = "Track, pack and manage store deliveries in Udgir",
-                    fontSize = 11.sp,
-                    color = Color(0xFF64748B)
-                )
+        // Scrollable Header Search Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "Customer Orders (${orders.size})",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+                    Text(
+                        text = "Track, pack and manage store deliveries in Udgir",
+                        fontSize = 11.sp,
+                        color = Color(0xFF64748B)
+                    )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search by Order ID, customer or phone...", fontSize = 12.sp) },
-                    leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(18.dp)) },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    singleLine = true
-                )
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Search by Order ID, customer or phone...", fontSize = 12.sp) },
+                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(18.dp)) },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true
+                    )
+                }
             }
         }
 
         // Orders Table List
         if (filteredOrders.isEmpty()) {
-            com.example.ui.components.EmptyStateView(
-                icon = Icons.Default.ReceiptLong,
-                title = "No Orders Found",
-                message = if (searchQuery.isNotBlank()) "No orders matching '$searchQuery'." else "No customer orders have been placed yet.",
-                modifier = Modifier.weight(1f)
-            )
+            item {
+                com.example.ui.components.EmptyStateView(
+                    icon = Icons.Default.ReceiptLong,
+                    title = "No Orders Found",
+                    message = if (searchQuery.isNotBlank()) "No orders matching '$searchQuery'." else "No customer orders have been placed yet.",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp)
+                )
+            }
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                items(filteredOrders) { order ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 5.dp)
-                            .testTag("admin_order_card_${order.orderId}"),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = order.orderId,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = ShopPrimaryBlue
-                                )
+            items(filteredOrders) { order ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("admin_order_card_${order.orderId}"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = order.orderId,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = ShopPrimaryBlue,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
 
-                                // Clickable status pill opens validated transition dialog
-                                Surface(
-                                    color = when (order.status) {
-                                        "Delivered" -> Color(0xFFDCFCE7)
-                                        "Cancelled" -> Color(0xFFFEE2E2)
-                                        "Out for Delivery", "Shipped / Out for Delivery" -> Color(0xFFE0E7FF)
-                                        else -> Color(0xFFFEF3C7)
-                                    },
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.clickable { orderToUpdateStatus = order }
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            // Clickable status pill opens validated transition dialog
+                            Surface(
+                                color = when (order.status) {
+                                    "Delivered" -> Color(0xFFDCFCE7)
+                                    "Cancelled" -> Color(0xFFFEE2E2)
+                                    "Out for Delivery", "Shipped / Out for Delivery" -> Color(0xFFE0E7FF)
+                                    else -> Color(0xFFFEF3C7)
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.clickable { orderToUpdateStatus = order }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = order.status,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = when (order.status) {
-                                                "Delivered" -> Color(0xFF166534)
-                                                "Cancelled" -> Color(0xFF991B1B)
-                                                "Out for Delivery", "Shipped / Out for Delivery" -> Color(0xFF3730A3)
-                                                else -> Color(0xFF92400E)
-                                            }
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = "Edit Status",
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                    }
+                                    Text(
+                                        text = order.status,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        color = when (order.status) {
+                                            "Delivered" -> Color(0xFF166534)
+                                            "Cancelled" -> Color(0xFF991B1B)
+                                            "Out for Delivery", "Shipped / Out for Delivery" -> Color(0xFF3730A3)
+                                            else -> Color(0xFF92400E)
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit Status",
+                                        modifier = Modifier.size(12.dp)
+                                    )
                                 }
                             }
+                        }
 
-                            Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
+                        Text(
+                            text = "Customer: ${order.customerName} • +91 ${order.mobileNumber}",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF0F172A)
+                        )
+                        Text(
+                            text = "${order.items.size} item(s) • ${order.orderDate} • ${order.paymentMethod}",
+                            fontSize = 11.sp,
+                            color = Color(0xFF64748B)
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HorizontalDivider(color = Color(0xFFF1F5F9))
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                text = "Customer: ${order.customerName} • +91 ${order.mobileNumber}",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF0F172A)
-                            )
-                            Text(
-                                text = "${order.items.size} item(s) • ${order.orderDate} • ${order.paymentMethod}",
-                                fontSize = 11.sp,
-                                color = Color(0xFF64748B)
+                                text = "Amount: ${formatInr(order.totalAmount)}",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A),
+                                modifier = Modifier.weight(1f)
                             )
 
-                            Spacer(modifier = Modifier.height(8.dp))
-                            HorizontalDivider(color = Color(0xFFF1F5F9))
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Row {
+                                OutlinedButton(
+                                    onClick = { orderToUpdateStatus = order },
+                                    modifier = Modifier.height(32.dp),
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Update", modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Update", fontSize = 11.sp, maxLines = 1, softWrap = false)
+                                }
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Amount: ${formatInr(order.totalAmount)}",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF0F172A)
-                                )
+                                Spacer(modifier = Modifier.width(8.dp))
 
-                                Row {
-                                    OutlinedButton(
-                                        onClick = { orderToUpdateStatus = order },
-                                        modifier = Modifier.height(30.dp),
-                                        shape = RoundedCornerShape(6.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                                    ) {
-                                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Update", modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Update", fontSize = 11.sp)
-                                    }
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    OutlinedButton(
-                                        onClick = { selectedOrderToView = order },
-                                        modifier = Modifier.height(30.dp),
-                                        shape = RoundedCornerShape(6.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                                    ) {
-                                        Icon(imageVector = Icons.Default.Visibility, contentDescription = "View", modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Details", fontSize = 11.sp)
-                                    }
+                                OutlinedButton(
+                                    onClick = { selectedOrderToView = order },
+                                    modifier = Modifier.height(32.dp),
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Visibility, contentDescription = "View", modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Details", fontSize = 11.sp, maxLines = 1, softWrap = false)
                                 }
                             }
                         }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -496,93 +497,106 @@ fun AdminCategoriesScreen(
     // -------------------------------------------------------------
     // MAIN SCREEN CONTENT
     // -------------------------------------------------------------
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(DarkBackground)
-            .testTag("admin_categories_screen")
+            .testTag("admin_categories_screen"),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Top Header & Controls Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = DarkCard),
-            border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
-        ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(imageVector = Icons.Default.Layers, contentDescription = "Categories", tint = GoldPrimary, modifier = Modifier.size(20.dp))
+        // Scrollable Top Header & Controls Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkCard),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(imageVector = Icons.Default.Layers, contentDescription = "Categories", tint = GoldPrimary, modifier = Modifier.size(18.dp))
+                                Text(
+                                    text = "Categories (${categories.size})",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
                             Text(
-                                text = "Category Management (${categories.size})",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                text = "Add, reorder, edit & toggle store taxonomy",
+                                fontSize = 11.sp,
+                                color = Color.Gray,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                         }
-                        Text(
-                            text = "Add, reorder, edit and toggle store taxonomy",
-                            fontSize = 11.sp,
-                            color = Color.Gray
-                        )
-                    }
 
-                    Button(
-                        onClick = { openAddDialog() },
-                        colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color.Black),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.testTag("add_category_header_btn")
-                    ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add Category", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
+                        Spacer(modifier = Modifier.width(8.dp))
 
-                // Search Bar
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search category by name or slug...", fontSize = 12.sp, color = Color.Gray) },
-                    leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = Color.Gray, modifier = Modifier.size(16.dp)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().testTag("category_search_input"),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedContainerColor = DarkSurface,
-                        unfocusedContainerColor = DarkSurface,
-                        focusedBorderColor = GoldPrimary,
-                        unfocusedBorderColor = DarkBorder
-                    )
-                )
-
-                // Status Filter Chips
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                    val filters = listOf("ALL" to "All (${categories.size})", "ACTIVE" to "Active (${categories.count { it.isActive }})", "INACTIVE" to "Hidden (${categories.count { !it.isActive }})")
-                    filters.forEach { (key, label) ->
-                        val isSelected = selectedFilter == key
-                        Box(
+                        Button(
+                            onClick = { openAddDialog() },
+                            colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color.Black),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) GoldPrimary else DarkSurface)
-                                .clickable { selectedFilter = key }
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .heightIn(min = 40.dp)
+                                .testTag("add_category_header_btn")
                         ) {
-                            Text(
-                                text = label,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) Color.Black else Color.LightGray
-                            )
+                            Icon(imageVector = Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Add", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                        }
+                    }
+
+                    // Search Bar
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Search category by name or slug...", fontSize = 12.sp, color = Color.Gray) },
+                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = Color.Gray, modifier = Modifier.size(16.dp)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("category_search_input"),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedContainerColor = DarkSurface,
+                            unfocusedContainerColor = DarkSurface,
+                            focusedBorderColor = GoldPrimary,
+                            unfocusedBorderColor = DarkBorder
+                        )
+                    )
+
+                    // Status Filter Chips
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        val filters = listOf("ALL" to "All (${categories.size})", "ACTIVE" to "Active (${categories.count { it.isActive }})", "INACTIVE" to "Hidden (${categories.count { !it.isActive }})")
+                        filters.forEach { (key, label) ->
+                            val isSelected = selectedFilter == key
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSelected) GoldPrimary else DarkSurface)
+                                    .clickable { selectedFilter = key }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = label,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color.Black else Color.LightGray,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         }
                     }
                 }
@@ -590,157 +604,160 @@ fun AdminCategoriesScreen(
         }
 
         // Category Cards List
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(filteredCategories, key = { it.id }) { cat ->
-                val assignedCount = products.count { p -> p.categoryMatches(cat.slug) || (p.category == cat.category) }
-                Card(
+        items(filteredCategories, key = { it.id }) { cat ->
+            val assignedCount = products.count { p -> p.categoryMatches(cat.slug) || (p.category == cat.category) }
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("category_row_${cat.id}"),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkCard),
+                border = androidx.compose.foundation.BorderStroke(
+                    width = 1.dp,
+                    color = if (cat.isActive) DarkBorder else Color(0xFF451A1A)
+                )
+            ) {
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("category_row_${cat.id}"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkCard),
-                    border = androidx.compose.foundation.BorderStroke(
-                        width = 1.dp,
-                        color = if (cat.isActive) DarkBorder else Color(0xFF451A1A)
-                    )
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Left: Thumbnail + Info
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        // Left: Thumbnail + Info
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.weight(1f)
+                        // Thumbnail
+                        Box(
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(DarkSurface)
+                                .border(1.dp, DarkBorder, RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            // Thumbnail
-                            Box(
-                                modifier = Modifier
-                                    .size(54.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(DarkSurface)
-                                    .border(1.dp, DarkBorder, RoundedCornerShape(8.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (cat.imageUrl.isNotBlank()) {
-                                    AsyncImage(
-                                        model = cat.imageUrl,
-                                        contentDescription = cat.name,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                } else {
-                                    Icon(imageVector = Icons.Default.Category, contentDescription = null, tint = GoldPrimary)
-                                }
-
-                                // Display order tag
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .background(Color.Black.copy(alpha = 0.8f))
-                                        .padding(horizontal = 4.dp, vertical = 1.dp)
-                                ) {
-                                    Text(
-                                        text = "#${cat.displayOrder}",
-                                        fontSize = 9.sp,
-                                        color = GoldPrimary,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                            if (cat.imageUrl.isNotBlank()) {
+                                AsyncImage(
+                                    model = cat.imageUrl,
+                                    contentDescription = cat.name,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(imageVector = Icons.Default.Category, contentDescription = null, tint = GoldPrimary)
                             }
 
-                            // Details
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Text(
-                                        text = cat.name,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(4.dp))
-                                            .background(if (cat.isActive) Color(0xFF064E3B) else Color(0xFF451A1A))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    ) {
-                                        Text(
-                                            text = if (cat.isActive) "Active" else "Hidden",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (cat.isActive) Color(0xFF6EE7B7) else Color(0xFFFCA5A5)
-                                        )
-                                    }
-                                }
-
+                            // Display order tag
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .background(Color.Black.copy(alpha = 0.8f))
+                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                            ) {
                                 Text(
-                                    text = "slug: ${cat.slug} • $assignedCount products",
-                                    fontSize = 11.sp,
-                                    color = Color.Gray
+                                    text = "#${cat.displayOrder}",
+                                    fontSize = 9.sp,
+                                    color = GoldPrimary,
+                                    fontWeight = FontWeight.Bold
                                 )
-
-                                if (cat.description.isNotBlank()) {
-                                    Text(
-                                        text = cat.description,
-                                        fontSize = 10.sp,
-                                        color = Color(0xFFA1A1AA),
-                                        maxLines = 1
-                                    )
-                                }
                             }
                         }
 
-                        // Right: Actions (Active Switch, Edit, Delete)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        // Details
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            Switch(
-                                checked = cat.isActive,
-                                onCheckedChange = { onToggleCategoryActive(cat.id) },
-                                modifier = Modifier.testTag("category_toggle_${cat.id}"),
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.Black,
-                                    checkedTrackColor = GoldPrimary,
-                                    uncheckedThumbColor = Color.Gray,
-                                    uncheckedTrackColor = DarkSurface
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    text = cat.name,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (cat.isActive) Color(0xFF064E3B) else Color(0xFF451A1A))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (cat.isActive) "Active" else "Hidden",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (cat.isActive) Color(0xFF6EE7B7) else Color(0xFFFCA5A5)
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = "slug: ${cat.slug} • $assignedCount products",
+                                fontSize = 11.sp,
+                                color = Color.Gray,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
 
-                            IconButton(
-                                onClick = { openEditDialog(cat) },
-                                modifier = Modifier.size(32.dp).testTag("edit_category_${cat.id}")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Category",
-                                    tint = GoldPrimary,
-                                    modifier = Modifier.size(16.dp)
+                            if (cat.description.isNotBlank()) {
+                                Text(
+                                    text = cat.description,
+                                    fontSize = 10.sp,
+                                    color = Color(0xFFA1A1AA),
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
                             }
+                        }
+                    }
 
-                            IconButton(
-                                onClick = {
-                                    reassignTargetSlug = otherCategories(cat, categories).firstOrNull()?.slug ?: ""
-                                    categoryToDelete = cat
-                                },
-                                modifier = Modifier.size(32.dp).testTag("delete_category_${cat.id}")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete Category",
-                                    tint = Color(0xFFEF4444),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
+                    // Right: Actions (Active Switch, Edit, Delete)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Switch(
+                            checked = cat.isActive,
+                            onCheckedChange = { onToggleCategoryActive(cat.id) },
+                            modifier = Modifier.testTag("category_toggle_${cat.id}"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.Black,
+                                checkedTrackColor = GoldPrimary,
+                                uncheckedThumbColor = Color.Gray,
+                                uncheckedTrackColor = DarkSurface
+                            )
+                        )
+
+                        IconButton(
+                            onClick = { openEditDialog(cat) },
+                            modifier = Modifier.size(32.dp).testTag("edit_category_${cat.id}")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Category",
+                                tint = GoldPrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                reassignTargetSlug = otherCategories(cat, categories).firstOrNull()?.slug ?: ""
+                                categoryToDelete = cat
+                            },
+                            modifier = Modifier.size(32.dp).testTag("delete_category_${cat.id}")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Category",
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
                 }

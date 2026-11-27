@@ -7,12 +7,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -63,6 +67,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -133,7 +138,7 @@ fun AdminDashboardLayout(
         Scaffold(
             modifier = modifier.fillMaxSize(),
             topBar = {
-                // Top Admin Navigation Bar
+                // Compact Single-Row Admin Top Navigation Bar
                 Surface(
                     color = BlackSurface,
                     shadowElevation = 4.dp,
@@ -143,91 +148,96 @@ fun AdminDashboardLayout(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .statusBarsPadding()
+                            .heightIn(min = 56.dp)
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        drawerState.open()
-                                        adminViewModel.toggleSidebar(true)
-                                    }
-                                },
-                                modifier = Modifier.testTag("admin_sidebar_toggle")
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    drawerState.open()
+                                    adminViewModel.toggleSidebar(true)
+                                }
+                            },
+                            modifier = Modifier.testTag("admin_sidebar_toggle")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Sidebar Menu",
+                                tint = GoldPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 4.dp)
+                        ) {
+                            Text(
+                                text = uiState.currentTab.displayName,
+                                color = TextMain,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "SK Mobile Admin • Udgir",
+                                color = TextSecondary,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        // Right actions: Store & Logout
+                        Surface(
+                            color = BlackSurfaceSecondary,
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, BlackBorder),
+                            modifier = Modifier
+                                .clickable(onClick = onReturnToStore)
+                                .testTag("admin_exit_to_store_btn")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Menu,
-                                    contentDescription = "Sidebar Menu",
+                                    imageVector = Icons.Default.Store,
+                                    contentDescription = "Customer Store",
                                     tint = GoldPrimary,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
-                            }
-
-                            Spacer(modifier = Modifier.width(6.dp))
-
-                            Column {
+                                Spacer(modifier = Modifier.width(5.dp))
                                 Text(
-                                    text = uiState.currentTab.displayName,
+                                    text = "Store",
                                     color = TextMain,
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "SK Mobile Shoppy and Electronics Admin • Udgir",
-                                    color = TextSecondary,
-                                    fontSize = 11.sp
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }
 
-                        // Right actions: Customer Store & Logout
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                color = BlackSurfaceSecondary,
-                                shape = RoundedCornerShape(8.dp),
-                                border = BorderStroke(1.dp, BlackBorder),
-                                modifier = Modifier
-                                    .clickable(onClick = onReturnToStore)
-                                    .testTag("admin_exit_to_store_btn")
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Store,
-                                        contentDescription = "Customer Store",
-                                        tint = GoldPrimary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Customer Store",
-                                        color = TextMain,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.width(6.dp))
-
-                            IconButton(
-                                onClick = {
-                                    adminViewModel.logout()
-                                    onReturnToStore()
-                                },
-                                modifier = Modifier.testTag("admin_logout_btn")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Logout,
-                                    contentDescription = "Logout",
-                                    tint = Color(0xFFEF4444),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                        IconButton(
+                            onClick = {
+                                adminViewModel.logout()
+                                onReturnToStore()
+                            },
+                            modifier = Modifier.testTag("admin_logout_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Logout,
+                                contentDescription = "Logout",
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                 }
@@ -359,7 +369,8 @@ fun AdminSidebarSheet(
         Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .padding(bottom = 16.dp)
+                .navigationBarsPadding()
+                .padding(bottom = 12.dp)
         ) {
             // Sidebar Header
             Surface(
@@ -370,11 +381,15 @@ fun AdminSidebarSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
@@ -392,18 +407,21 @@ fun AdminSidebarSheet(
 
                         Spacer(modifier = Modifier.width(10.dp))
 
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "SK Mobile Shoppy and Electronics Admin",
+                                text = "SK Mobile Admin",
                                 color = TextMain,
-                                fontSize = 13.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                maxLines = 1
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = "Store Manager • Udgir",
                                 color = TextSecondary,
-                                fontSize = 11.sp
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -442,7 +460,10 @@ fun AdminSidebarSheet(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
                                     Icon(
                                         imageVector = icon,
                                         contentDescription = tab.displayName,
@@ -454,7 +475,9 @@ fun AdminSidebarSheet(
                                         text = tab.displayName,
                                         color = if (isSelected) Color(0xFF0B0B0B) else TextMain,
                                         fontSize = 13.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
 

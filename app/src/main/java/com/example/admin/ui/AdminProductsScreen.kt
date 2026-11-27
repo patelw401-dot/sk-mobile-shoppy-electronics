@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterList
@@ -140,92 +142,113 @@ fun AdminProductsScreen(
         )
     }
 
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF1F5F9))
-            .testTag("admin_products_screen")
+            .testTag("admin_products_screen"),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Top Action Row
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Product Inventory (${filteredList.size})",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A)
-                        )
-                        Text(
-                            text = "Manage store catalog, pricing & stock status",
-                            fontSize = 11.sp,
-                            color = Color(0xFF64748B)
-                        )
-                    }
-
-                    Button(
-                        onClick = { showAddDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.testTag("admin_add_product_btn")
+        // Scrollable Compact Header & Search Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add Product", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Product Inventory (${filteredList.size})",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Manage store catalog, pricing & stock",
+                                fontSize = 11.sp,
+                                color = Color(0xFF64748B),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = { showAddDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .heightIn(min = 40.dp)
+                                .testTag("admin_add_product_btn")
+                        ) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Add",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Search Box
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Search product name or brand...", fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(18.dp)) },
+                        trailingIcon = if (searchQuery.isNotEmpty()) {
+                            {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(imageVector = Icons.Default.Close, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        } else null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .testTag("admin_product_search"),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Search Box
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search by product name or brand...", fontSize = 12.sp) },
-                    leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(18.dp)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .testTag("admin_product_search"),
-                    shape = RoundedCornerShape(10.dp),
-                    singleLine = true
-                )
             }
         }
 
-        // Products List
+        // Products List or Empty State
         if (filteredList.isEmpty()) {
-            com.example.ui.components.EmptyStateView(
-                icon = Icons.Default.Inventory2,
-                title = "No Products Found",
-                message = if (searchQuery.isNotBlank()) "No products match '$searchQuery'." else "No products found in this category.",
-                actionLabel = "Add New Product",
-                onAction = { showAddDialog = true },
-                modifier = Modifier.weight(1f)
-            )
+            item {
+                com.example.ui.components.EmptyStateView(
+                    icon = Icons.Default.Inventory2,
+                    title = "No Products Found",
+                    message = if (searchQuery.isNotBlank()) "No products match '$searchQuery'." else "No products found in this category.",
+                    actionLabel = "Add New Product",
+                    onAction = { showAddDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp)
+                )
+            }
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                items(filteredList) { product ->
+            items(filteredList) { product ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 5.dp)
                         .testTag("admin_product_row_${product.id}"),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -248,14 +271,20 @@ fun AdminProductsScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
                                         text = product.brand.uppercase(),
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = ShopPrimaryBlue
+                                        color = ShopPrimaryBlue,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
                                     )
+
+                                    Spacer(modifier = Modifier.width(6.dp))
 
                                     Surface(
                                         color = if (product.inStock) Color(0xFFDCFCE7) else Color(0xFFFEE2E2),
@@ -266,6 +295,7 @@ fun AdminProductsScreen(
                                             color = if (product.inStock) Color(0xFF166534) else Color(0xFF991B1B),
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                         )
                                     }
@@ -285,19 +315,24 @@ fun AdminProductsScreen(
                                         text = formatInr(product.price),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = Color(0xFF0F172A)
+                                        color = Color(0xFF0F172A),
+                                        maxLines = 1
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "MRP: ${formatInr(product.originalPrice)}",
                                         fontSize = 11.sp,
-                                        color = Color(0xFF94A3B8)
+                                        color = Color(0xFF94A3B8),
+                                        maxLines = 1
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         text = "• ${product.stockStatus}",
                                         fontSize = 10.sp,
-                                        color = Color(0xFF475569)
+                                        color = Color(0xFF475569),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false)
                                     )
                                 }
                             }
@@ -315,13 +350,13 @@ fun AdminProductsScreen(
                         ) {
                             OutlinedButton(
                                 onClick = { productToView = product },
-                                modifier = Modifier.height(32.dp),
+                                modifier = Modifier.height(34.dp),
                                 shape = RoundedCornerShape(6.dp),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                             ) {
                                 Icon(imageVector = Icons.Default.Visibility, contentDescription = "View", modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("View", fontSize = 11.sp)
+                                Text("View", fontSize = 11.sp, maxLines = 1, softWrap = false)
                             }
 
                             Spacer(modifier = Modifier.width(6.dp))
@@ -340,7 +375,7 @@ fun AdminProductsScreen(
                                         )
                                     }
                                 },
-                                modifier = Modifier.height(32.dp).testTag("admin_toggle_active_${product.id}"),
+                                modifier = Modifier.height(34.dp).testTag("admin_toggle_active_${product.id}"),
                                 shape = RoundedCornerShape(6.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = if (product.inStock) Color(0xFFD97706) else ShopSuccessGreen
@@ -350,7 +385,9 @@ fun AdminProductsScreen(
                                 Text(
                                     text = if (product.inStock) "Deactivate" else "Activate",
                                     fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
 
@@ -358,21 +395,21 @@ fun AdminProductsScreen(
 
                             Button(
                                 onClick = { productToEdit = product },
-                                modifier = Modifier.height(32.dp),
+                                modifier = Modifier.height(34.dp),
                                 shape = RoundedCornerShape(6.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                             ) {
                                 Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Edit", fontSize = 11.sp)
+                                Text("Edit", fontSize = 11.sp, maxLines = 1, softWrap = false)
                             }
 
                             Spacer(modifier = Modifier.width(6.dp))
 
                             IconButton(
                                 onClick = { onDeleteProduct(product.id) },
-                                modifier = Modifier.size(32.dp).testTag("admin_delete_product_${product.id}")
+                                modifier = Modifier.size(34.dp).testTag("admin_delete_product_${product.id}")
                             ) {
                                 Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
                             }
@@ -382,7 +419,6 @@ fun AdminProductsScreen(
             }
         }
     }
-}
 }
 
 @Composable

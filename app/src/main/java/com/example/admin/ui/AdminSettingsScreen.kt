@@ -149,7 +149,7 @@ fun AdminSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Store Pickup Available", fontSize = 13.sp)
+                        Text("Store Pickup Available", fontSize = 13.sp, modifier = Modifier.weight(1f))
                         Switch(checked = pickupAvailable, onCheckedChange = { pickupAvailable = it })
                     }
 
@@ -158,7 +158,7 @@ fun AdminSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Doorstep Home Delivery (Udgir)", fontSize = 13.sp)
+                        Text("Doorstep Home Delivery (Udgir)", fontSize = 13.sp, modifier = Modifier.weight(1f))
                         Switch(checked = homeDeliveryAvailable, onCheckedChange = { homeDeliveryAvailable = it })
                     }
 
@@ -193,7 +193,7 @@ fun AdminSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("UPI & QR Payments Enabled", fontSize = 13.sp)
+                        Text("UPI & QR Payments Enabled", fontSize = 13.sp, modifier = Modifier.weight(1f))
                         Switch(checked = upiEnabled, onCheckedChange = { upiEnabled = it })
                     }
 
@@ -202,7 +202,7 @@ fun AdminSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Cash on Delivery (COD) Enabled", fontSize = 13.sp)
+                        Text("Cash on Delivery (COD) Enabled", fontSize = 13.sp, modifier = Modifier.weight(1f))
                         Switch(checked = codEnabled, onCheckedChange = { codEnabled = it })
                     }
 
@@ -211,7 +211,7 @@ fun AdminSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Cards & Net Banking Enabled", fontSize = 13.sp)
+                        Text("Cards & Net Banking Enabled", fontSize = 13.sp, modifier = Modifier.weight(1f))
                         Switch(checked = onlinePaymentEnabled, onCheckedChange = { onlinePaymentEnabled = it })
                     }
                 }

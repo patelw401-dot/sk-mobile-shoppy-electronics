@@ -55,70 +55,70 @@ fun AdminReportsScreen(
     val accessoriesRev = (totalSales - repairRev).coerceAtLeast(3500)
     val oldPhoneTrans = (uiState.oldPhonesPurchasedCount * multiplier).toInt().coerceAtLeast(1)
 
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF1F5F9))
-            .testTag("admin_reports_screen")
+            .testTag("admin_reports_screen"),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Text(text = "Sales & Operations Reports", fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                Text(text = "Financial performance & repair metrics for SK Mobile Udgir", fontSize = 11.sp, color = Color(0xFF64748B))
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(text = "Sales & Operations Reports", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "Financial performance & repair metrics for SK Mobile Udgir", fontSize = 11.sp, color = Color(0xFF64748B))
 
-                Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    filters.forEach { filter ->
-                        val isSelected = filter == uiState.selectedReportFilter
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { onFilterChange(filter) },
-                            label = { Text(filter, fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = ShopPrimaryBlue,
-                                selectedLabelColor = Color.White
+                    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(filters.size) { index ->
+                            val filter = filters[index]
+                            val isSelected = filter == uiState.selectedReportFilter
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onFilterChange(filter) },
+                                label = { Text(filter, fontSize = 11.sp, maxLines = 1, softWrap = false) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = ShopPrimaryBlue,
+                                    selectedLabelColor = Color.White
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Revenue Summary (${uiState.selectedReportFilter})", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(12.dp))
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(text = "Revenue Summary (${uiState.selectedReportFilter})", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                        ReportMetricRow(label = "Gross Sales Revenue", value = formatInr(totalSales), isBold = true)
-                        ReportMetricRow(label = "Estimated Net Profit (28%)", value = formatInr(estProfit), isHighlight = true)
-                        ReportMetricRow(label = "Accessories & Mobile Revenue", value = formatInr(accessoriesRev))
-                        ReportMetricRow(label = "Service & Repair Revenue", value = formatInr(repairRev))
+                    ReportMetricRow(label = "Gross Sales Revenue", value = formatInr(totalSales), isBold = true)
+                    ReportMetricRow(label = "Estimated Net Profit (28%)", value = formatInr(estProfit), isHighlight = true)
+                    ReportMetricRow(label = "Accessories & Mobile Revenue", value = formatInr(accessoriesRev))
+                    ReportMetricRow(label = "Service & Repair Revenue", value = formatInr(repairRev))
 
-                        Spacer(modifier = Modifier.height(10.dp))
-                        HorizontalDivider(color = Color(0xFFF1F5F9))
-                        Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = Color(0xFFF1F5F9))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                        Text(text = "Operations Volume", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = "Operations Volume", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                        ReportMetricRow(label = "Total Customer Orders", value = "$ordersCount Orders")
-                        ReportMetricRow(label = "Completed Phone Repairs", value = "$repairsCount Repair Jobs")
-                        ReportMetricRow(label = "Old Phone Trades & Purchases", value = "$oldPhoneTrans Devices")
-                    }
+                    ReportMetricRow(label = "Total Customer Orders", value = "$ordersCount Orders")
+                    ReportMetricRow(label = "Completed Phone Repairs", value = "$repairsCount Repair Jobs")
+                    ReportMetricRow(label = "Old Phone Trades & Purchases", value = "$oldPhoneTrans Devices")
                 }
             }
         }
@@ -137,7 +137,13 @@ private fun ReportMetricRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, fontSize = 13.sp, color = if (isBold) Color(0xFF0F172A) else Color(0xFF475569), fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal)
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            color = if (isBold) Color(0xFF0F172A) else Color(0xFF475569),
+            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+            modifier = Modifier.weight(1f)
+        )
         Text(
             text = value,
             fontSize = if (isHighlight || isBold) 14.sp else 13.sp,

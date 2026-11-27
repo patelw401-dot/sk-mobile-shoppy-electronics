@@ -34,113 +34,129 @@ fun AdminPaymentsScreen(
     payments: List<PaymentRecord>,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF1F5F9))
-            .testTag("admin_payments_screen")
+            .testTag("admin_payments_screen"),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Text(text = "Payment Transactions (${payments.size})", fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                Text(text = "Demo transactions across UPI, Cash on Delivery and Cards", fontSize = 11.sp, color = Color(0xFF64748B))
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(text = "Payment Transactions (${payments.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "Transactions across UPI, Cash on Delivery and Cards", fontSize = 11.sp, color = Color(0xFF64748B))
+                }
             }
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            items(payments) { pay ->
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).testTag("payment_row_${pay.paymentId}"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(text = pay.paymentId, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ShopPrimaryBlue)
-                                Text(text = "Order: ${pay.orderId} • ${pay.date}", fontSize = 11.sp, color = Color(0xFF64748B))
-                            }
+        items(payments) { pay ->
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("payment_row_${pay.paymentId}"),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = pay.paymentId,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ShopPrimaryBlue,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Order: ${pay.orderId} • ${pay.date}",
+                                fontSize = 11.sp,
+                                color = Color(0xFF64748B),
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                // Payment Status Badge
-                                Surface(
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            // Payment Status Badge
+                            Surface(
+                                color = when (pay.status) {
+                                    "Successful", "Paid" -> Color(0xFFDCFCE7)
+                                    "Pending" -> Color(0xFFFEF3C7)
+                                    "Refunded" -> Color(0xFFE0E7FF)
+                                    "Cancelled" -> Color(0xFFF1F5F9)
+                                    else -> Color(0xFFFEE2E2)
+                                },
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = pay.status,
                                     color = when (pay.status) {
-                                        "Successful", "Paid" -> Color(0xFFDCFCE7)
-                                        "Pending" -> Color(0xFFFEF3C7)
-                                        "Refunded" -> Color(0xFFE0E7FF)
-                                        "Cancelled" -> Color(0xFFF1F5F9)
-                                        else -> Color(0xFFFEE2E2)
+                                        "Successful", "Paid" -> Color(0xFF166534)
+                                        "Pending" -> Color(0xFF92400E)
+                                        "Refunded" -> Color(0xFF3730A3)
+                                        "Cancelled" -> Color(0xFF475569)
+                                        else -> Color(0xFF991B1B)
                                     },
-                                    shape = RoundedCornerShape(4.dp)
-                                ) {
-                                    Text(
-                                        text = pay.status,
-                                        color = when (pay.status) {
-                                            "Successful", "Paid" -> Color(0xFF166534)
-                                            "Pending" -> Color(0xFF92400E)
-                                            "Refunded" -> Color(0xFF3730A3)
-                                            "Cancelled" -> Color(0xFF475569)
-                                            else -> Color(0xFF991B1B)
-                                        },
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
 
-                                // Bank Settlement Status Badge
-                                Surface(
+                            // Bank Settlement Status Badge
+                            Surface(
+                                color = when (pay.settlementStatus) {
+                                    "Settled to Bank" -> Color(0xFFDBEAFE)
+                                    "Pending Settlement" -> Color(0xFFF3E8FF)
+                                    "Reversed" -> Color(0xFFFEE2E2)
+                                    else -> Color(0xFFF1F5F9)
+                                },
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = pay.settlementStatus,
                                     color = when (pay.settlementStatus) {
-                                        "Settled to Bank" -> Color(0xFFDBEAFE)
-                                        "Pending Settlement" -> Color(0xFFF3E8FF)
-                                        "Reversed" -> Color(0xFFFEE2E2)
-                                        else -> Color(0xFFF1F5F9)
+                                        "Settled to Bank" -> Color(0xFF1E40AF)
+                                        "Pending Settlement" -> Color(0xFF6B21A8)
+                                        "Reversed" -> Color(0xFF991B1B)
+                                        else -> Color(0xFF475569)
                                     },
-                                    shape = RoundedCornerShape(4.dp)
-                                ) {
-                                    Text(
-                                        text = pay.settlementStatus,
-                                        color = when (pay.settlementStatus) {
-                                            "Settled to Bank" -> Color(0xFF1E40AF)
-                                            "Pending Settlement" -> Color(0xFF6B21A8)
-                                            "Reversed" -> Color(0xFF991B1B)
-                                            else -> Color(0xFF475569)
-                                        },
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
                             }
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(text = "Customer: ${pay.customerName} (${pay.method})", fontSize = 12.sp, color = Color(0xFF334155))
-                                if (pay.transactionRef.isNotBlank()) {
-                                    Text(text = "Gateway Ref: ${pay.transactionRef}", fontSize = 10.sp, color = Color(0xFF64748B))
-                                }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "Customer: ${pay.customerName} (${pay.method})", fontSize = 12.sp, color = Color(0xFF334155))
+                            if (pay.transactionRef.isNotBlank()) {
+                                Text(text = "Gateway Ref: ${pay.transactionRef}", fontSize = 10.sp, color = Color(0xFF64748B))
                             }
-                            Text(text = formatInr(pay.amount), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
                         }
+                        Text(text = formatInr(pay.amount), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF0F172A))
                     }
                 }
             }

@@ -83,74 +83,84 @@ fun AdminCustomersScreen(
         )
     }
 
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF1F5F9))
-            .testTag("admin_customers_screen")
+            .testTag("admin_customers_screen"),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Text(text = "Registered Customers (${customers.size})", fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                Text(text = "Udgir store customer records, loyalty and spending", fontSize = 11.sp, color = Color(0xFF64748B))
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(text = "Registered Customers (${customers.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "Udgir store customer records, loyalty and spending", fontSize = 11.sp, color = Color(0xFF64748B))
+                }
             }
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            items(customers) { customer ->
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).testTag("customer_card_${customer.id}"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
+        items(customers) { customer ->
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("customer_card_${customer.id}"),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier.size(36.dp).clip(CircleShape).background(ShopPrimaryLightBlue),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(imageVector = Icons.Default.Person, contentDescription = "User", tint = ShopPrimaryBlue, modifier = Modifier.size(20.dp))
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(text = customer.name, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                    Text(text = "+91 ${customer.mobileNumber}", fontSize = 12.sp, color = Color(0xFF64748B))
-                                }
-                            }
-
-                            OutlinedButton(
-                                onClick = { selectedCustomerToView = customer },
-                                modifier = Modifier.height(30.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                            Box(
+                                modifier = Modifier.size(36.dp).clip(CircleShape).background(ShopPrimaryLightBlue),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text("Details", fontSize = 11.sp)
+                                Icon(imageVector = Icons.Default.Person, contentDescription = "User", tint = ShopPrimaryBlue, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = customer.name,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                                Text(text = "+91 ${customer.mobileNumber}", fontSize = 12.sp, color = Color(0xFF64748B))
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
-                        HorizontalDivider(color = Color(0xFFF1F5F9))
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                        OutlinedButton(
+                            onClick = { selectedCustomerToView = customer },
+                            modifier = Modifier.height(32.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
                         ) {
-                            Text(text = "${customer.totalOrders} Orders • ${customer.totalRepairs} Repairs", fontSize = 11.sp, color = Color(0xFF334155))
-                            Text(text = "Spent: ${formatInr(customer.totalSpending)}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ShopPrimaryBlue)
+                            Text("Details", fontSize = 11.sp, maxLines = 1, softWrap = false)
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(color = Color(0xFFF1F5F9))
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = "${customer.totalOrders} Orders • ${customer.totalRepairs} Repairs", fontSize = 11.sp, color = Color(0xFF334155))
+                        Text(text = "Spent: ${formatInr(customer.totalSpending)}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ShopPrimaryBlue)
                     }
                 }
             }

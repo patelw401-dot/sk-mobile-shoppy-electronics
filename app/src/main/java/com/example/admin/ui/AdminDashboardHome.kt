@@ -77,9 +77,9 @@ fun AdminDashboardHome(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "SK Mobile Shoppy and Electronics Overview",
+                                text = "SK Mobile Overview",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = TextMain
@@ -91,6 +91,8 @@ fun AdminDashboardHome(
                             )
                         }
 
+                        Spacer(modifier = Modifier.width(8.dp))
+
                         Surface(
                             color = BlackSurfaceSecondary,
                             shape = RoundedCornerShape(8.dp),
@@ -101,6 +103,8 @@ fun AdminDashboardHome(
                                 color = GoldPrimary,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
@@ -310,7 +314,7 @@ fun AdminDashboardHome(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "${order.orderId} • ${order.customerName}",
                                     fontSize = 13.sp,
@@ -323,6 +327,7 @@ fun AdminDashboardHome(
                                     color = TextSecondary
                                 )
                             }
+                            Spacer(modifier = Modifier.width(8.dp))
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
                                     text = formatInr(order.totalAmount),

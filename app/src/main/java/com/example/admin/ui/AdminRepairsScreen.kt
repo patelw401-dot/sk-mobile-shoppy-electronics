@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -124,69 +125,68 @@ fun AdminRepairsScreen(
         )
     }
 
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF1F5F9))
-            .testTag("admin_repairs_screen")
+            .testTag("admin_repairs_screen"),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Search Header
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Text(
-                    text = "Repair Jobs & Bookings (${repairs.size})",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
-                )
-                Text(
-                    text = "Level-4 technician workflow: diagnosing, parts & delivery",
-                    fontSize = 11.sp,
-                    color = Color(0xFF64748B)
-                )
+        // Scrollable Search Header
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = "Repair Jobs & Bookings (${repairs.size})",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+                    Text(
+                        text = "Level-4 technician workflow: diagnosing, parts & delivery",
+                        fontSize = 11.sp,
+                        color = Color(0xFF64748B)
+                    )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Search by Repair ID, device or customer...", fontSize = 12.sp) },
-                    leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(18.dp)) },
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    singleLine = true
-                )
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Search by Repair ID, device or customer...", fontSize = 12.sp) },
+                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(18.dp)) },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true
+                    )
+                }
             }
         }
 
         // Repairs List
         if (filteredRepairs.isEmpty()) {
-            com.example.ui.components.EmptyStateView(
-                icon = Icons.Default.Build,
-                title = "No Repair Bookings Found",
-                message = if (searchQuery.isNotBlank()) "No repair bookings matching '$searchQuery'." else "No active repair bookings registered yet.",
-                modifier = Modifier.weight(1f)
-            )
+            item {
+                com.example.ui.components.EmptyStateView(
+                    icon = Icons.Default.Build,
+                    title = "No Repair Bookings Found",
+                    message = if (searchQuery.isNotBlank()) "No repair bookings matching '$searchQuery'." else "No active repair bookings registered yet.",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 32.dp)
+                )
+            }
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                items(filteredRepairs) { repair ->
+            items(filteredRepairs) { repair ->
                 var showStatusMenu by remember { mutableStateOf(false) }
 
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 5.dp)
                         .testTag("admin_repair_card_${repair.bookingId}"),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -202,8 +202,13 @@ fun AdminRepairsScreen(
                                 text = repair.bookingId,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = ShopPrimaryBlue
+                                color = ShopPrimaryBlue,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
                             )
+
+                            Spacer(modifier = Modifier.width(8.dp))
 
                             // Status Dropdown Menu
                             Box {
@@ -225,6 +230,8 @@ fun AdminRepairsScreen(
                                             text = repair.status,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            softWrap = false,
                                             color = when (repair.status) {
                                                 "Delivered", "Ready" -> Color(0xFF166534)
                                                 "Cancelled" -> Color(0xFF991B1B)
@@ -294,7 +301,8 @@ fun AdminRepairsScreen(
                                 text = "Cost: ${repair.estimatedCost}",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFF166534)
+                                color = Color(0xFF166534),
+                                modifier = Modifier.weight(1f)
                             )
 
                             OutlinedButton(
@@ -302,13 +310,13 @@ fun AdminRepairsScreen(
                                     newCostInput = repair.estimatedCost
                                     repairToEditCost = repair
                                 },
-                                modifier = Modifier.height(30.dp),
+                                modifier = Modifier.height(32.dp),
                                 shape = RoundedCornerShape(6.dp),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                             ) {
                                 Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Cost", modifier = Modifier.size(13.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Edit Cost", fontSize = 11.sp)
+                                Text("Edit Cost", fontSize = 11.sp, maxLines = 1, softWrap = false)
                             }
                         }
                     }
@@ -316,5 +324,4 @@ fun AdminRepairsScreen(
             }
         }
     }
-}
 }

@@ -344,7 +344,7 @@ private fun ReelStatsCard(reels: List<ReelItem>) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Reels & Video Showcases",
                         color = GoldHighlight,
@@ -357,6 +357,7 @@ private fun ReelStatsCard(reels: List<ReelItem>) {
                         fontSize = 11.sp
                     )
                 }
+                Spacer(modifier = Modifier.width(8.dp))
                 Surface(
                     color = GoldDark.copy(alpha = 0.25f),
                     shape = RoundedCornerShape(8.dp),
