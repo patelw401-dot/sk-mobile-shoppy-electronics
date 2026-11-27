@@ -13,15 +13,17 @@ import {
   Smartphone,
   Headphones
 } from 'lucide-react';
-import { STORE_INFO } from '../data/storeData';
+import { DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 
 export default function CartPage({ 
   cart, 
   onUpdateQuantity, 
   onRemoveItem, 
   onClearCart, 
-  setActivePage 
+  setActivePage,
+  shopInfo = DEFAULT_SHOP_INFO
 }) {
+  const info = formatShopInfo(shopInfo);
   const subtotal = cart.reduce((sum, item) => {
     const price = typeof item.price === 'number' ? item.price : (parseFloat(item.price) || 0);
     const qty = typeof item.quantity === 'number' ? item.quantity : (parseInt(item.quantity, 10) || 1);
@@ -238,7 +240,7 @@ export default function CartPage({
               </div>
               <div className="flex items-center gap-2 text-gray-300 font-medium">
                 <Truck size={14} className="text-emerald-400 shrink-0" />
-                <span>Same-day Udgir delivery & instant pickup</span>
+                <span>Same-day {info.shortLocationLabel} delivery &amp; instant pickup</span>
               </div>
             </div>
           </div>

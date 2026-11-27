@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { STORE_INFO, REAL_PRODUCTS, PRE_OWNED_PHONES, REPAIR_SERVICES, DEFAULT_CATEGORIES } from '../data/storeData';
-import { fetchCategoriesFromFirestore } from '../firebase';
+import { REAL_PRODUCTS, PRE_OWNED_PHONES, DEFAULT_CATEGORIES } from '../data/storeData';
+import { fetchCategoriesFromFirestore, DEFAULT_REPAIR_PRICING, DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 import ProductCard from '../components/ProductCard';
 import { 
   Smartphone, 
@@ -27,8 +27,14 @@ export default function HomePage({
   onAddToCart, 
   onBuyNow, 
   onShowToast, 
-  onSelectCategory 
+  onSelectCategory,
+  repairServices = DEFAULT_REPAIR_PRICING,
+  shopInfo = DEFAULT_SHOP_INFO
 }) {
+  const info = formatShopInfo(shopInfo);
+  const activeRepairServices = Array.isArray(repairServices) && repairServices.length > 0
+    ? repairServices
+    : DEFAULT_REPAIR_PRICING;
   const handleSelectProduct = onSelectProduct || setSelectedProduct;
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES || []);
   const featuredPhones = Array.isArray(REAL_PRODUCTS) ? REAL_PRODUCTS.slice(0, 4) : [];
@@ -61,7 +67,7 @@ export default function HomePage({
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-xs font-bold text-[#D4AF37] mb-6 animate-pulse">
             <Sparkles size={14} />
-            <span>Nagar Parishad, Udgir Store • Certified Service Center</span>
+            <span>{info.shortLocationLabel} • Certified Service Center</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white mb-6 leading-tight">
@@ -69,7 +75,7 @@ export default function HomePage({
           </h1>
 
           <p className="text-gray-300 text-sm sm:text-base md:text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
-            Welcome to <strong>SK Mobile Shoppy and Electronics</strong>. We offer brand-new smartphones, tested pre-owned devices, original accessories, and expert 30-minute mobile repairs.
+            Welcome to <strong>{info.shopName}</strong>. We offer brand-new smartphones, tested pre-owned devices, original accessories, and expert 30-minute mobile repairs.
           </p>
 
           {/* Action CTAs */}
@@ -116,11 +122,16 @@ export default function HomePage({
 
           {/* Store Quick Telemetry */}
           <div className="mt-12 pt-8 border-t border-[#222222] grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
-            <div className="p-3 rounded-xl bg-[#141414]/80 border border-[#222222]">
+            <a
+              href={info.googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-3 rounded-xl bg-[#141414]/80 border border-[#222222] hover:border-[#D4AF37]/50 transition block"
+            >
               <div className="text-xs text-gray-400 mb-1">Store Address</div>
-              <div className="text-xs font-bold text-gray-200">Nagar Parishad, Udgir</div>
-              <div className="text-[10px] text-gray-500">Opposite Municipal Complex</div>
-            </div>
+              <div className="text-xs font-bold text-gray-200 line-clamp-1">{info.shortLocationLabel}</div>
+              <div className="text-[10px] text-gray-500 line-clamp-1">{info.landmark || info.fullAddress}</div>
+            </a>
             <div className="p-3 rounded-xl bg-[#141414]/80 border border-[#222222]">
               <div className="text-xs text-gray-400 mb-1">Fast Repairs</div>
               <div className="text-xs font-bold text-[#D4AF37]">30-Min Express Service</div>
@@ -131,11 +142,14 @@ export default function HomePage({
               <div className="text-xs font-bold text-emerald-400">32-Point Inspected</div>
               <div className="text-[10px] text-gray-500">With 6-month shop warranty</div>
             </div>
-            <div className="p-3 rounded-xl bg-[#141414]/80 border border-[#222222]">
+            <a
+              href={`tel:${info.dialPhone}`}
+              className="p-3 rounded-xl bg-[#141414]/80 border border-[#222222] hover:border-[#D4AF37]/50 transition block"
+            >
               <div className="text-xs text-gray-400 mb-1">Store Helpline</div>
-              <div className="text-xs font-bold text-white">{STORE_INFO.phone}</div>
-              <div className="text-[10px] text-gray-500">Open all 7 days (9:30 AM–9:30 PM)</div>
-            </div>
+              <div className="text-xs font-bold text-white">{info.phoneNumber}</div>
+              <div className="text-[10px] text-gray-500 line-clamp-1">{info.openingHours}</div>
+            </a>
           </div>
         </div>
       </section>
@@ -240,7 +254,7 @@ export default function HomePage({
       </section>
 
       {/* Prominent SK Mobile Android App Download Showcase */}
-      <AppDownloadSection onShowToast={onShowToast} />
+      <AppDownloadSection onShowToast={onShowToast} shopInfo={shopInfo} />
 
       {/* Mobile Repair Booking Spotlight */}
       <section className="container">
@@ -255,14 +269,16 @@ export default function HomePage({
               <span className="gold-text">Fix It in 30 Minutes</span>
             </h2>
             <p className="text-xs sm:text-sm text-gray-300 leading-relaxed mb-6">
-              Skip the long waiting times at external service centers. Our certified technicians in Nagar Parishad, Udgir use genuine parts. Doorstep pickup or fast 30-min counter service available.
+              Skip the long waiting times at external service centers. Our certified technicians at {info.shopName} ({info.fullAddress}) use genuine parts. Doorstep pickup or fast 30-min counter service available.
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-              {REPAIR_SERVICES.slice(0, 6).map((service) => (
+              {activeRepairServices.slice(0, 6).map((service) => (
                 <div key={service.id} className="p-3 rounded-lg bg-[#0E0E0E]/80 border border-[#262626]">
                   <div className="text-xs font-bold text-white mb-0.5">{service.title}</div>
-                  <div className="text-[11px] text-[#D4AF37] font-semibold">{service.priceRange}</div>
+                  <div className="text-[11px] text-[#D4AF37] font-semibold">
+                    From ₹{Number(service.estimatedStartingPrice || 0).toLocaleString('en-IN')}
+                  </div>
                 </div>
               ))}
             </div>
@@ -276,11 +292,11 @@ export default function HomePage({
                 <span>Book Repair Appointment</span>
               </button>
               <a
-                href={`tel:${STORE_INFO.phone}`}
+                href={`tel:${info.dialPhone}`}
                 className="outline-gold-btn !text-sm !py-2.5 !px-5"
               >
                 <Phone size={16} />
-                <span>Call Helpline: {STORE_INFO.displayPhone}</span>
+                <span>Call Helpline: {info.phoneNumber}</span>
               </a>
             </div>
           </div>
@@ -324,7 +340,7 @@ export default function HomePage({
         </div>
 
         <div className="mt-6">
-          <ExchangeComingSoonCard onShowToast={onShowToast} />
+          <ExchangeComingSoonCard onShowToast={onShowToast} shopInfo={shopInfo} />
         </div>
       </section>
 

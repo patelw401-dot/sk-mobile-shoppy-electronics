@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.admin.model.ShopSettings
 import com.example.model.CartItem
 import com.example.ui.components.formatInr
 import com.example.ui.theme.*
@@ -63,6 +64,7 @@ fun CheckoutScreen(
     defaultName: String,
     defaultPhone: String,
     defaultAddress: String,
+    shopInfo: ShopSettings = ShopSettings(),
     isCustomerAuthenticated: Boolean = true,
     onSignInRequired: () -> Unit = {},
     onPlaceOrder: (
@@ -83,7 +85,7 @@ fun CheckoutScreen(
     var address by remember { mutableStateOf(defaultAddress) }
     var city by remember { mutableStateOf("Udgir") }
     var state by remember { mutableStateOf("Maharashtra") }
-    var pinCode by remember { mutableStateOf("413517") }
+    var pinCode by remember { mutableStateOf(shopInfo.pincode.ifBlank { "413517" }) }
 
     var selectedDeliveryOption by remember { mutableStateOf("Standard Free Delivery in Udgir") }
     var selectedPaymentMethod by remember { mutableStateOf("Cash on Delivery") }
@@ -285,8 +287,8 @@ fun CheckoutScreen(
 
                         val deliveryOptions = listOf(
                             "Standard Free Delivery in Udgir" to "Delivered to your doorstep within 4-6 hours (Free)",
-                            "Express 2-Hour Delivery in Udgir" to "Priority dispatch from SK Mobile Shoppy and Electronics store (Free promo)",
-                            "Store Pickup at SK Mobile Shoppy and Electronics" to "Collect directly from SK Mobile Shoppy and Electronics Nagar Parishad store in 30 mins"
+                            "Express 2-Hour Delivery in Udgir" to "Priority dispatch from ${shopInfo.shopName} (Free promo)",
+                            "Store Pickup at ${shopInfo.shopName}" to "Collect directly from ${shopInfo.fullAddressWithPincode} in 30 mins"
                         )
 
                         deliveryOptions.forEach { (title, subtitle) ->

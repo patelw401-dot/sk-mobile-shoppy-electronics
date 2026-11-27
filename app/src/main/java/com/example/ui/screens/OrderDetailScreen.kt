@@ -62,6 +62,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.admin.model.ShopSettings
 import com.example.model.OrderTrackingStage
 import com.example.model.ShopOrder
 import com.example.ui.components.formatInr
@@ -87,6 +88,7 @@ import java.util.Locale
 @Composable
 fun OrderDetailScreen(
     order: ShopOrder?,
+    shopInfo: ShopSettings = ShopSettings(),
     onCancelOrder: (orderId: String, reason: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -663,7 +665,7 @@ fun OrderDetailScreen(
                     Button(
                         onClick = {
                             try {
-                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:+919876543210"))
+                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${shopInfo.dialablePhone}"))
                                 context.startActivity(intent)
                             } catch (e: Exception) {
                                 // Handled gracefully
@@ -679,7 +681,7 @@ fun OrderDetailScreen(
                     ) {
                         Icon(imageVector = Icons.Default.Phone, contentDescription = "Call", tint = GoldPrimary, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Need Help? Call SK Mobile Udgir", color = GoldHighlight, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text(text = "Need Help? Call ${shopInfo.shopName} (${shopInfo.phoneNumber})", color = GoldHighlight, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                 }
             }

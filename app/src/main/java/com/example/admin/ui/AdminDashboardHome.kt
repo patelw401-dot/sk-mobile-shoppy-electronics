@@ -79,13 +79,13 @@ fun AdminDashboardHome(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "SK Mobile Overview",
+                                text = "${uiState.settings.shopName} Overview",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = TextMain
                             )
                             Text(
-                                text = "Nagar Parishad, Udgir Store • Real-time Operations",
+                                text = "${uiState.settings.shortLocationLabel} Store • Real-time Operations",
                                 fontSize = 12.sp,
                                 color = TextSecondary
                             )

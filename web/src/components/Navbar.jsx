@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { STORE_INFO } from '../data/storeData';
 import { 
   Smartphone, 
   Wrench, 
@@ -19,7 +18,7 @@ import {
   Search,
   Tag
 } from 'lucide-react';
-import { isUserAdmin } from '../firebase';
+import { isUserAdmin, DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 
 export default function Navbar({ 
   activePage, 
@@ -27,8 +26,10 @@ export default function Navbar({
   currentUser, 
   cartCount = 0,
   allProducts = [],
-  onSelectProduct
+  onSelectProduct,
+  shopInfo = DEFAULT_SHOP_INFO
 }) {
+  const info = formatShopInfo(shopInfo);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [navSearchQuery, setNavSearchQuery] = useState('');
@@ -80,18 +81,18 @@ export default function Navbar({
         <div className="container flex justify-between items-center text-[11px] sm:text-xs">
           <div className="flex items-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Udgir Service Center & Store Open Today • 9:30 AM – 9:30 PM</span>
+            <span>{info.shortLocationLabel} Store Open • {info.openingHours}</span>
           </div>
           <div className="flex items-center gap-4">
             <a 
-              href={`tel:${STORE_INFO.phone}`}
+              href={`tel:${info.dialPhone}`}
               className="text-[#D4AF37] hover:underline flex items-center gap-1 font-semibold"
             >
               <Phone size={12} />
-              <span>Call: {STORE_INFO.displayPhone}</span>
+              <span>Call: {info.phoneNumber}</span>
             </a>
             <span className="hidden md:inline text-gray-500">|</span>
-            <span className="hidden md:inline text-gray-400">Nagar Parishad, Udgir</span>
+            <span className="hidden md:inline text-gray-400">{info.shortLocationLabel}</span>
           </div>
         </div>
       </div>
@@ -110,13 +111,15 @@ export default function Navbar({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-black text-lg tracking-tight text-white">SK MOBILE</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30">
-                UDGIR
+              <span className="font-black text-lg tracking-tight text-white truncate max-w-[180px] sm:max-w-[230px]">
+                {info.shopName}
+              </span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30 shrink-0">
+                {info.pincode}
               </span>
             </div>
             <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">
-              Shoppy & Electronics
+              {info.shortLocationLabel}
             </p>
           </div>
         </button>
@@ -446,11 +449,11 @@ export default function Navbar({
               </span>
             </button>
             <a
-              href={`tel:${STORE_INFO.phone}`}
+              href={`tel:${info.dialPhone}`}
               className="w-full py-2.5 text-center text-sm font-bold rounded-lg bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 flex items-center justify-center gap-2"
             >
               <Phone size={16} />
-              <span>Call Store: {STORE_INFO.phone}</span>
+              <span>Call Store: {info.phoneNumber}</span>
             </a>
           </div>
         </div>

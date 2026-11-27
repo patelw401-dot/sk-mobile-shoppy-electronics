@@ -149,6 +149,38 @@
         "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
       },
       "required": ["email", "role", "isAdmin", "active"]
+    },
+    "RepairPricing": {
+      "title": "RepairPricing",
+      "description": "Dynamic repair service catalog and starting prices managed by store admin",
+      "type": "object",
+      "properties": {
+        "services": { "type": "array", "description": "Ordered list of repair service objects with id, title, estimatedStartingPrice, turnaroundTime, description, iconType" },
+        "pricesById": { "type": "object", "description": "Map of repair service ID to INR starting price" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server update timestamp" }
+      },
+      "required": ["services", "pricesById"]
+    },
+    "ShopInfo": {
+      "title": "ShopInfo",
+      "description": "Shop owner contact, location, opening hours, business services, and store operational settings (settings/shop_info)",
+      "type": "object",
+      "properties": {
+        "shopName": { "type": "string", "description": "Display name of the shop" },
+        "phoneNumber": { "type": "string", "description": "Calling mobile number for Call Shop links" },
+        "whatsappNumber": { "type": "string", "description": "WhatsApp mobile number for WhatsApp links" },
+        "email": { "type": "string", "description": "Shop customer contact email" },
+        "address": { "type": "string", "description": "Full physical street address" },
+        "pincode": { "type": "string", "description": "Postal PIN code" },
+        "landmark": { "type": "string", "description": "Nearby landmark" },
+        "openingTime": { "type": "string", "description": "Daily opening time" },
+        "closingTime": { "type": "string", "description": "Daily closing time" },
+        "openingHours": { "type": "string", "description": "Formatted opening hours display string" },
+        "services": { "type": "array", "description": "List of business services offered by the shop" },
+        "googleMapsUrl": { "type": "string", "description": "Google Maps directions URL" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server update timestamp" }
+      },
+      "required": ["shopName", "phoneNumber", "whatsappNumber", "address", "pincode"]
     }
   },
   "firestore": {
@@ -183,6 +215,10 @@
     "/reviews/{reviewId}": {
       "schema": { "$ref": "#/entities/Review" },
       "description": "Customer testimonials and feedback"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/ShopInfo" },
+      "description": "Store info (shop_info), store config (store_config), and dynamic repair service pricing (repair_pricing)"
     }
   }
 }

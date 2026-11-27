@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { REAL_PRODUCTS, ACCESSORIES, DEFAULT_CATEGORIES, STORE_INFO } from '../data/storeData';
-import { fetchFirestoreProducts, fetchCategoriesFromFirestore, subscribeToFirestoreProducts, FIREBASE_PROJECT_ID } from '../firebase';
+import { REAL_PRODUCTS, ACCESSORIES, DEFAULT_CATEGORIES } from '../data/storeData';
+import { fetchFirestoreProducts, fetchCategoriesFromFirestore, subscribeToFirestoreProducts, FIREBASE_PROJECT_ID, DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 import ProductCard from '../components/ProductCard';
 import ProductDetailsModal from '../components/ProductDetailsModal';
 import { 
@@ -24,8 +24,10 @@ export default function ProductsPage({
   onBuyNow, 
   selectedCategory: parentCategory, 
   setSelectedCategory: setParentCategory,
-  onSelectProduct: parentOnSelectProduct
+  onSelectProduct: parentOnSelectProduct,
+  shopInfo = DEFAULT_SHOP_INFO
 }) {
+  const info = formatShopInfo(shopInfo);
   const [internalCategory, setInternalCategory] = useState(parentCategory || 'ALL');
   const activeCategory = parentCategory || internalCategory;
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
@@ -179,7 +181,7 @@ export default function ProductsPage({
             </div>
             <h1 className="text-3xl font-black text-white">Smartphones & Flagship Handsets</h1>
             <p className="text-xs sm:text-sm text-gray-400 mt-1 max-w-2xl">
-              Browse brand new devices available for direct store pickup at Nagar Parishad, Udgir or express doorstep delivery with billing warranty.
+              Browse brand new devices available for direct store pickup at {info.shopName} ({info.fullAddress}) or express doorstep delivery with billing warranty.
             </p>
           </div>
 

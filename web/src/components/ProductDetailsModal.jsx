@@ -20,7 +20,7 @@ import {
   Layers,
   Check
 } from 'lucide-react';
-import { STORE_INFO } from '../data/storeData';
+import { DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 
 // Fallback category-aware specifications when a product does not have specs populated
 export function getCategoryAwareDefaultSpecs(category, brand = 'SK Mobile') {
@@ -157,8 +157,10 @@ export default function ProductDetailsModal({
   onAddToCart, 
   onBuyNow, 
   onSelectProduct, 
-  allProducts = [] 
+  allProducts = [],
+  shopInfo = DEFAULT_SHOP_INFO
 }) {
+  const info = formatShopInfo(shopInfo);
   const [selectedAngle, setSelectedAngle] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -542,11 +544,11 @@ export default function ProductDetailsModal({
                       Currently Out of Stock at Udgir Store
                     </p>
                     <a
-                      href={`tel:${STORE_INFO.phone}`}
+                      href={`tel:${info.dialPhone}`}
                       className="inline-flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-[#222222] hover:bg-[#2C2C2C] text-xs font-semibold text-[#D4AF37] transition"
                     >
                       <Phone size={14} />
-                      <span>Call {STORE_INFO.displayPhone} to Pre-Order / Inquire Restock</span>
+                      <span>Call {info.phoneNumber} to Pre-Order / Inquire Restock</span>
                     </a>
                   </div>
                 )}
@@ -600,7 +602,7 @@ export default function ProductDetailsModal({
               </div>
               <p className="text-xs text-gray-300 leading-relaxed">
                 {product.warrantyDescription || 
-                 '100% genuine guaranteed with repair and replacement assistance at SK Mobile Shoppy and Electronics, Station Road, Udgir.'}
+                 `100% genuine guaranteed with repair and replacement assistance at ${info.shopName}, ${info.fullAddress}.`}
               </p>
             </div>
 
@@ -717,14 +719,14 @@ export default function ProductDetailsModal({
           <div className="p-4 rounded-xl bg-[#0F0F0F] border border-[#222222] flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400">
             <div className="flex items-center gap-2">
               <Truck size={15} className="text-[#D4AF37]" />
-              <span>SK Mobile Shoppy and Electronics • Station Road, Udgir - 413517</span>
+              <span>{info.shopName} • {info.fullAddress}</span>
             </div>
             <a
-              href={`tel:${STORE_INFO.phone}`}
+              href={`tel:${info.dialPhone}`}
               className="text-[#D4AF37] hover:underline font-bold flex items-center gap-1"
             >
               <Phone size={13} />
-              <span>Call Helpline: {STORE_INFO.displayPhone}</span>
+              <span>Call Helpline: {info.phoneNumber}</span>
             </a>
           </div>
         </div>

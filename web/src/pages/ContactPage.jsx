@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { STORE_INFO } from '../data/storeData';
+import { DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 import { 
   MapPin, 
   Phone, 
@@ -12,10 +12,12 @@ import {
   ExternalLink,
   Info,
   CheckCircle2,
-  Share2
+  Share2,
+  ListChecks
 } from 'lucide-react';
 
-export default function ContactPage({ currentUser, onShowToast }) {
+export default function ContactPage({ currentUser, onShowToast, shopInfo = DEFAULT_SHOP_INFO }) {
+  const info = formatShopInfo(shopInfo);
   const [name, setName] = useState(currentUser?.displayName || '');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
@@ -30,8 +32,8 @@ export default function ContactPage({ currentUser, onShowToast }) {
     }
   }, [currentUser]);
 
-  // Clean numerical string for WhatsApp API (e.g. 919823109313)
-  const cleanStorePhone = STORE_INFO.phone.replace(/[^0-9]/g, '');
+  // Clean numerical string for WhatsApp API
+  const cleanStorePhone = info.whatsappDigits;
 
   const validateForm = () => {
     const newErrors = {};
@@ -50,14 +52,14 @@ export default function ContactPage({ currentUser, onShowToast }) {
   };
 
   const buildWhatsAppUrl = () => {
-    const text = `*SK Mobile Shoppy Store Inquiry*\n*Customer Name:* ${name.trim()}\n*Contact Mobile:* ${phone.trim()}\n\n*Inquiry Message:*\n${message.trim()}\n\n_(Sent via SK Mobile Web Portal • Udgir)_`;
+    const text = `*${info.shopName} Store Inquiry*\n*Customer Name:* ${name.trim()}\n*Contact Mobile:* ${phone.trim()}\n\n*Inquiry Message:*\n${message.trim()}\n\n_(Sent via ${info.shopName} Web Portal • ${info.shortLocationLabel})_`;
     return `https://wa.me/${cleanStorePhone}?text=${encodeURIComponent(text)}`;
   };
 
   const buildMailtoUrl = () => {
     const subject = `Store Inquiry from ${name.trim()} (${phone.trim()})`;
-    const body = `Dear SK Mobile Team,\n\nName: ${name.trim()}\nPhone: ${phone.trim()}\n\nInquiry Details:\n${message.trim()}\n\nStore: Nagar Parishad, Udgir`;
-    return `mailto:${STORE_INFO.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const body = `Dear ${info.shopName} Team,\n\nName: ${name.trim()}\nPhone: ${phone.trim()}\n\nInquiry Details:\n${message.trim()}\n\nStore: ${info.fullAddress}`;
+    return `mailto:${info.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   const handleSubmit = (e) => {
@@ -95,11 +97,11 @@ export default function ContactPage({ currentUser, onShowToast }) {
       <div className="border-b border-[#222222] pb-6">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-xs font-bold text-[#D4AF37] mb-2">
           <MapPin size={13} />
-          <span>Official Store Location • Udgir, Maharashtra</span>
+          <span>Official Store Location • {info.shortLocationLabel}</span>
         </div>
         <h1 className="text-3xl font-black text-white">Contact & Store Information</h1>
         <p className="text-xs sm:text-sm text-gray-400 mt-1 max-w-2xl">
-          Visit our flagship store in Nagar Parishad, Udgir for new smartphone purchases, accessories, certified pre-owned phones, and instant on-counter repairs.
+          Visit {info.shopName} at {info.fullAddress} for new smartphone purchases, accessories, certified pre-owned phones, and instant on-counter repairs.
         </p>
       </div>
 
@@ -117,15 +119,26 @@ export default function ContactPage({ currentUser, onShowToast }) {
               <div className="p-2 rounded-lg bg-[#D4AF37]/10 text-[#D4AF37] shrink-0 mt-0.5">
                 <MapPin size={20} />
               </div>
-              <div>
+              <div className="flex-1">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                   Physical Store Location
                 </h4>
-                <p className="text-sm font-bold text-white">{STORE_INFO.name}</p>
-                <p className="text-xs text-gray-300 mt-0.5">{STORE_INFO.address}</p>
-                <p className="text-[11px] text-[#D4AF37] font-semibold mt-1">
-                  Landmark: {STORE_INFO.landmark}
-                </p>
+                <p className="text-sm font-bold text-white">{info.shopName}</p>
+                <p className="text-xs text-gray-300 mt-0.5">{info.fullAddress}</p>
+                {info.landmark && (
+                  <p className="text-[11px] text-[#D4AF37] font-semibold mt-1">
+                    Landmark: {info.landmark}
+                  </p>
+                )}
+                <a
+                  href={info.googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-[#D4AF37] hover:underline"
+                >
+                  <span>Open in Google Maps</span>
+                  <ExternalLink size={12} />
+                </a>
               </div>
             </div>
 
@@ -138,30 +151,42 @@ export default function ContactPage({ currentUser, onShowToast }) {
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                   Working Hours
                 </h4>
-                <p className="text-sm font-bold text-white">{STORE_INFO.hours}</p>
+                <p className="text-sm font-bold text-white">{info.openingHours}</p>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Counter repair & sales open on all Sundays and public holidays.
+                  Counter repair & sales open ({info.openingTime} – {info.closingTime}).
                 </p>
               </div>
             </div>
 
-            {/* Helpline Phone */}
+            {/* Helpline Phone & WhatsApp */}
             <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-[#0E0E0E] border border-[#222222]">
               <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 shrink-0 mt-0.5">
                 <Phone size={20} />
               </div>
-              <div>
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+              <div className="space-y-1">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Helpline & WhatsApp Support
                 </h4>
-                <a 
-                  href={`tel:${STORE_INFO.phone}`} 
-                  className="text-sm font-bold text-white hover:text-[#D4AF37] transition inline-block"
-                >
-                  {STORE_INFO.displayPhone}
-                </a>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Direct call for instant stock availability, repair status & inquiries.
+                <div>
+                  <a 
+                    href={`tel:${info.dialPhone}`} 
+                    className="text-sm font-bold text-white hover:text-[#D4AF37] transition inline-block"
+                  >
+                    Call Shop: {info.phoneNumber}
+                  </a>
+                </div>
+                <div>
+                  <a
+                    href={`https://wa.me/${info.whatsappDigits}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-semibold text-emerald-400 hover:underline inline-block"
+                  >
+                    WhatsApp: {info.whatsappNumber}
+                  </a>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Direct call or WhatsApp for instant stock availability, repair status & inquiries.
                 </p>
               </div>
             </div>
@@ -176,11 +201,28 @@ export default function ContactPage({ currentUser, onShowToast }) {
                   Official Email Address
                 </h4>
                 <a 
-                  href={`mailto:${STORE_INFO.email}`} 
+                  href={`mailto:${info.email}`} 
                   className="text-xs font-semibold text-gray-300 hover:text-[#D4AF37] break-all"
                 >
-                  {STORE_INFO.email}
+                  {info.email}
                 </a>
+              </div>
+            </div>
+
+            {/* Business Services */}
+            <div className="flex items-start gap-3.5 p-3.5 rounded-xl bg-[#0E0E0E] border border-[#222222]">
+              <div className="p-2 rounded-lg bg-amber-500/10 text-[#D4AF37] shrink-0 mt-0.5">
+                <ListChecks size={20} />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                  Business Services
+                </h4>
+                <ul className="space-y-1 text-xs text-gray-300">
+                  {(info.services || []).map((svc, idx) => (
+                    <li key={idx}>• {svc}</li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
@@ -222,7 +264,7 @@ export default function ContactPage({ currentUser, onShowToast }) {
               <div className="text-center">
                 <h3 className="text-base font-bold text-white">Inquiry Draft Prepared!</h3>
                 <p className="text-xs text-gray-400 mt-1">
-                  Ready to send directly to SK Mobile Shoppy and Electronics
+                  Ready to send directly to {info.shopName}
                 </p>
               </div>
 
@@ -255,7 +297,7 @@ export default function ContactPage({ currentUser, onShowToast }) {
                   className="w-full py-2.5 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-950/40"
                 >
                   <Share2 size={15} />
-                  <span>Forward via WhatsApp ({STORE_INFO.displayPhone})</span>
+                  <span>Forward via WhatsApp ({info.whatsappNumber})</span>
                   <ExternalLink size={13} />
                 </a>
 
@@ -268,11 +310,11 @@ export default function ContactPage({ currentUser, onShowToast }) {
                 </a>
 
                 <a
-                  href={`tel:${STORE_INFO.phone}`}
+                  href={`tel:${info.dialPhone}`}
                   className="w-full py-2.5 px-4 rounded-lg bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#D4AF37] font-medium text-xs flex items-center justify-center gap-2 border border-[#333333] transition"
                 >
                   <Phone size={15} />
-                  <span>Call Store Helpline Directly</span>
+                  <span>Call Store Helpline Directly ({info.phoneNumber})</span>
                 </a>
               </div>
 
@@ -381,11 +423,11 @@ export default function ContactPage({ currentUser, onShowToast }) {
           <div className="mt-8 pt-6 border-t border-[#222222] flex items-center justify-between">
             <span className="text-xs text-gray-400">Need urgent assistance right now?</span>
             <a
-              href={`tel:${STORE_INFO.phone}`}
+              href={`tel:${info.dialPhone}`}
               className="outline-gold-btn !text-xs !py-2 !px-4"
             >
               <Phone size={14} />
-              <span>Call Now</span>
+              <span>Call Now ({info.phoneNumber})</span>
             </a>
           </div>
         </div>

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { RefreshCw, ArrowRight, X, Sparkles } from 'lucide-react';
+import { DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 
-export default function ExchangeComingSoonCard({ onShowToast, className = '' }) {
+export default function ExchangeComingSoonCard({ onShowToast, className = '', shopInfo = DEFAULT_SHOP_INFO }) {
+  const info = formatShopInfo(shopInfo);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleOpen = () => {
     setIsModalOpen(true);
-    onShowToast?.('New & Old Mobile Exchange is Coming Soon at SK Mobile, Udgir!', 'info');
+    onShowToast?.(`New & Old Mobile Exchange is Coming Soon at ${info.shopName}!`, 'info');
   };
 
   return (
@@ -38,7 +40,7 @@ export default function ExchangeComingSoonCard({ onShowToast, className = '' }) 
               </h3>
             </div>
             <p className="text-xs text-gray-300 leading-relaxed">
-              Upgrade your old smartphone toward a brand-new 5G phone or certified pre-owned device — launching soon at SK Mobile Shoppy and Electronics, Udgir.
+              Upgrade your old smartphone toward a brand-new 5G phone or certified pre-owned device — launching soon at {info.shopName}, {info.shortLocationLabel}.
             </p>
           </div>
         </div>
@@ -80,7 +82,7 @@ export default function ExchangeComingSoonCard({ onShowToast, className = '' }) 
             </div>
 
             <p className="text-xs sm:text-sm text-gray-300 leading-relaxed">
-              We are launching direct <strong>New Mobile &amp; Old Mobile Exchange</strong> soon at SK Mobile Shoppy and Electronics, Nagar Parishad, Udgir!
+              We are launching direct <strong>New Mobile &amp; Old Mobile Exchange</strong> soon at {info.shopName}, {info.shortLocationLabel}!
             </p>
             <p className="text-xs text-gray-400 leading-relaxed">
               Soon you&apos;ll be able to trade in your old phone for instant upgrade credit toward any brand-new 5G phone or certified pre-owned handset.

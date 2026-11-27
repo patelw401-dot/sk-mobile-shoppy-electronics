@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { STORE_INFO, REAL_PRODUCTS, ACCESSORIES } from '../data/storeData';
+import { REAL_PRODUCTS, ACCESSORIES } from '../data/storeData';
 import { 
   isUserAdmin, 
   AUTHORIZED_ADMIN_EMAILS,
@@ -8,7 +8,12 @@ import {
   updateAdminRepairBookingStatus,
   updateAdminOldPhoneStatus,
   signInWithGooglePopup,
-  logoutUser
+  logoutUser,
+  DEFAULT_REPAIR_PRICING,
+  saveAdminRepairPricingToFirestore,
+  DEFAULT_SHOP_INFO,
+  formatShopInfo,
+  saveAdminShopInfoToFirestore
 } from '../firebase';
 import { 
   ShieldCheck, 
@@ -34,14 +39,27 @@ import {
   Calendar,
   DollarSign,
   Package,
-  ShoppingBag
+  ShoppingBag,
+  Store,
+  MapPin,
+  Mail,
+  Save,
+  MessageCircle,
+  Globe
 } from 'lucide-react';
 import ProductManagementTab from '../components/ProductManagementTab';
 import OrdersManagementTab from '../components/OrdersManagementTab';
 import CategoryManagementTab from '../components/CategoryManagementTab';
 
-export default function AdminDashboardPage({ currentUser, setActivePage, onShowToast }) {
-  const [activeTab, setActiveTab] = useState('repairs'); // 'repairs' | 'old-phones' | 'orders' | 'products' | 'categories' | 'system'
+export default function AdminDashboardPage({
+  currentUser,
+  setActivePage,
+  onShowToast,
+  repairServices = DEFAULT_REPAIR_PRICING,
+  shopInfo = DEFAULT_SHOP_INFO
+}) {
+  const normalizedShopInfo = formatShopInfo(shopInfo);
+  const [activeTab, setActiveTab] = useState('repairs'); // 'repairs' | 'old-phones' | 'orders' | 'products' | 'categories' | 'shop-info' | 'system'
   const [repairs, setRepairs] = useState([]);
   const [oldPhones, setOldPhones] = useState([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -49,8 +67,46 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [repairPriceInputs, setRepairPriceInputs] = useState(() =>
+    (Array.isArray(repairServices) && repairServices.length > 0 ? repairServices : DEFAULT_REPAIR_PRICING).reduce((acc, s) => {
+      acc[s.id] = String(s.estimatedStartingPrice ?? 0);
+      return acc;
+    }, {})
+  );
+  const [isSavingRepairPrices, setIsSavingRepairPrices] = useState(false);
+
+  const [shopInfoForm, setShopInfoForm] = useState(() => ({
+    ...normalizedShopInfo,
+    servicesText: (normalizedShopInfo.services || []).join('\n'),
+    deliveryCharge: String(normalizedShopInfo.deliveryCharge ?? 49),
+    freeDeliveryThreshold: String(normalizedShopInfo.freeDeliveryThreshold ?? 499)
+  }));
+  const [isSavingShopInfo, setIsSavingShopInfo] = useState(false);
+  const [shopInfoFeedback, setShopInfoFeedback] = useState(null);
 
   const isAdmin = isUserAdmin(currentUser);
+
+  // Sync editable shop info fields when live Firestore shopInfo updates
+  useEffect(() => {
+    const formatted = formatShopInfo(shopInfo);
+    setShopInfoForm({
+      ...formatted,
+      servicesText: (formatted.services || []).join('\n'),
+      deliveryCharge: String(formatted.deliveryCharge ?? 49),
+      freeDeliveryThreshold: String(formatted.freeDeliveryThreshold ?? 499)
+    });
+  }, [shopInfo]);
+
+  // Sync editable price fields when live Firestore repairServices updates
+  useEffect(() => {
+    const source = Array.isArray(repairServices) && repairServices.length > 0 ? repairServices : DEFAULT_REPAIR_PRICING;
+    setRepairPriceInputs(
+      source.reduce((acc, s) => {
+        acc[s.id] = String(s.estimatedStartingPrice ?? 0);
+        return acc;
+      }, {})
+    );
+  }, [repairServices]);
 
   // Load data whenever admin is authorized
   useEffect(() => {
@@ -127,6 +183,34 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
     }
   };
 
+  const handleSaveRepairPrices = async () => {
+    if (isSavingRepairPrices) return;
+    const source = Array.isArray(repairServices) && repairServices.length > 0 ? repairServices : DEFAULT_REPAIR_PRICING;
+    const updatedList = [];
+    for (const service of source) {
+      const parsed = Number.parseInt(repairPriceInputs[service.id], 10);
+      if (Number.isNaN(parsed) || parsed < 0) {
+        onShowToast?.(`Enter a valid ₹ price for ${service.title}`, 'error');
+        return;
+      }
+      updatedList.push({
+        ...service,
+        estimatedStartingPrice: parsed
+      });
+    }
+
+    setIsSavingRepairPrices(true);
+    try {
+      await saveAdminRepairPricingToFirestore(updatedList, currentUser);
+      onShowToast?.('Repair prices updated and synced across Web & Android!', 'success');
+    } catch (err) {
+      console.error('Failed to save repair prices:', err);
+      onShowToast?.(err.message || 'Failed to save repair prices to Firestore.', 'error');
+    } finally {
+      setIsSavingRepairPrices(false);
+    }
+  };
+
   const handleUpdateOldPhoneStatus = async (requestId, newStatus) => {
     setIsUpdating(true);
     try {
@@ -136,8 +220,60 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
     } catch (err) {
       console.error("Failed to update old phone status:", err);
       onShowToast?.("Failed to update status in Firestore.", "error");
+    setIsUpdating(false);
+    }
+  };
+
+  const handleSaveShopInfo = async (e) => {
+    e?.preventDefault?.();
+    if (isSavingShopInfo) return;
+    setShopInfoFeedback(null);
+
+    if (!shopInfoForm.shopName?.trim()) {
+      const msg = 'Shop Name is required.';
+      setShopInfoFeedback({ type: 'error', message: msg });
+      onShowToast?.(msg, 'error');
+      return;
+    }
+    if (!shopInfoForm.phoneNumber?.trim() || shopInfoForm.phoneNumber.replace(/\D/g, '').length < 10) {
+      const msg = 'Please enter a valid 10-digit Calling Mobile Number.';
+      setShopInfoFeedback({ type: 'error', message: msg });
+      onShowToast?.(msg, 'error');
+      return;
+    }
+    if (!shopInfoForm.address?.trim()) {
+      const msg = 'Full Shop Address is required.';
+      setShopInfoFeedback({ type: 'error', message: msg });
+      onShowToast?.(msg, 'error');
+      return;
+    }
+
+    const parsedServices = (shopInfoForm.servicesText || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const payload = {
+      ...shopInfoForm,
+      whatsappNumber: shopInfoForm.whatsappNumber?.trim() || shopInfoForm.phoneNumber.trim(),
+      services: parsedServices.length > 0 ? parsedServices : DEFAULT_SHOP_INFO.services,
+      deliveryCharge: Math.max(0, Number.parseInt(shopInfoForm.deliveryCharge, 10) || 0),
+      freeDeliveryThreshold: Math.max(0, Number.parseInt(shopInfoForm.freeDeliveryThreshold, 10) || 0)
+    };
+
+    setIsSavingShopInfo(true);
+    try {
+      await saveAdminShopInfoToFirestore(payload, currentUser);
+      const okMsg = 'Shop information saved and synced to Web & Android customers in real time!';
+      setShopInfoFeedback({ type: 'success', message: okMsg });
+      onShowToast?.(okMsg, 'success');
+    } catch (err) {
+      console.error('Failed to save shop info:', err);
+      const errMsg = err.message || 'Failed to save shop information to Firestore.';
+      setShopInfoFeedback({ type: 'error', message: errMsg });
+      onShowToast?.(errMsg, 'error');
     } finally {
-      setIsUpdating(false);
+      setIsSavingShopInfo(false);
     }
   };
 
@@ -303,9 +439,9 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
               <ShieldCheck size={14} />
               <span>Verified Store Administrator</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white">SK Mobile Store Console</h1>
+            <h1 className="text-2xl sm:text-3xl font-black text-white">{normalizedShopInfo.shopName} Console</h1>
             <p className="text-xs text-gray-400">
-              Logged in as: <strong className="text-white font-mono">{currentUser.email}</strong> • Nagar Parishad, Udgir
+              Logged in as: <strong className="text-white font-mono">{currentUser.email}</strong> • {normalizedShopInfo.shortLocationLabel}
             </p>
           </div>
 
@@ -438,6 +574,18 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
         </button>
 
         <button
+          onClick={() => setActiveTab('shop-info')}
+          className={`py-3 px-4 font-bold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition whitespace-nowrap ${
+            activeTab === 'shop-info'
+              ? 'border-[#D4AF37] text-[#D4AF37] bg-[#D4AF37]/5'
+              : 'border-transparent text-gray-400 hover:text-white'
+          }`}
+        >
+          <Store size={16} />
+          <span>Shop Info &amp; Contact</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('system')}
           className={`py-3 px-4 font-bold text-xs sm:text-sm flex items-center gap-2 border-b-2 transition whitespace-nowrap ${
             activeTab === 'system'
@@ -487,6 +635,54 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
       {/* ----------------- TAB 1: REPAIRS ----------------- */}
       {activeTab === 'repairs' && (
         <div className="space-y-4">
+          {/* Repair Price Management Card */}
+          <div className="bg-[#141414] border border-[#D4AF37]/30 rounded-2xl p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-black text-white flex items-center gap-2">
+                  <DollarSign size={16} className="text-[#D4AF37]" />
+                  <span>Repair Price Management</span>
+                </h3>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  Edit starting ₹ prices shown in Home &amp; Repair Booking across both Web and Android in real time.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={isSavingRepairPrices}
+                onClick={handleSaveRepairPrices}
+                className="gold-btn !text-xs !py-2 !px-4 self-start sm:self-auto disabled:opacity-50"
+              >
+                {isSavingRepairPrices ? 'Saving...' : 'Save Repair Prices'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {(Array.isArray(repairServices) && repairServices.length > 0 ? repairServices : DEFAULT_REPAIR_PRICING).map((service) => (
+                <div key={service.id} className="p-3 rounded-xl bg-[#0E0E0E] border border-[#262626] space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-white truncate">{service.title}</span>
+                    <span className="text-[10px] text-gray-500 shrink-0">{service.turnaroundTime}</span>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#D4AF37]">₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={repairPriceInputs[service.id] ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, '');
+                        setRepairPriceInputs((prev) => ({ ...prev, [service.id]: val }));
+                      }}
+                      className="w-full bg-[#141414] border border-[#2E2E2E] rounded-lg pl-7 pr-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-[#D4AF37]"
+                      placeholder="Starting ₹"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {isLoadingData ? (
             <div className="p-12 text-center text-gray-400 text-xs">
               <RefreshCw size={24} className="animate-spin text-[#D4AF37] mx-auto mb-2" />
@@ -707,16 +903,252 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
         />
       )}
 
+      {/* ----------------- TAB: SHOP INFO & CONTACT MANAGEMENT ----------------- */}
+      {activeTab === 'shop-info' && (
+        <form onSubmit={handleSaveShopInfo} className="bg-[#141414] border border-[#262626] rounded-2xl p-6 sm:p-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222222] pb-4">
+            <div>
+              <h2 className="text-lg font-black text-white flex items-center gap-2">
+                <Store size={20} className="text-[#D4AF37]" />
+                <span>Shop Information Management</span>
+              </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                Changes saved here sync live to <code className="text-[#D4AF37]">settings/shop_info</code> and immediately update all Web &amp; Android customer screens (Call Shop, WhatsApp, Footer, Contact, Header &amp; Checkout).
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={isSavingShopInfo}
+              className="gold-btn !text-xs !py-2.5 !px-5 flex items-center gap-2 self-start sm:self-auto disabled:opacity-50"
+            >
+              <Save size={15} />
+              <span>{isSavingShopInfo ? 'Saving & Syncing...' : 'Save & Sync Shop Info'}</span>
+            </button>
+          </div>
+
+          {shopInfoFeedback && (
+            <div
+              className={`p-3.5 rounded-xl border text-xs flex items-center gap-2.5 ${
+                shopInfoFeedback.type === 'success'
+                  ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                  : 'bg-red-500/10 border-red-500/40 text-red-300'
+              }`}
+            >
+              {shopInfoFeedback.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+              <span className="font-semibold">{shopInfoFeedback.message}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Shop Name *</label>
+              <input
+                type="text"
+                value={shopInfoForm.shopName || ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, shopName: e.target.value }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="SK Mobile Shoppy and Electronics"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Shop Email *</label>
+              <input
+                type="email"
+                value={shopInfoForm.email || ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, email: e.target.value }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="skmobileshoppyandelectronics@gmail.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Calling Mobile Number (Call Shop) *</label>
+              <input
+                type="tel"
+                value={shopInfoForm.phoneNumber || ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, phoneNumber: e.target.value }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="+91 9823109313"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">WhatsApp Number *</label>
+              <input
+                type="tel"
+                value={shopInfoForm.whatsappNumber || ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, whatsappNumber: e.target.value }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="+91 9823109313"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Full Address *</label>
+              <textarea
+                rows={2}
+                value={shopInfoForm.address || ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, address: e.target.value }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="Near Nagar Parishad Office, Station Road, Udgir, Maharashtra"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Pincode *</label>
+              <input
+                type="text"
+                maxLength={10}
+                value={shopInfoForm.pincode || ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, pincode: e.target.value }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="413517"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Landmark</label>
+              <input
+                type="text"
+                value={shopInfoForm.landmark || ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, landmark: e.target.value }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="Opposite Nagar Parishad Municipal Complex"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Opening Time</label>
+              <input
+                type="text"
+                value={shopInfoForm.openingTime || ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, openingTime: e.target.value }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="09:30 AM"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Closing Time</label>
+              <input
+                type="text"
+                value={shopInfoForm.closingTime || ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, closingTime: e.target.value }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="09:30 PM"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Opening Hours Label (Shown to Customers)</label>
+              <input
+                type="text"
+                value={shopInfoForm.openingHours || ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, openingHours: e.target.value }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="9:30 AM – 9:30 PM (Open All 7 Days)"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Google Maps URL</label>
+              <input
+                type="url"
+                value={shopInfoForm.googleMapsUrl || ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, googleMapsUrl: e.target.value }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="https://maps.google.com/?q=..."
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                Business Services List (One service per line)
+              </label>
+              <textarea
+                rows={4}
+                value={shopInfoForm.servicesText || ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, servicesText: e.target.value }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+                placeholder="New Smartphones & 5G Mobiles&#10;Certified Pre-Owned Phones&#10;Express Mobile Repair"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Delivery Charge (₹)</label>
+              <input
+                type="number"
+                min="0"
+                value={shopInfoForm.deliveryCharge ?? ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, deliveryCharge: e.target.value.replace(/[^0-9]/g, '') }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Free Delivery Above (₹)</label>
+              <input
+                type="number"
+                min="0"
+                value={shopInfoForm.freeDeliveryThreshold ?? ''}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, freeDeliveryThreshold: e.target.value.replace(/[^0-9]/g, '') }))}
+                className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-4 pt-2 border-t border-[#222222] text-xs text-gray-300">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={Boolean(shopInfoForm.pickupAvailable)}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, pickupAvailable: e.target.checked }))}
+                className="accent-[#D4AF37]"
+              />
+              <span>Store Pickup Available</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={Boolean(shopInfoForm.homeDeliveryAvailable)}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, homeDeliveryAvailable: e.target.checked }))}
+                className="accent-[#D4AF37]"
+              />
+              <span>Home Delivery Available</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={Boolean(shopInfoForm.codEnabled)}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, codEnabled: e.target.checked }))}
+                className="accent-[#D4AF37]"
+              />
+              <span>Cash on Delivery</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={Boolean(shopInfoForm.upiEnabled)}
+                onChange={(e) => setShopInfoForm((p) => ({ ...p, upiEnabled: e.target.checked }))}
+                className="accent-[#D4AF37]"
+              />
+              <span>UPI Payments</span>
+            </label>
+          </div>
+        </form>
+      )}
+
       {/* ----------------- TAB 4: SYSTEM & SECURITY ----------------- */}
       {activeTab === 'system' && (
         <div className="bg-[#141414] border border-[#262626] rounded-2xl p-6 sm:p-8 space-y-6">
           <div>
             <h2 className="text-lg font-black text-white flex items-center gap-2">
               <ShieldCheck size={20} className="text-[#D4AF37]" />
-              <span>SK Mobile Store Security & Administrative Policy</span>
+              <span>{normalizedShopInfo.shopName} Security &amp; Administrative Policy</span>
             </h2>
             <p className="text-xs text-gray-400 mt-1">
-              Active configuration for Udgir showroom online operations
+              Active configuration for {normalizedShopInfo.shortLocationLabel} showroom online operations
             </p>
           </div>
 
@@ -742,7 +1174,7 @@ export default function AdminDashboardPage({ currentUser, setActivePage, onShowT
           </div>
 
           <div className="pt-4 border-t border-[#222222] flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-gray-400">
-            <span>Store Location: {STORE_INFO.address}</span>
+            <span>Store Location: {normalizedShopInfo.fullAddress}</span>
             <div className="flex gap-2">
               <button
                 onClick={() => setActivePage?.('home')}

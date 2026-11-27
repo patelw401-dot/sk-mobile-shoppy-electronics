@@ -15,6 +15,7 @@ import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.model.ReelItem
 import com.example.model.RepairBooking
+import com.example.model.RepairService
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
 import org.json.JSONArray
@@ -44,6 +45,7 @@ class LocalStorageManager(private val context: Context? = null) {
     private var cachedCart: MutableList<CartItem>? = null
     private var cachedSettings: ShopSettings? = null
     private var cachedReels: MutableList<ReelItem>? = null
+    private var cachedRepairServices: MutableList<RepairService>? = null
 
     // ==========================================
     // PRODUCTS
@@ -302,13 +304,28 @@ class LocalStorageManager(private val context: Context? = null) {
         if (!jsonString.isNullOrEmpty()) {
             try {
                 val obj = JSONObject(jsonString)
+                val def = ShopSettings()
+                val servicesList = mutableListOf<String>()
+                val servicesArr = obj.optJSONArray("services")
+                if (servicesArr != null) {
+                    for (i in 0 until servicesArr.length()) {
+                        val item = servicesArr.optString(i, "").trim()
+                        if (item.isNotBlank()) servicesList.add(item)
+                    }
+                }
                 val s = ShopSettings(
-                    shopName = obj.optString("shopName", "SK Mobile Shoppy and Electronics"),
-                    address = obj.optString("address", "Nagar Parishad, Udgir, Maharashtra - 413517"),
-                    phoneNumber = obj.optString("phoneNumber", "+91 98765 43210"),
-                    whatsappNumber = obj.optString("whatsappNumber", "+91 98765 43210"),
-                    openingTime = obj.optString("openingTime", "09:30 AM"),
-                    closingTime = obj.optString("closingTime", "09:30 PM"),
+                    shopName = obj.optString("shopName", def.shopName).ifBlank { def.shopName },
+                    address = obj.optString("address", def.address).ifBlank { def.address },
+                    pincode = obj.optString("pincode", def.pincode).ifBlank { def.pincode },
+                    landmark = obj.optString("landmark", def.landmark),
+                    phoneNumber = obj.optString("phoneNumber", def.phoneNumber).ifBlank { def.phoneNumber },
+                    whatsappNumber = obj.optString("whatsappNumber", def.whatsappNumber).ifBlank { def.whatsappNumber },
+                    email = obj.optString("email", def.email).ifBlank { def.email },
+                    openingTime = obj.optString("openingTime", def.openingTime).ifBlank { def.openingTime },
+                    closingTime = obj.optString("closingTime", def.closingTime).ifBlank { def.closingTime },
+                    openingHours = obj.optString("openingHours", def.openingHours).ifBlank { def.openingHours },
+                    services = if (servicesList.isNotEmpty()) servicesList else def.services,
+                    googleMapsUrl = obj.optString("googleMapsUrl", def.googleMapsUrl).ifBlank { def.googleMapsUrl },
                     pickupAvailable = obj.optBoolean("pickupAvailable", true),
                     homeDeliveryAvailable = obj.optBoolean("homeDeliveryAvailable", true),
                     deliveryCharge = obj.optInt("deliveryCharge", 49),
@@ -335,10 +352,16 @@ class LocalStorageManager(private val context: Context? = null) {
             val obj = JSONObject()
             obj.put("shopName", settings.shopName)
             obj.put("address", settings.address)
+            obj.put("pincode", settings.pincode)
+            obj.put("landmark", settings.landmark)
             obj.put("phoneNumber", settings.phoneNumber)
             obj.put("whatsappNumber", settings.whatsappNumber)
+            obj.put("email", settings.email)
             obj.put("openingTime", settings.openingTime)
             obj.put("closingTime", settings.closingTime)
+            obj.put("openingHours", settings.openingHours)
+            obj.put("services", JSONArray(settings.services))
+            obj.put("googleMapsUrl", settings.googleMapsUrl)
             obj.put("pickupAvailable", settings.pickupAvailable)
             obj.put("homeDeliveryAvailable", settings.homeDeliveryAvailable)
             obj.put("deliveryCharge", settings.deliveryCharge)
@@ -350,6 +373,74 @@ class LocalStorageManager(private val context: Context? = null) {
             true
         } catch (e: Exception) {
             Log.e(TAG, "Error saving settings: ${e.message}")
+            false
+        }
+    }
+
+    // ==========================================
+    // REPAIR SERVICES PRICING
+    // ==========================================
+    @Synchronized
+    fun loadRepairServices(): List<RepairService> {
+        cachedRepairServices?.let { return it.toList() }
+
+        val jsonString = prefs?.getString(KEY_REPAIR_SERVICES, null)
+        if (!jsonString.isNullOrEmpty()) {
+            try {
+                val array = JSONArray(jsonString)
+                val parsed = mutableMapOf<String, RepairService>()
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    val id = obj.optString("id")
+                    if (id.isNotBlank()) {
+                        val defaultSvc = MockData.repairServices.find { it.id == id }
+                        parsed[id] = RepairService(
+                            id = id,
+                            title = obj.optString("title").ifBlank { defaultSvc?.title ?: id },
+                            estimatedStartingPrice = obj.optInt("estimatedStartingPrice", defaultSvc?.estimatedStartingPrice ?: 499),
+                            turnaroundTime = obj.optString("turnaroundTime").ifBlank { defaultSvc?.turnaroundTime ?: "30 - 60 Minutes" },
+                            warrantyDays = obj.optInt("warrantyDays", defaultSvc?.warrantyDays ?: 0),
+                            description = obj.optString("description").ifBlank { defaultSvc?.description ?: "" },
+                            iconType = obj.optString("iconType").ifBlank { defaultSvc?.iconType ?: "repair" }
+                        )
+                    }
+                }
+                if (parsed.isNotEmpty()) {
+                    val merged = MockData.repairServices.map { def -> parsed[def.id] ?: def } +
+                        parsed.values.filter { svc -> MockData.repairServices.none { it.id == svc.id } }
+                    cachedRepairServices = merged.toMutableList()
+                    return merged
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error deserializing repair services: ${e.message}")
+            }
+        }
+
+        val defaults = MockData.repairServices.toMutableList()
+        cachedRepairServices = defaults
+        return defaults
+    }
+
+    @Synchronized
+    fun saveRepairServices(services: List<RepairService>): Boolean {
+        cachedRepairServices = services.toMutableList()
+        return try {
+            val array = JSONArray()
+            for (s in services) {
+                val obj = JSONObject()
+                obj.put("id", s.id)
+                obj.put("title", s.title)
+                obj.put("estimatedStartingPrice", s.estimatedStartingPrice)
+                obj.put("turnaroundTime", s.turnaroundTime)
+                obj.put("warrantyDays", s.warrantyDays)
+                obj.put("description", s.description)
+                obj.put("iconType", s.iconType)
+                array.put(obj)
+            }
+            prefs?.edit()?.putString(KEY_REPAIR_SERVICES, array.toString())?.apply()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving repair services: ${e.message}")
             false
         }
     }
@@ -1130,6 +1221,7 @@ class LocalStorageManager(private val context: Context? = null) {
         private const val KEY_NOTIFICATIONS_PREFIX = "key_notif_"
         private const val KEY_REELS = "key_reels"
         private const val KEY_CATEGORIES = "key_categories"
+        private const val KEY_REPAIR_SERVICES = "key_repair_services"
 
         // Singleton instance
         @Volatile

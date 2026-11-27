@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { APP_DOWNLOAD_CONFIG } from '../data/storeData';
+import { DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 import { 
   Download, 
   Smartphone, 
@@ -27,7 +28,8 @@ function AndroidIcon({ className = "w-5 h-5", size = 20 }) {
   );
 }
 
-export default function AppDownloadSection({ onShowToast }) {
+export default function AppDownloadSection({ onShowToast, shopInfo = DEFAULT_SHOP_INFO }) {
+  const info = formatShopInfo(shopInfo);
   const [showGuideModal, setShowGuideModal] = useState(false);
 
   const handleDownloadClick = () => {
@@ -157,7 +159,7 @@ export default function AppDownloadSection({ onShowToast }) {
                       30-Min Mobile Repairs • Genuine Parts
                     </div>
                     <div className="text-[10px] text-gray-400">
-                      Nagar Parishad, Udgir Store
+                      {info.shortLocationLabel} Store
                     </div>
                   </div>
 

@@ -168,8 +168,14 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
     }
 
-    // Store Settings: Public read; Only admins can modify store configurations
+    // Store Settings (including shop_info, store_config, and repair_pricing): Public read; Only admins can modify store configurations
     match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Repair Services Pricing: Public read; Only admins can modify prices
+    match /repair_services/{serviceId} {
       allow read: if true;
       allow write: if isAdmin();
     }

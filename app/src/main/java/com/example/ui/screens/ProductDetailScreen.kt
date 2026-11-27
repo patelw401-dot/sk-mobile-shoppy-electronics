@@ -54,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.admin.model.ShopSettings
 import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.ui.components.ProductCard
@@ -149,6 +150,7 @@ fun getCategoryAwareDefaultSpecs(categorySlug: String?, brand: String): Map<Stri
 fun ProductDetailScreen(
     product: Product,
     relatedProducts: List<Product>,
+    shopInfo: ShopSettings = ShopSettings(),
     onAddToCart: (Product) -> Unit,
     onBuyNow: (Product) -> Unit,
     onSelectRelatedProduct: (Product) -> Unit,
@@ -561,13 +563,13 @@ fun ProductDetailScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "Fast Doorstep Delivery in Udgir (413517)",
+                                text = "Fast Doorstep Delivery in ${shopInfo.shortLocationLabel}",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF166534)
                             )
                             Text(
-                                text = "Same-day delivery or pickup at Nagar Parishad store",
+                                text = "Same-day delivery or pickup at ${shopInfo.shopName} (${shopInfo.fullAddressWithPincode})",
                                 fontSize = 11.sp,
                                 color = Color(0xFF15803D)
                             )

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   fetchCustomerOrders, 
   cancelCustomerOrder, 
-  signInWithGooglePopup 
+  signInWithGooglePopup,
+  DEFAULT_SHOP_INFO,
+  formatShopInfo
 } from '../firebase';
-import { STORE_INFO } from '../data/storeData';
 import { 
   Package, 
   Clock, 
@@ -20,7 +21,8 @@ import {
   ShoppingBag
 } from 'lucide-react';
 
-export default function MyOrdersPage({ currentUser, setActivePage, onShowToast }) {
+export default function MyOrdersPage({ currentUser, setActivePage, onShowToast, shopInfo = DEFAULT_SHOP_INFO }) {
+  const info = formatShopInfo(shopInfo);
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
@@ -226,11 +228,11 @@ export default function MyOrdersPage({ currentUser, setActivePage, onShowToast }
 
                   <div className="flex items-center gap-2">
                     <a
-                      href={`tel:${STORE_INFO.phone}`}
+                      href={`tel:${info.dialPhone}`}
                       className="px-3 py-1.5 rounded-lg bg-[#222222] hover:bg-[#2A2A2A] text-gray-300 hover:text-white transition flex items-center gap-1.5 text-xs"
                     >
                       <Phone size={12} />
-                      <span>Inquire: {STORE_INFO.phone}</span>
+                      <span>Inquire: {info.phoneNumber}</span>
                     </a>
 
                     {canCancel && (

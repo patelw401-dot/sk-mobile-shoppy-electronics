@@ -53,3 +53,17 @@ minQuote, maxQuote (int rupees, 0 = no numeric valuation), requestType ('SELL'),
 Statuses: `New Request, Inspection, Offer Sent, Accepted, Rejected, Purchased`
 (initial `Submitted` / `Valuation Generated` / `Pending` all mean *New Request*; legacy `Inspecting` → Inspection,
 `Valuation Accepted` → Accepted, `Completed` → Purchased).
+
+## settings/repair_pricing
+`services[]: { id, title, estimatedStartingPrice (int), turnaroundTime, description, iconType }`, `pricesById: { [id]: int }`, `updatedAt`.
+* Canonical service IDs: `rep-1` (Display Replacement), `rep-2` (Battery Replacement), `rep-3` (Charging Problem),
+  `rep-4` (Speaker / Mic Problem), `rep-5` (Software Problem & Flashing), `rep-6` (Water Damage Recovery).
+* Public read (`allow read: if true`), admin-only write (`allow write: if isAdmin()`). Both platforms merge Firestore values onto default prices as fallback.
+
+## settings/shop_info
+`shopName, phoneNumber, whatsappNumber, email, address, pincode, landmark, openingTime, closingTime, openingHours,
+services[], googleMapsUrl, pickupAvailable, homeDeliveryAvailable, deliveryCharge (int), freeDeliveryThreshold (int),
+upiEnabled, codEnabled, onlinePaymentEnabled, updatedAt`
+* Public read (`allow read: if true`), admin-only write (`allow write: if isAdmin()`). Both Web and Android subscribe via real-time `onSnapshot` / `addSnapshotListener`.
+
+

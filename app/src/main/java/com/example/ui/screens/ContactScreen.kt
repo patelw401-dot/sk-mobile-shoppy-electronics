@@ -49,10 +49,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.admin.model.ShopSettings
 import com.example.ui.theme.*
 
 @Composable
 fun ContactScreen(
+    shopInfo: ShopSettings = ShopSettings(),
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -85,7 +87,7 @@ fun ContactScreen(
                 }
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Contact SK Mobile Shoppy and Electronics",
+                    text = "Contact ${shopInfo.shopName}",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextMain
@@ -127,13 +129,13 @@ fun ContactScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "SK Mobile Shoppy and Electronics",
+                                    text = shopInfo.shopName,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Black,
                                     color = GoldHighlight
                                 )
                                 Text(
-                                    text = "Nagar Parishad, Udgir, Maharashtra - 413517",
+                                    text = shopInfo.fullAddressWithPincode,
                                     fontSize = 12.sp,
                                     color = TextSecondary
                                 )
@@ -160,7 +162,7 @@ fun ContactScreen(
                                     color = TextSecondary
                                 )
                                 Text(
-                                    text = "9:30 AM – 9:30 PM (Open All 7 Days)",
+                                    text = shopInfo.formattedHours,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = TextMain
@@ -186,7 +188,7 @@ fun ContactScreen(
                                     color = TextSecondary
                                 )
                                 Text(
-                                    text = "+91 9823109313",
+                                    text = shopInfo.phoneNumber,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = TextMain
@@ -212,7 +214,7 @@ fun ContactScreen(
                                     color = TextSecondary
                                 )
                                 Text(
-                                    text = "skmobileshoppyandelectronics@gmail.com",
+                                    text = shopInfo.email,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = TextMain
@@ -229,8 +231,11 @@ fun ContactScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:+919823109313"))
-                                    context.startActivity(intent)
+                                    try {
+                                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${shopInfo.dialablePhone}"))
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {
+                                    }
                                 },
                                 modifier = Modifier.weight(1f).testTag("contact_call_btn"),
                                 colors = ButtonDefaults.buttonColors(
@@ -246,9 +251,12 @@ fun ContactScreen(
 
                             Button(
                                 onClick = {
-                                    val url = "https://api.whatsapp.com/send?phone=919823109313&text=Hello%20SK%20Mobile%20Udgir"
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                    context.startActivity(intent)
+                                    try {
+                                        val url = "https://api.whatsapp.com/send?phone=${shopInfo.whatsappDigits}&text=${Uri.encode("Hello ${shopInfo.shopName}")}"
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {
+                                    }
                                 },
                                 modifier = Modifier.weight(1f).testTag("contact_whatsapp_btn"),
                                 colors = ButtonDefaults.buttonColors(
@@ -286,7 +294,7 @@ fun ContactScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "How to Reach SK Mobile Shoppy and Electronics",
+                                text = "How to Reach ${shopInfo.shopName}",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextMain
@@ -295,13 +303,23 @@ fun ContactScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Simulated Map Placeholder
+                        // Clickable Map Card opening live googleMapsUrl
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(140.dp)
+                                .height(150.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(BlackSurfaceSecondary),
+                                .background(BlackSurfaceSecondary)
+                                .clickable {
+                                    val mapUrl = shopInfo.googleMapsUrl.trim()
+                                    if (mapUrl.isNotBlank()) {
+                                        try {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(mapUrl)))
+                                        } catch (_: Exception) {
+                                        }
+                                    }
+                                }
+                                .padding(horizontal = 12.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -321,15 +339,24 @@ fun ContactScreen(
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = "SK Mobile Shoppy and Electronics • Nagar Parishad Road, Udgir",
+                                    text = "${shopInfo.shopName} • ${shopInfo.fullAddressWithPincode}",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextMain
                                 )
+                                if (shopInfo.landmark.isNotBlank()) {
+                                    Text(
+                                        text = "Landmark: ${shopInfo.landmark}",
+                                        fontSize = 10.sp,
+                                        color = TextSecondary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Landmark: Opposite Nagar Parishad Municipal Complex",
-                                    fontSize = 10.sp,
-                                    color = TextSecondary
+                                    text = "Tap to open in Google Maps →",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LightBlueAccentOnDark
                                 )
                             }
                         }
@@ -349,7 +376,7 @@ fun ContactScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Services Available at SK Mobile Shoppy and Electronics",
+                            text = "Services Available at ${shopInfo.shopName}",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextMain
@@ -357,19 +384,7 @@ fun ContactScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        val allServices = listOf(
-                            "Mobile repair (Display, Battery, Charging, Audio, Software)",
-                            "New 5G mobile phones (All major brands)",
-                            "Old mobile buy (Instant valuation & cash)",
-                            "Old mobile sell (Certified refurbished with warranty)",
-                            "Fast chargers & GaN power adapters",
-                            "High-speed braided data cables",
-                            "Wired & Bluetooth headphones",
-                            "TWS earbuds & wireless Bluetooth speakers",
-                            "Mobile accessories (Power banks, tempered glass, cases)",
-                            "Home pickup and delivery across Udgir",
-                            "Online repair booking with live tracking"
-                        )
+                        val allServices = shopInfo.services.ifEmpty { ShopSettings.DEFAULT_SERVICES }
 
                         allServices.forEach { s ->
                             Row(
@@ -412,7 +427,6 @@ fun ContactScreen(
 
                         val faqs = listOf(
                             "How long does a screen replacement take?" to "Most screen and battery replacements are completed in 30 to 45 minutes at our Udgir store.",
-                            "Do you provide a warranty on repairs?" to "Yes, we provide up to 90 to 180 days replacement warranty on all replaced parts.",
                             "Is home pickup and drop free in Udgir?" to "Yes, we offer complimentary doorstep pickup and drop within the Udgir municipal area for repair bookings.",
                             "How is my old phone evaluated?" to "We check physical condition, battery health, and components using standard diagnostic tests to give the highest local market price."
                         )

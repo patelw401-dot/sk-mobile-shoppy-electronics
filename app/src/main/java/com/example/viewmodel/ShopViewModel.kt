@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.admin.model.CategoryRecord
+import com.example.admin.model.ShopSettings
 import com.example.auth.CustomerAuthService
 import com.example.data.firebase.FirebaseConfig
 import com.example.data.service.DataService
@@ -68,6 +69,7 @@ data class ShopUiState(
     val screenStack: List<AppScreen> = listOf(AppScreen.HOME),
     val products: List<Product> = MockData.products,
     val repairServices: List<RepairService> = MockData.repairServices,
+    val shopInfo: ShopSettings = ShopSettings(),
     val reviews: List<CustomerReview> = MockData.customerReviews,
     val cartItems: List<CartItem> = emptyList(),
     val selectedProduct: Product? = null,
@@ -135,7 +137,7 @@ data class ShopUiState(
         get() = cartSubtotal - cartTotal
 
     val deliveryFee: Int
-        get() = if (cartTotal >= 499 || cartItems.isEmpty()) 0 else 49
+        get() = if (cartTotal >= shopInfo.freeDeliveryThreshold || cartItems.isEmpty()) 0 else shopInfo.deliveryCharge
 
     // Search query matching across name, category, and brand
     val filteredProducts: List<Product>
@@ -245,6 +247,20 @@ class ShopViewModel(
             dataService.observeCategories().collect { categories ->
                 val active = categories.filter { it.isActive }
                 _uiState.update { it.copy(activeCategories = active) }
+            }
+        }
+
+        // Collect live repair service pricing continuously from DataService
+        viewModelScope.launch {
+            dataService.observeRepairServices().collect { services ->
+                _uiState.update { it.copy(repairServices = services) }
+            }
+        }
+
+        // Collect live shop info continuously from DataService (Call, WhatsApp, Address, Hours, Services)
+        viewModelScope.launch {
+            dataService.observeSettings().collect { info ->
+                _uiState.update { it.copy(shopInfo = info) }
             }
         }
 
@@ -596,18 +612,29 @@ class ShopViewModel(
                     null
                 } ?: _uiState.value.customerUid.orEmpty()
 
+                val trimmedProblem = problem.trim()
+                val matchedService = _uiState.value.repairServices.find { svc ->
+                    svc.title.equals(trimmedProblem, ignoreCase = true) ||
+                        svc.title.contains(trimmedProblem, ignoreCase = true) ||
+                        trimmedProblem.contains(svc.title.substringBefore(" &").trim(), ignoreCase = true)
+                }
+                val liveEstimate = matchedService?.let {
+                    "From ₹${java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "IN")).format(it.estimatedStartingPrice)}"
+                } ?: "Quote on Diagnosis"
+
                 val booking = RepairBooking(
                     bookingId = bookingId,
                     customerName = trimmedName,
                     mobileNumber = trimmedPhone,
                     brand = brand.trim(),
                     model = trimmedModel,
-                    problem = problem.trim(),
+                    problem = trimmedProblem,
                     pickupRequired = pickupRequired,
                     address = address.trim(),
                     preferredDate = preferredDate.trim(),
                     additionalDetails = additionalDetails.trim(),
                     status = if (pickupRequired) "Pickup Scheduled" else "Appointment Booked",
+                    estimatedCost = liveEstimate,
                     customerUid = currentUid
                 )
 

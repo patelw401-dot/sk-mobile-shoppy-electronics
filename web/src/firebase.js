@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { 
   getAuth, 
   onAuthStateChanged, 
@@ -966,3 +966,344 @@ export async function seedDefaultCategoriesToFirestore(currentUser, defaultCateg
   }
   return { success: true, count };
 }
+
+/**
+ * Default repair pricing matching Android MockData.repairServices (settings/repair_pricing)
+ */
+export const DEFAULT_REPAIR_PRICING = [
+  {
+    id: 'rep-1',
+    title: 'Display Replacement',
+    estimatedStartingPrice: 1499,
+    turnaroundTime: '30 - 60 Minutes',
+    description: 'Cracked glass, blank screen, lines, or touch responsiveness issues. Original OLED/IPS screens with genuine touch calibration.',
+    iconType: 'display'
+  },
+  {
+    id: 'rep-2',
+    title: 'Battery Replacement',
+    estimatedStartingPrice: 699,
+    turnaroundTime: '20 - 45 Minutes',
+    description: 'Quick battery drain, overheating, phone swelling, or unexpected shutdowns. Grade-A certified OEM batteries.',
+    iconType: 'battery'
+  },
+  {
+    id: 'rep-3',
+    title: 'Charging Problem',
+    estimatedStartingPrice: 349,
+    turnaroundTime: '30 Minutes',
+    description: 'Loose charging jack, slow charging, moisture detected, or complete charging failure. Precision Type-C / Micro-USB port replacement.',
+    iconType: 'charging'
+  },
+  {
+    id: 'rep-4',
+    title: 'Speaker / Mic Problem',
+    estimatedStartingPrice: 299,
+    turnaroundTime: '30 - 45 Minutes',
+    description: 'Crackling audio, low call volume, receiver issues, or caller cannot hear your voice. Original ear piece and bottom speaker replacement.',
+    iconType: 'audio'
+  },
+  {
+    id: 'rep-5',
+    title: 'Software Problem & Flashing',
+    estimatedStartingPrice: 249,
+    turnaroundTime: '45 - 90 Minutes',
+    description: 'Phone hanging, stuck on logo (boot loop), FRP / pattern unlock, OS update failures, or network unlocking.',
+    iconType: 'software'
+  },
+  {
+    id: 'rep-6',
+    title: 'Water Damage Recovery',
+    estimatedStartingPrice: 599,
+    turnaroundTime: '2 - 4 Hours',
+    description: 'Ultrasonic motherboard cleaning, chemical corrosion removal, and short circuit diagnosis with thermal camera inspection.',
+    iconType: 'water'
+  }
+];
+
+function mergeRepairPricingData(docData) {
+  if (!docData || typeof docData !== 'object') {
+    return DEFAULT_REPAIR_PRICING;
+  }
+  const pricesById = (docData.pricesById && typeof docData.pricesById === 'object') ? docData.pricesById : {};
+  const rawServices = Array.isArray(docData.services) ? docData.services : [];
+  const parsedById = new Map();
+
+  rawServices.forEach((entry) => {
+    if (!entry || !entry.id) return;
+    const def = DEFAULT_REPAIR_PRICING.find((d) => d.id === entry.id);
+    const rawPrice = entry.estimatedStartingPrice ?? pricesById[entry.id] ?? def?.estimatedStartingPrice ?? 499;
+    const parsedPrice = Math.max(0, Number.parseInt(rawPrice, 10) || 0);
+    parsedById.set(entry.id, {
+      id: entry.id,
+      title: (entry.title && String(entry.title).trim()) || def?.title || entry.id,
+      estimatedStartingPrice: parsedPrice,
+      turnaroundTime: (entry.turnaroundTime && String(entry.turnaroundTime).trim()) || def?.turnaroundTime || '30 - 60 Minutes',
+      description: (entry.description && String(entry.description).trim()) || def?.description || '',
+      iconType: (entry.iconType && String(entry.iconType).trim()) || def?.iconType || 'repair'
+    });
+  });
+
+  const merged = DEFAULT_REPAIR_PRICING.map((def) => {
+    if (parsedById.has(def.id)) {
+      return parsedById.get(def.id);
+    }
+    if (pricesById[def.id] !== undefined && pricesById[def.id] !== null) {
+      const override = Math.max(0, Number.parseInt(pricesById[def.id], 10) || 0);
+      return { ...def, estimatedStartingPrice: override };
+    }
+    return def;
+  });
+
+  parsedById.forEach((svc, id) => {
+    if (!DEFAULT_REPAIR_PRICING.some((d) => d.id === id)) {
+      merged.push(svc);
+    }
+  });
+
+  return merged;
+}
+
+/**
+ * Subscribe to real-time repair pricing updates from Firestore settings/repair_pricing.
+ * Public read access allowed by security rules; falls back to DEFAULT_REPAIR_PRICING when missing.
+ */
+export function subscribeToRepairPricing(onUpdate, onError) {
+  try {
+    const docRef = doc(db, 'settings', 'repair_pricing');
+    return onSnapshot(
+      docRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          onUpdate?.(mergeRepairPricingData(snapshot.data()));
+        } else {
+          onUpdate?.(DEFAULT_REPAIR_PRICING);
+        }
+      },
+      (err) => {
+        console.warn('subscribeToRepairPricing listener notice:', err);
+        onError?.(err);
+      }
+    );
+  } catch (err) {
+    console.error('subscribeToRepairPricing setup error:', err);
+    onError?.(err);
+    return () => {};
+  }
+}
+
+/**
+ * Save repair service starting prices to Firestore settings/repair_pricing (Admin only).
+ */
+export async function saveAdminRepairPricingToFirestore(services, currentUser) {
+  if (!isUserAdmin(currentUser)) {
+    throw new Error('Unauthorized: Store administrator privileges are required to update repair prices.');
+  }
+  const normalized = (Array.isArray(services) ? services : DEFAULT_REPAIR_PRICING).map((s) => ({
+    id: s.id,
+    title: s.title,
+    estimatedStartingPrice: Math.max(0, Number.parseInt(s.estimatedStartingPrice, 10) || 0),
+    turnaroundTime: s.turnaroundTime || '30 - 60 Minutes',
+    description: s.description || '',
+    iconType: s.iconType || 'repair'
+  }));
+  const pricesById = {};
+  normalized.forEach((s) => {
+    pricesById[s.id] = s.estimatedStartingPrice;
+  });
+
+  const docRef = doc(db, 'settings', 'repair_pricing');
+  await setDoc(
+    docRef,
+    {
+      services: normalized,
+      pricesById,
+      lastUpdatedBy: currentUser?.email || 'Store Admin',
+      updatedAt: serverTimestamp()
+    },
+    { merge: true }
+  );
+
+  return { success: true, services: normalized };
+}
+
+/**
+ * Default Shop Information matching Android ShopSettings (settings/shop_info)
+ */
+export const DEFAULT_SERVICES_LIST = [
+  'New Smartphones & 5G Mobiles',
+  'Certified Pre-Owned Phones',
+  'Express Mobile Repair & Chip-Level Service',
+  'Original Chargers, Audio & Accessories',
+  'New & Old Mobile Exchange (Coming Soon)'
+];
+
+export const DEFAULT_SHOP_INFO = {
+  shopName: 'SK Mobile Shoppy and Electronics',
+  phoneNumber: '+91 9823109313',
+  whatsappNumber: '+91 9823109313',
+  email: 'skmobileshoppyandelectronics@gmail.com',
+  address: 'Near Nagar Parishad Office, Station Road, Udgir, Maharashtra',
+  pincode: '413517',
+  landmark: 'Opposite Nagar Parishad Municipal Complex',
+  openingTime: '09:30 AM',
+  closingTime: '09:30 PM',
+  openingHours: '9:30 AM – 9:30 PM (Open All 7 Days)',
+  services: DEFAULT_SERVICES_LIST,
+  googleMapsUrl: 'https://maps.google.com/?q=SK+Mobile+Shoppy+and+Electronics+Nagar+Parishad+Udgir+413517',
+  pickupAvailable: true,
+  homeDeliveryAvailable: true,
+  deliveryCharge: 49,
+  freeDeliveryThreshold: 499,
+  upiEnabled: true,
+  codEnabled: true,
+  onlinePaymentEnabled: true
+};
+
+function toDialablePhone(raw, fallback = '+919823109313') {
+  const str = String(raw || '').trim();
+  const digits = str.replace(/\D/g, '');
+  if (!digits) return fallback;
+  if (str.startsWith('+')) return `+${digits}`;
+  if (digits.length === 10) return `+91${digits}`;
+  return `+${digits}`;
+}
+
+function toWhatsappDigits(raw, fallback = '919823109313') {
+  const digits = String(raw || '').replace(/\D/g, '');
+  if (!digits) return fallback;
+  if (digits.length === 10) return `91${digits}`;
+  return digits;
+}
+
+export function formatShopInfo(raw = {}) {
+  const src = raw && typeof raw === 'object' ? raw : {};
+  const shopName = String(src.shopName || DEFAULT_SHOP_INFO.shopName).trim() || DEFAULT_SHOP_INFO.shopName;
+  const phoneNumber = String(src.phoneNumber || DEFAULT_SHOP_INFO.phoneNumber).trim() || DEFAULT_SHOP_INFO.phoneNumber;
+  const whatsappNumber = String(src.whatsappNumber || phoneNumber || DEFAULT_SHOP_INFO.whatsappNumber).trim() || phoneNumber;
+  const email = String(src.email || DEFAULT_SHOP_INFO.email).trim() || DEFAULT_SHOP_INFO.email;
+  const address = String(src.address || DEFAULT_SHOP_INFO.address).trim() || DEFAULT_SHOP_INFO.address;
+  const pincode = String(src.pincode || DEFAULT_SHOP_INFO.pincode).trim() || DEFAULT_SHOP_INFO.pincode;
+  const landmark = String(src.landmark || DEFAULT_SHOP_INFO.landmark).trim() || DEFAULT_SHOP_INFO.landmark;
+  const openingTime = String(src.openingTime || DEFAULT_SHOP_INFO.openingTime).trim() || DEFAULT_SHOP_INFO.openingTime;
+  const closingTime = String(src.closingTime || DEFAULT_SHOP_INFO.closingTime).trim() || DEFAULT_SHOP_INFO.closingTime;
+  const openingHours = String(src.openingHours || `${openingTime} – ${closingTime} (Open All 7 Days)`).trim();
+  const services = Array.isArray(src.services) && src.services.length > 0
+    ? src.services.map((s) => String(s || '').trim()).filter(Boolean)
+    : DEFAULT_SERVICES_LIST;
+  const googleMapsUrl = String(src.googleMapsUrl || DEFAULT_SHOP_INFO.googleMapsUrl).trim() || DEFAULT_SHOP_INFO.googleMapsUrl;
+
+  const fullAddress = !pincode
+    ? address
+    : address.includes(pincode)
+      ? address
+      : `${address} - ${pincode}`;
+
+  const shortLocation = address
+    .split(',')
+    .map((p) => p.trim())
+    .find((p) => p.toLowerCase().includes('udgir'))
+    ?.split('-')[0]
+    ?.trim() || 'Udgir';
+
+  return {
+    ...DEFAULT_SHOP_INFO,
+    ...src,
+    shopName,
+    phoneNumber,
+    whatsappNumber,
+    email,
+    address,
+    pincode,
+    landmark,
+    openingTime,
+    closingTime,
+    openingHours,
+    services,
+    googleMapsUrl,
+    fullAddress,
+    shortLocationLabel: pincode ? `${shortLocation} ${pincode}` : shortLocation,
+    locationSlug: landmark ? `${shortLocation}, ${pincode}` : shortLocation,
+    dialPhone: toDialablePhone(phoneNumber),
+    whatsappDigits: toWhatsappDigits(whatsappNumber, toWhatsappDigits(phoneNumber)),
+    deliveryCharge: Number.isFinite(Number(src.deliveryCharge)) ? Number(src.deliveryCharge) : DEFAULT_SHOP_INFO.deliveryCharge,
+    freeDeliveryThreshold: Number.isFinite(Number(src.freeDeliveryThreshold)) ? Number(src.freeDeliveryThreshold) : DEFAULT_SHOP_INFO.freeDeliveryThreshold
+  };
+}
+
+/**
+ * Subscribe to real-time shop info updates from Firestore settings/shop_info
+ * (with one-time fallback check on settings/store_config if shop_info doesn't exist yet).
+ */
+export function subscribeToShopInfo(onUpdate, onError) {
+  try {
+    const shopInfoRef = doc(db, 'settings', 'shop_info');
+    return onSnapshot(
+      shopInfoRef,
+      async (snapshot) => {
+        if (snapshot.exists()) {
+          onUpdate?.(formatShopInfo(snapshot.data()));
+        } else {
+          try {
+            const legacySnap = await getDoc(doc(db, 'settings', 'store_config'));
+            if (legacySnap.exists()) {
+              onUpdate?.(formatShopInfo(legacySnap.data()));
+              return;
+            }
+          } catch (_) {
+            // ignore legacy fallback error
+          }
+          onUpdate?.(formatShopInfo(DEFAULT_SHOP_INFO));
+        }
+      },
+      (err) => {
+        console.warn('subscribeToShopInfo listener notice:', err);
+        onError?.(err);
+      }
+    );
+  } catch (err) {
+    console.error('subscribeToShopInfo setup error:', err);
+    onError?.(err);
+    return () => {};
+  }
+}
+
+/**
+ * Save shop information to Firestore settings/shop_info (and mirror to store_config) (Admin only).
+ */
+export async function saveAdminShopInfoToFirestore(shopData, currentUser) {
+  if (!isUserAdmin(currentUser)) {
+    throw new Error('Unauthorized: Store administrator privileges are required to update shop information.');
+  }
+  const formatted = formatShopInfo(shopData);
+  const payload = {
+    shopName: formatted.shopName,
+    phoneNumber: formatted.phoneNumber,
+    whatsappNumber: formatted.whatsappNumber,
+    email: formatted.email,
+    address: formatted.address,
+    pincode: formatted.pincode,
+    landmark: formatted.landmark,
+    openingTime: formatted.openingTime,
+    closingTime: formatted.closingTime,
+    openingHours: formatted.openingHours,
+    services: formatted.services,
+    googleMapsUrl: formatted.googleMapsUrl,
+    pickupAvailable: Boolean(formatted.pickupAvailable),
+    homeDeliveryAvailable: Boolean(formatted.homeDeliveryAvailable),
+    deliveryCharge: Math.max(0, Number.parseInt(formatted.deliveryCharge, 10) || 0),
+    freeDeliveryThreshold: Math.max(0, Number.parseInt(formatted.freeDeliveryThreshold, 10) || 0),
+    upiEnabled: Boolean(formatted.upiEnabled),
+    codEnabled: Boolean(formatted.codEnabled),
+    onlinePaymentEnabled: Boolean(formatted.onlinePaymentEnabled),
+    lastUpdatedBy: currentUser?.email || 'Store Admin',
+    updatedAt: serverTimestamp()
+  };
+
+  await setDoc(doc(db, 'settings', 'shop_info'), payload, { merge: true });
+  await setDoc(doc(db, 'settings', 'store_config'), payload, { merge: true });
+
+  return { success: true, shopInfo: formatShopInfo(payload) };
+}
+
+

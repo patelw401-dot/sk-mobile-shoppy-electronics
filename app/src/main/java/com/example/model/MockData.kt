@@ -422,7 +422,7 @@ object MockData {
             estimatedStartingPrice = 1499,
             turnaroundTime = "30 - 60 Minutes",
             warrantyDays = 90,
-            description = "Cracked glass, blank screen, lines, or touch responsiveness issues. Original OLED/IPS screens with genuine touch calibration and 90-day warranty.",
+            description = "Cracked glass, blank screen, lines, or touch responsiveness issues. Original OLED/IPS screens with genuine touch calibration.",
             iconType = "display"
         ),
         RepairService(
@@ -551,7 +551,7 @@ object MockData {
         ReelItem(
             id = "reel-3",
             title = "iPhone 13 / 14 Display Replacement in 30 Minutes!",
-            caption = "🛠️ Broken or flickering screen? Our certified repair engineers in Udgir replace authentic OEM displays with 90-day warranty. Doorstep pickup & delivery available!",
+            caption = "🛠️ Broken or flickering screen? Our certified repair engineers in Udgir replace authentic OEM displays. Doorstep pickup & delivery available!",
             videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
             thumbnailUrl = "https://images.unsplash.com/photo-1563770660941-20978e870e26?w=800&q=80",
             productId = null,

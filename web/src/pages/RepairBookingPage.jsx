@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { STORE_INFO, REPAIR_SERVICES, REPAIR_BRANDS } from '../data/storeData';
-import { saveRepairBookingToFirestore, signInWithGooglePopup } from '../firebase';
+import { REPAIR_BRANDS } from '../data/storeData';
+import { saveRepairBookingToFirestore, signInWithGooglePopup, DEFAULT_REPAIR_PRICING, DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 import { 
   Wrench, 
   ShieldCheck, 
@@ -19,12 +19,22 @@ import {
   Database
 } from 'lucide-react';
 
-export default function RepairBookingPage({ currentUser, setActivePage, onShowToast }) {
+export default function RepairBookingPage({
+  currentUser,
+  setActivePage,
+  onShowToast,
+  repairServices = DEFAULT_REPAIR_PRICING,
+  shopInfo = DEFAULT_SHOP_INFO
+}) {
+  const info = formatShopInfo(shopInfo);
+  const activeRepairServices = Array.isArray(repairServices) && repairServices.length > 0
+    ? repairServices
+    : DEFAULT_REPAIR_PRICING;
   const [customerName, setCustomerName] = useState(currentUser?.displayName || '');
   const [mobileNumber, setMobileNumber] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('Samsung');
   const [modelName, setModelName] = useState('');
-  const [selectedProblem, setSelectedProblem] = useState(REPAIR_SERVICES[0].title);
+  const [selectedProblem, setSelectedProblem] = useState(activeRepairServices[0]?.title || 'Display Replacement');
   const [pickupRequired, setPickupRequired] = useState(true);
   const [address, setAddress] = useState('');
   const [preferredSlot, setPreferredSlot] = useState('Today / Earliest Slot');
@@ -104,6 +114,10 @@ export default function RepairBookingPage({ currentUser, setActivePage, onShowTo
 
     try {
       const bookingId = `SKM-REP-${Date.now().toString().slice(-6)}`;
+      const matchedService = activeRepairServices.find((s) => s.title === selectedProblem);
+      const dynamicEstimate = matchedService
+        ? `From ₹${Number(matchedService.estimatedStartingPrice || 0).toLocaleString('en-IN')} (Final quote on diagnosis)`
+        : 'Quote on diagnosis';
       const bookingPayload = {
         bookingId,
         customerName: customerName.trim(),
@@ -112,10 +126,10 @@ export default function RepairBookingPage({ currentUser, setActivePage, onShowTo
         model: modelName.trim(),
         problem: selectedProblem,
         pickupRequired,
-        address: pickupRequired ? address.trim() : 'Drop-off at Nagar Parishad Store, Udgir',
+        address: pickupRequired ? address.trim() : `Drop-off at ${info.shopName}, ${info.fullAddress}`,
         preferredSlot,
         additionalDetails: additionalDetails.trim(),
-        estimatedCost: '₹499 - ₹1,499 (Final quote on diagnosis)'
+        estimatedCost: dynamicEstimate
       };
 
       // Real write to Cloud Firestore 'repairBookings' collection
@@ -129,11 +143,11 @@ export default function RepairBookingPage({ currentUser, setActivePage, onShowTo
         model: modelName.trim(),
         problem: selectedProblem,
         pickupRequired,
-        address: pickupRequired ? address.trim() : 'Drop-off at Nagar Parishad Store, Udgir',
+        address: pickupRequired ? address.trim() : `Drop-off at ${info.shopName}, ${info.fullAddress}`,
         preferredSlot,
         additionalDetails: additionalDetails.trim(),
         status: pickupRequired ? 'Pickup Scheduled' : 'Appointment Booked',
-        estimatedCost: '₹499 - ₹1,499 (Final quote on diagnosis)',
+        estimatedCost: dynamicEstimate,
         date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
         customerId: currentUser.uid,
         isCloudSaved: true
@@ -163,11 +177,11 @@ export default function RepairBookingPage({ currentUser, setActivePage, onShowTo
       <div className="border-b border-[#222222] pb-6">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-xs font-bold text-[#D4AF37] mb-2">
           <Wrench size={13} />
-          <span>SK Mobile Authorized Repair Center • Udgir</span>
+          <span>{info.shopName} Authorized Repair Center • {info.shortLocationLabel}</span>
         </div>
         <h1 className="text-3xl font-black text-white">Book Mobile Repair & Service</h1>
         <p className="text-xs sm:text-sm text-gray-400 mt-1 max-w-2xl">
-          Get transparent diagnosis, genuine components, and expert service. Choose free doorstep device pickup anywhere in Udgir or visit our service desk.
+          Get transparent diagnosis, genuine components, and expert service. Choose free doorstep device pickup or visit us at {info.fullAddress}.
         </p>
       </div>
 
@@ -333,9 +347,9 @@ export default function RepairBookingPage({ currentUser, setActivePage, onShowTo
                 onChange={(e) => setSelectedProblem(e.target.value)}
                 className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF37]"
               >
-                {REPAIR_SERVICES.map((s) => (
+                {activeRepairServices.map((s) => (
                   <option key={s.id} value={s.title}>
-                    {s.title} ({s.priceRange})
+                    {s.title} (From ₹{Number(s.estimatedStartingPrice || 0).toLocaleString('en-IN')})
                   </option>
                 ))}
               </select>
@@ -375,7 +389,7 @@ export default function RepairBookingPage({ currentUser, setActivePage, onShowTo
                   <Store size={20} className={!pickupRequired ? 'text-[#D4AF37]' : 'text-gray-400'} />
                   <div>
                     <div className="text-xs font-bold text-white">Visit Shop Counter</div>
-                    <div className="text-[11px] text-gray-400">Nagar Parishad, Udgir (30-min express counter service)</div>
+                    <div className="text-[11px] text-gray-400">{info.fullAddress} ({info.openingHours})</div>
                   </div>
                 </button>
               </div>
@@ -507,13 +521,15 @@ export default function RepairBookingPage({ currentUser, setActivePage, onShowTo
             </h3>
 
             <div className="space-y-3">
-              {REPAIR_SERVICES.map((item) => (
+              {activeRepairServices.map((item) => (
                 <div key={item.id} className="flex justify-between items-center py-2 border-b border-[#222222] last:border-none text-xs">
                   <div>
                     <span className="font-semibold text-gray-200 block">{item.title}</span>
-                    <span className="text-[10px] text-gray-500">{item.timeEstimate}</span>
+                    <span className="text-[10px] text-gray-500">{item.turnaroundTime || item.timeEstimate || '30 - 60 Minutes'}</span>
                   </div>
-                  <span className="font-bold text-[#D4AF37]">{item.priceRange}</span>
+                  <span className="font-bold text-[#D4AF37]">
+                    From ₹{Number(item.estimatedStartingPrice || 0).toLocaleString('en-IN')}
+                  </span>
                 </div>
               ))}
             </div>
@@ -579,7 +595,7 @@ export default function RepairBookingPage({ currentUser, setActivePage, onShowTo
             </div>
 
             <p className="text-xs text-gray-300 leading-relaxed text-center mb-6">
-              Our technician from SK Mobile Shoppy and Electronics (Udgir) will call you shortly on <strong>{confirmedBooking.mobileNumber}</strong> to confirm your slot.
+              Our technician from {info.shopName} ({info.shortLocationLabel}) will call you shortly on <strong>{confirmedBooking.mobileNumber}</strong> to confirm your slot. Helpdesk: <a href={`tel:${info.dialPhone}`} className="text-[#D4AF37] font-bold">{info.phoneNumber}</a>
             </p>
 
             <div className="flex gap-3">

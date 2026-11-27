@@ -77,6 +77,7 @@ import com.example.model.CustomerReview
 import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.model.RepairService
+import com.example.admin.model.ShopSettings
 import com.example.ui.theme.*
 import com.example.ui.components.CategoryData
 import com.example.ui.components.ExchangeComingSoonBanner
@@ -94,6 +95,7 @@ fun HomeScreen(
     repairServices: List<RepairService>,
     customerReviews: List<CustomerReview>,
     categories: List<com.example.admin.model.CategoryRecord> = emptyList(),
+    shopInfo: ShopSettings = ShopSettings(),
     onSelectProduct: (Product) -> Unit,
     onAddToCart: (Product) -> Unit,
     onBuyNow: (Product) -> Unit,
@@ -122,6 +124,7 @@ fun HomeScreen(
         // 1. Promotional Banner
         item {
             PromoHeroBanner(
+                pincode = shopInfo.pincode,
                 onShopNow = { onNavigate(AppScreen.PRODUCTS) },
                 onBookRepair = { onNavigate(AppScreen.REPAIR_BOOKING) }
             )
@@ -390,7 +393,7 @@ fun HomeScreen(
         // 7. Why Choose SK Mobile Section
         item {
             Spacer(modifier = Modifier.height(24.dp))
-            WhyChooseUsSection()
+            WhyChooseUsSection(shopInfo = shopInfo)
         }
 
         // 8. Customer Reviews Section
@@ -403,15 +406,34 @@ fun HomeScreen(
         item {
             Spacer(modifier = Modifier.height(24.dp))
             ShopFooterSection(
+                shopInfo = shopInfo,
                 onNavigate = onNavigate,
                 onCall = {
-                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:+919876543210"))
-                    context.startActivity(intent)
+                    try {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${shopInfo.dialablePhone}"))
+                        context.startActivity(intent)
+                    } catch (_: Exception) {
+                    }
                 },
                 onWhatsApp = {
-                    val url = "https://api.whatsapp.com/send?phone=919876543210&text=Hello%20SK%20Mobile%20Udgir%2C%20I%20have%20an%20inquiry"
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    context.startActivity(intent)
+                    try {
+                        val url = "https://api.whatsapp.com/send?phone=${shopInfo.whatsappDigits}&text=${Uri.encode("Hello ${shopInfo.shopName}, I have an inquiry")}"
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        context.startActivity(intent)
+                    } catch (_: Exception) {
+                    }
+                },
+                onOpenMap = {
+                    val mapUrl = shopInfo.googleMapsUrl.trim()
+                    if (mapUrl.isNotBlank()) {
+                        try {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(mapUrl)))
+                        } catch (_: Exception) {
+                            onNavigate(AppScreen.CONTACT)
+                        }
+                    } else {
+                        onNavigate(AppScreen.CONTACT)
+                    }
                 }
             )
         }
@@ -420,6 +442,7 @@ fun HomeScreen(
 
 @Composable
 fun PromoHeroBanner(
+    pincode: String = "413517",
     onShopNow: () -> Unit,
     onBookRepair: () -> Unit
 ) {
@@ -486,7 +509,7 @@ fun PromoHeroBanner(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Fast doorstep pickup & same-day delivery across Udgir (413517)",
+                    text = "Fast doorstep pickup & same-day delivery across Udgir (${pincode.ifBlank { "413517" }})",
                     color = Color.White.copy(alpha = 0.85f),
                     fontSize = 12.sp
                 )
@@ -619,7 +642,7 @@ fun RepairSectionCard(
                             color = LightTextPrimary
                         )
                         Text(
-                            text = "Quick diagnosis & 90-day service warranty",
+                            text = "Quick diagnosis & doorstep service",
                             fontSize = 12.sp,
                             color = LightTextSecondary
                         )
@@ -846,7 +869,7 @@ fun OldMobilesBannerSection(
 }
 
 @Composable
-fun WhyChooseUsSection() {
+fun WhyChooseUsSection(shopInfo: ShopSettings = ShopSettings()) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -854,13 +877,13 @@ fun WhyChooseUsSection() {
             .testTag("why_choose_sk_mobile_section")
     ) {
         Text(
-            text = "Why Choose SK Mobile Shoppy and Electronics?",
+            text = "Why Choose ${shopInfo.shopName}?",
             fontSize = 17.sp,
             fontWeight = FontWeight.Bold,
             color = TextMain
         )
         Text(
-            text = "Nagar Parishad, Udgir's most trusted smartphone destination",
+            text = "${shopInfo.shortLocationLabel}'s most trusted smartphone destination",
             fontSize = 12.sp,
             color = TextSecondary
         )
@@ -1047,9 +1070,11 @@ fun CustomerReviewsSection(reviews: List<CustomerReview>) {
 
 @Composable
 fun ShopFooterSection(
+    shopInfo: ShopSettings = ShopSettings(),
     onNavigate: (AppScreen) -> Unit,
     onCall: () -> Unit,
-    onWhatsApp: () -> Unit
+    onWhatsApp: () -> Unit,
+    onOpenMap: () -> Unit = {}
 ) {
     Surface(
         color = com.example.ui.theme.BlackSurface,
@@ -1061,7 +1086,7 @@ fun ShopFooterSection(
         Column(modifier = Modifier.padding(20.dp)) {
             // Brand & Location
             Text(
-                text = "SK Mobile Shoppy and Electronics",
+                text = shopInfo.shopName,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = com.example.ui.theme.TextMain
@@ -1069,7 +1094,10 @@ fun ShopFooterSection(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { onOpenMap() }
+            ) {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = "Location",
@@ -1078,7 +1106,7 @@ fun ShopFooterSection(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Nagar Parishad, Udgir, Maharashtra - 413517",
+                    text = shopInfo.fullAddressWithPincode,
                     fontSize = 12.sp,
                     color = com.example.ui.theme.TextSecondary
                 )
@@ -1087,9 +1115,17 @@ fun ShopFooterSection(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Opening Hours: 9:30 AM – 9:30 PM (All 7 Days Open)",
+                text = "Opening Hours: ${shopInfo.formattedHours}",
                 fontSize = 11.sp,
                 color = com.example.ui.theme.TextMuted
+            )
+
+            Spacer(modifier = Modifier.height(3.dp))
+
+            Text(
+                text = "Helpline: ${shopInfo.phoneNumber} • ${shopInfo.email}",
+                fontSize = 11.sp,
+                color = com.example.ui.theme.TextSecondary
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1130,7 +1166,7 @@ fun ShopFooterSection(
             HorizontalDivider(color = com.example.ui.theme.BlackBorder)
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Quick Links
+            // Business Services & Quick Links
             Text(
                 text = "Business Services:",
                 fontSize = 12.sp,
@@ -1140,23 +1176,35 @@ fun ShopFooterSection(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            val services = listOf(
-                "Mobile Repair" to AppScreen.REPAIR_BOOKING,
-                "Old Mobile Buy/Sell" to AppScreen.OLD_PHONE_BUY,
-                "Accessories & Chargers" to AppScreen.PRODUCTS,
-                "Contact & Directions" to AppScreen.CONTACT
-            )
-
-            services.forEach { (label, screen) ->
+            val businessServices = shopInfo.services.ifEmpty { ShopSettings.DEFAULT_SERVICES }
+            businessServices.forEach { label ->
+                val targetScreen = when {
+                    label.contains("repair", ignoreCase = true) -> AppScreen.REPAIR_BOOKING
+                    label.contains("old", ignoreCase = true) || label.contains("refurbished", ignoreCase = true) -> AppScreen.OLD_PHONE_BUY
+                    label.contains("contact", ignoreCase = true) || label.contains("map", ignoreCase = true) -> AppScreen.CONTACT
+                    else -> AppScreen.PRODUCTS
+                }
                 Text(
                     text = "• $label",
                     fontSize = 12.sp,
                     color = com.example.ui.theme.TextSecondary,
                     modifier = Modifier
                         .padding(vertical = 3.dp)
-                        .clickable { onNavigate(screen) }
+                        .clickable { onNavigate(targetScreen) }
                 )
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "• Contact & Google Maps Directions",
+                fontSize = 12.sp,
+                color = LightBlueAccentOnDark,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .padding(vertical = 3.dp)
+                    .clickable { onOpenMap() }
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
             HorizontalDivider(color = com.example.ui.theme.BlackBorder)
@@ -1182,10 +1230,11 @@ fun ShopFooterSection(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "© 2026 SK Mobile Shoppy and Electronics, Udgir. All Rights Reserved. Designed for Udgir mobile shoppers.",
+                text = "© 2026 ${shopInfo.shopName}. All Rights Reserved.",
                 fontSize = 10.sp,
                 color = com.example.ui.theme.TextMuted
             )
         }
     }
 }
+

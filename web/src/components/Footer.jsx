@@ -1,5 +1,5 @@
 import React from 'react';
-import { STORE_INFO } from '../data/storeData';
+import { DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 import { 
   MapPin, 
   Phone, 
@@ -10,10 +10,13 @@ import {
   Award, 
   CheckCircle2,
   ChevronRight,
-  Lock
+  Lock,
+  MessageCircle,
+  ExternalLink
 } from 'lucide-react';
 
-export default function Footer({ setActivePage }) {
+export default function Footer({ setActivePage, shopInfo = DEFAULT_SHOP_INFO }) {
+  const info = formatShopInfo(shopInfo);
   const handleNav = (page) => {
     setActivePage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -73,13 +76,13 @@ export default function Footer({ setActivePage }) {
               <div className="w-8 h-8 rounded-lg bg-[#D4AF37] flex items-center justify-center font-bold text-black text-sm">
                 SK
               </div>
-              <span className="font-extrabold text-white text-base">SK MOBILE SHOPPY</span>
+              <span className="font-extrabold text-white text-base">{info.shopName}</span>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed mb-4">
-              Nagar Parishad, Udgir's most trusted smartphone showroom and authorized device repair service center. Experience premium tech, verified pre-owned devices, and reliable customer care.
+              {info.shortLocationLabel}'s trusted smartphone showroom and device repair service center. Genuine devices, verified pre-owned phones, and reliable customer care.
             </p>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#1C1C1C] border border-[#333333] text-xs text-[#D4AF37]">
-              <span>Official Udgir Store • Latur District</span>
+              <span>{info.landmark || info.shortLocationLabel}</span>
             </div>
           </div>
 
@@ -147,19 +150,16 @@ export default function Footer({ setActivePage }) {
             </ul>
           </div>
 
-          {/* Column 3: Repair & Services */}
+          {/* Column 3: Business Services */}
           <div>
             <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-              Repair Specializations
+              Our Services
             </h4>
             <ul className="space-y-2 text-xs text-gray-400">
-              <li>• OLED & AMOLED Display Glass Replacement</li>
-              <li>• OEM High-Density Battery Replacement</li>
-              <li>• Type-C / Lightning Port & Charging IC</li>
-              <li>• Water Damage Ultrasonic Cleaning</li>
-              <li>• Camera Sensor & Lens Glass Repair</li>
-              <li>• Instant Valuation for Old Phones (Cash / Exchange)</li>
+              {(info.services || []).map((svc, idx) => (
+                <li key={idx}>• {svc}</li>
+              ))}
             </ul>
           </div>
 
@@ -170,24 +170,67 @@ export default function Footer({ setActivePage }) {
               Store Details
             </h4>
             <div className="space-y-3 text-xs">
-              <div className="flex items-start gap-2.5">
+              <a
+                href={info.googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-2.5 hover:text-[#D4AF37] transition"
+              >
                 <MapPin size={16} className="text-[#D4AF37] shrink-0 mt-0.5" />
-                <span>{STORE_INFO.address}</span>
-              </div>
+                <span>{info.fullAddress}</span>
+              </a>
               <div className="flex items-center gap-2.5">
                 <Clock size={16} className="text-[#D4AF37] shrink-0" />
-                <span>{STORE_INFO.hours}</span>
+                <span>{info.openingHours}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Phone size={16} className="text-[#D4AF37] shrink-0" />
-                <a href={`tel:${STORE_INFO.phone}`} className="hover:text-[#D4AF37] font-semibold">
-                  {STORE_INFO.displayPhone}
+                <a href={`tel:${info.dialPhone}`} className="hover:text-[#D4AF37] font-semibold">
+                  {info.phoneNumber}
+                </a>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <MessageCircle size={16} className="text-emerald-400 shrink-0" />
+                <a
+                  href={`https://wa.me/${info.whatsappDigits}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-300 font-semibold"
+                >
+                  WhatsApp: {info.whatsappNumber}
                 </a>
               </div>
               <div className="flex items-center gap-2.5">
                 <Mail size={16} className="text-[#D4AF37] shrink-0" />
-                <a href={`mailto:${STORE_INFO.email}`} className="hover:text-[#D4AF37] break-all">
-                  {STORE_INFO.email}
+                <a href={`mailto:${info.email}`} className="hover:text-[#D4AF37] break-all">
+                  {info.email}
+                </a>
+              </div>
+              <div className="pt-1 flex flex-wrap gap-2">
+                <a
+                  href={`tel:${info.dialPhone}`}
+                  className="px-3 py-1.5 rounded-lg bg-[#D4AF37] text-black font-bold text-[11px] inline-flex items-center gap-1"
+                >
+                  <Phone size={12} />
+                  <span>Call Shop</span>
+                </a>
+                <a
+                  href={`https://wa.me/${info.whatsappDigits}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-[11px] inline-flex items-center gap-1"
+                >
+                  <MessageCircle size={12} />
+                  <span>WhatsApp</span>
+                </a>
+                <a
+                  href={info.googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#333333] text-gray-200 hover:border-[#D4AF37] font-semibold text-[11px] inline-flex items-center gap-1"
+                >
+                  <ExternalLink size={12} />
+                  <span>Maps</span>
                 </a>
               </div>
             </div>
@@ -196,7 +239,7 @@ export default function Footer({ setActivePage }) {
 
         {/* Bottom Copyright & Admin Access */}
         <div className="pt-6 border-t border-[#1C1C1C] flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-3">
-          <p>© {new Date().getFullYear()} SK Mobile Shoppy and Electronics • All Rights Reserved.</p>
+          <p>© {new Date().getFullYear()} {info.shopName} • All Rights Reserved.</p>
           <div className="flex items-center gap-3">
             <button
               onClick={() => handleNav('admin')}
@@ -207,7 +250,7 @@ export default function Footer({ setActivePage }) {
             </button>
             <span className="text-gray-600">|</span>
             <p className="text-gray-400">
-              Nagar Parishad, Udgir, Maharashtra
+              {info.shortLocationLabel}
             </p>
           </div>
         </div>

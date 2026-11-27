@@ -133,6 +133,7 @@ fun SKMobileApp(
                 cartCount = shopUiState.cartItemCount,
                 userName = shopUiState.userName,
                 unreadNotificationCount = shopUiState.unreadNotificationCount,
+                shopInfo = shopUiState.shopInfo,
                 onNavigate = { screen ->
                     coroutineScope.launch { drawerState.close() }
                     shopViewModel.navigateTo(screen)
@@ -157,6 +158,7 @@ fun SKMobileApp(
                     AppHeader(
                         cartCount = shopUiState.cartItemCount,
                         searchQuery = shopUiState.searchQuery,
+                        shopInfo = shopUiState.shopInfo,
                         onSearchChange = { shopViewModel.updateSearchQuery(it) },
                         onSearchSubmit = { shopViewModel.navigateTo(AppScreen.PRODUCTS) },
                         onCartClick = { shopViewModel.navigateTo(AppScreen.CART) },
@@ -188,6 +190,7 @@ fun SKMobileApp(
                             repairServices = shopUiState.repairServices,
                             customerReviews = shopUiState.reviews,
                             categories = shopUiState.activeCategories,
+                            shopInfo = shopUiState.shopInfo,
                             onSelectProduct = { prod ->
                                 shopViewModel.selectProduct(prod)
                                 shopViewModel.navigateTo(AppScreen.PRODUCT_DETAIL)
@@ -254,6 +257,7 @@ fun SKMobileApp(
                             ProductDetailScreen(
                                 product = product,
                                 relatedProducts = shopUiState.products.filter { it.category == product.category && it.id != product.id },
+                                shopInfo = shopUiState.shopInfo,
                                 onAddToCart = { prod -> shopViewModel.addToCart(prod) },
                                 onBuyNow = { prod ->
                                     shopViewModel.buyNow(prod)
@@ -295,6 +299,7 @@ fun SKMobileApp(
                             defaultName = shopUiState.userName,
                             defaultPhone = shopUiState.userPhone,
                             defaultAddress = shopUiState.userAddress,
+                            shopInfo = shopUiState.shopInfo,
                             isCustomerAuthenticated = shopUiState.isCustomerAuthenticated,
                             onSignInRequired = { shopViewModel.setLoginSheetVisible(true) },
                             onPlaceOrder = { name, phone, address, city, state, pin, delivery, payment ->
@@ -332,6 +337,7 @@ fun SKMobileApp(
                     AppScreen.ORDER_DETAIL -> {
                         OrderDetailScreen(
                             order = shopUiState.selectedOrder ?: shopUiState.lastConfirmedOrder,
+                            shopInfo = shopUiState.shopInfo,
                             onCancelOrder = { orderId, reason ->
                                 shopViewModel.cancelCustomerOrder(orderId, reason)
                             },
@@ -346,6 +352,8 @@ fun SKMobileApp(
                             defaultName = shopUiState.userName,
                             defaultPhone = shopUiState.userPhone,
                             defaultAddress = shopUiState.userAddress,
+                            shopInfo = shopUiState.shopInfo,
+                            repairServices = shopUiState.repairServices,
                             activeBookings = shopUiState.activeRepairBookings,
                             lastConfirmedBooking = shopUiState.lastConfirmedBooking,
                             isCustomerAuthenticated = shopUiState.isCustomerAuthenticated,
@@ -405,6 +413,7 @@ fun SKMobileApp(
 
                     AppScreen.CONTACT -> {
                         ContactScreen(
+                            shopInfo = shopUiState.shopInfo,
                             onBack = { shopViewModel.navigateBack() }
                         )
                     }
@@ -414,6 +423,8 @@ fun SKMobileApp(
                             featuredProducts = shopUiState.products,
                             repairServices = shopUiState.repairServices,
                             customerReviews = shopUiState.reviews,
+                            categories = shopUiState.activeCategories,
+                            shopInfo = shopUiState.shopInfo,
                             onSelectProduct = { prod ->
                                 shopViewModel.selectProduct(prod)
                                 shopViewModel.navigateTo(AppScreen.PRODUCT_DETAIL)
@@ -426,6 +437,9 @@ fun SKMobileApp(
                             onCategoryClick = { cat ->
                                 shopViewModel.filterByCategory(cat)
                                 shopViewModel.navigateTo(AppScreen.PRODUCTS)
+                            },
+                            onCategoryRecordClick = { cat ->
+                                shopViewModel.filterByCategoryRecord(cat)
                             },
                             onNavigate = { screen -> shopViewModel.navigateTo(screen) },
                             onBookRepairProblem = { prob ->

@@ -47,6 +47,7 @@ import androidx.compose.foundation.border
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.admin.model.ShopSettings
 import com.example.ui.theme.BlackBackground
 import com.example.ui.theme.BlackBorder
 import com.example.ui.theme.BlackSurface
@@ -71,6 +72,7 @@ fun AppHeader(
     onMenuClick: () -> Unit,
     notificationCount: Int = 0,
     onNotificationClick: () -> Unit = {},
+    shopInfo: ShopSettings = ShopSettings(),
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -138,7 +140,7 @@ fun AppHeader(
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "SK Mobile Shoppy and Electronics",
+                                    text = shopInfo.shopName,
                                     color = TextMain,
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 14.sp,
@@ -163,7 +165,7 @@ fun AppHeader(
                                 )
                                 Spacer(modifier = Modifier.width(2.dp))
                                 Text(
-                                    text = "Udgir 413517",
+                                    text = shopInfo.shortLocationLabel,
                                     color = Color.White.copy(alpha = 0.9f),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium

@@ -384,3 +384,50 @@ test("Only admin can change product stock and the order stock flags (stock trans
     tx.update(orderRef, { stockDeducted: true });
   }));
 });
+
+test("Repair pricing settings/repair_pricing allows public read and admin-only write", async () => {
+  const unauthDb = testEnv.unauthenticatedContext().firestore();
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const adminDb = testEnv.authenticatedContext(ADMIN_UID).firestore();
+
+  const payload = {
+    services: [
+      { id: "rep-1", title: "Display Replacement", estimatedStartingPrice: 1799, turnaroundTime: "30 - 60 Minutes", iconType: "display" }
+    ],
+    pricesById: { "rep-1": 1799 },
+    updatedAt: new Date(Date.now() - 1000),
+  };
+
+  await assertFails(unauthDb.collection("settings").doc("repair_pricing").set(payload));
+  await assertFails(aliceDb.collection("settings").doc("repair_pricing").set(payload));
+  await assertSucceeds(adminDb.collection("settings").doc("repair_pricing").set(payload));
+  await assertSucceeds(unauthDb.collection("settings").doc("repair_pricing").get());
+  await assertSucceeds(aliceDb.collection("settings").doc("repair_pricing").get());
+});
+
+test("Shop info settings/shop_info allows public read and admin-only write", async () => {
+  const unauthDb = testEnv.unauthenticatedContext().firestore();
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const adminDb = testEnv.authenticatedContext(ADMIN_UID).firestore();
+
+  const payload = {
+    shopName: "SK Mobile Shoppy and Electronics",
+    phoneNumber: "+91 9823109313",
+    whatsappNumber: "+91 9823109313",
+    email: "skmobileshoppyandelectronics@gmail.com",
+    address: "Near Nagar Parishad Office, Station Road, Udgir, Maharashtra",
+    pincode: "413517",
+    openingHours: "9:30 AM – 9:30 PM (Open All 7 Days)",
+    services: ["Mobile repair", "New 5G mobile phones"],
+    googleMapsUrl: "https://maps.google.com/?q=SK+Mobile+Udgir",
+    updatedAt: new Date(Date.now() - 1000),
+  };
+
+  await assertFails(unauthDb.collection("settings").doc("shop_info").set(payload));
+  await assertFails(aliceDb.collection("settings").doc("shop_info").set(payload));
+  await assertSucceeds(adminDb.collection("settings").doc("shop_info").set(payload));
+  await assertSucceeds(unauthDb.collection("settings").doc("shop_info").get());
+  await assertSucceeds(aliceDb.collection("settings").doc("shop_info").get());
+});
+
+

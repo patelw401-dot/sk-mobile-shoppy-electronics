@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeliveryDining
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -58,8 +57,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.admin.model.ShopSettings
 import com.example.model.MockData
 import com.example.model.RepairBooking
+import com.example.model.RepairService
+import com.example.ui.components.formatInr
 import androidx.compose.foundation.BorderStroke
 import com.example.ui.theme.BlackBackground
 import com.example.ui.theme.BlackBorder
@@ -85,6 +87,8 @@ fun RepairBookingScreen(
     defaultName: String,
     defaultPhone: String,
     defaultAddress: String,
+    shopInfo: ShopSettings = ShopSettings(),
+    repairServices: List<RepairService> = MockData.repairServices,
     activeBookings: List<RepairBooking>,
     lastConfirmedBooking: RepairBooking?,
     isCustomerAuthenticated: Boolean = true,
@@ -108,7 +112,7 @@ fun RepairBookingScreen(
     var mobileNumber by remember { mutableStateOf(defaultPhone) }
     var selectedBrand by remember { mutableStateOf(initialBrand) }
     var modelName by remember { mutableStateOf("") }
-    var selectedProblem by remember { mutableStateOf(initialProblem) }
+    var selectedProblem by remember(initialProblem) { mutableStateOf(initialProblem) }
     var pickupRequired by remember { mutableStateOf(true) }
     var address by remember { mutableStateOf(defaultAddress) }
     var preferredDate by remember { mutableStateOf("Today / Earliest Slot") }
@@ -125,16 +129,24 @@ fun RepairBookingScreen(
         }
     }
 
-    val problemsList = listOf(
-        "Display Replacement",
-        "Battery Replacement",
-        "Charging Problem",
-        "Speaker/Mic Problem",
-        "Software Problem",
-        "Water Damage",
-        "Camera / Glass",
-        "Dead / Motherboard"
-    )
+    val problemOptions: List<Pair<String, Int?>> = remember(repairServices) {
+        val dynamicItems = repairServices.map { it.title to it.estimatedStartingPrice }
+        val extraItems = listOf(
+            "Camera / Glass" to null,
+            "Dead / Motherboard" to null
+        ).filter { (extraTitle, _) ->
+            dynamicItems.none { it.first.equals(extraTitle, ignoreCase = true) }
+        }
+        dynamicItems + extraItems
+    }
+
+    val matchedSelectedService = remember(selectedProblem, repairServices) {
+        repairServices.find { svc ->
+            svc.title.equals(selectedProblem, ignoreCase = true) ||
+                svc.title.contains(selectedProblem, ignoreCase = true) ||
+                selectedProblem.contains(svc.title.substringBefore(" &").trim(), ignoreCase = true)
+        }
+    }
 
     val dateSlots = listOf(
         "Today / Earliest Slot",
@@ -215,7 +227,7 @@ fun RepairBookingScreen(
                         text = if (lastConfirmedBooking.pickupRequired) {
                             "Our technician will visit ${lastConfirmedBooking.address} for doorstep collection. Estimated repair time: 45-60 mins."
                         } else {
-                            "Please bring your device to SK Mobile Shoppy and Electronics Shop, Nagar Parishad, Udgir. Your slot has been reserved!"
+                            "Please bring your device to ${shopInfo.shopName}, ${shopInfo.fullAddressWithPincode}. Your slot has been reserved!"
                         },
                         fontSize = 12.sp,
                         color = LightTextSecondary,
@@ -225,7 +237,7 @@ fun RepairBookingScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Need urgent help? Call SK Mobile Shoppy and Electronics: +91 98765 43210",
+                        text = "Need urgent help? Call ${shopInfo.shopName}: ${shopInfo.phoneNumber}",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = LightBlueText
@@ -293,51 +305,6 @@ fun RepairBookingScreen(
                 .fillMaxWidth(),
             contentPadding = PaddingValues(16.dp)
         ) {
-            // Repair Trust Banner
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = BlackSurfaceSecondary),
-                    border = BorderStroke(1.dp, BlackBorder)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(ShopPrimaryBlue),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Security,
-                                contentDescription = "Warranty",
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "90-Day Warranty on All Repairs",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = LightBlueAccentOnDark
-                            )
-                            Text(
-                                text = "100% genuine parts & free doorstep diagnosis in Udgir",
-                                fontSize = 11.sp,
-                                color = TextSecondary
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(14.dp))
-            }
-
             // Customer Contact Info
             item {
                 Card(
@@ -479,14 +446,15 @@ fun RepairBookingScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        val chunkedProblems = problemsList.chunked(2)
+                        val chunkedProblems = problemOptions.chunked(2)
                         chunkedProblems.forEach { row ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                row.forEach { problem ->
-                                    val isSelected = selectedProblem == problem
+                                row.forEach { (problem, startingPrice) ->
+                                    val isSelected = selectedProblem.equals(problem, ignoreCase = true) ||
+                                        problem.contains(selectedProblem, ignoreCase = true)
                                     Surface(
                                         modifier = Modifier
                                             .weight(1f)
@@ -499,15 +467,63 @@ fun RepairBookingScreen(
                                             color = if (isSelected) ShopPrimaryBlue else BlackBorder
                                         )
                                     ) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 6.dp)
+                                        ) {
+                                            Text(
+                                                text = problem,
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSelected) GoldHighlight else TextMain,
+                                                textAlign = TextAlign.Center
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = if (startingPrice != null) "From ${formatInr(startingPrice)}" else "Quote on Diagnosis",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (startingPrice != null) LightBlueAccentOnDark else TextSecondary,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (matchedSelectedService != null) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Surface(
+                                color = BlackSurfaceSecondary,
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, BlackBorder),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = problem,
+                                            text = matchedSelectedService.title,
                                             fontSize = 12.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (isSelected) GoldHighlight else TextMain,
-                                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 6.dp),
-                                            textAlign = TextAlign.Center
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextMain
+                                        )
+                                        Text(
+                                            text = "Turnaround: ${matchedSelectedService.turnaroundTime}",
+                                            fontSize = 11.sp,
+                                            color = TextSecondary
                                         )
                                     }
+                                    Text(
+                                        text = "From ${formatInr(matchedSelectedService.estimatedStartingPrice)}",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = GoldHighlight
+                                    )
                                 }
                             }
                         }
@@ -584,13 +600,13 @@ fun RepairBookingScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Column {
                                 Text(
-                                    text = "No, I will visit SK Mobile Shoppy and Electronics shop",
+                                    text = "No, I will visit ${shopInfo.shopName}",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = TextMain
                                 )
                                 Text(
-                                    text = "Nagar Parishad, Udgir (Get express 30-min counter service)",
+                                    text = "${shopInfo.fullAddressWithPincode} • ${shopInfo.formattedHours}",
                                     fontSize = 11.sp,
                                     color = TextSecondary
                                 )

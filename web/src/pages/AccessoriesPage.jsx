@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ACCESSORIES, STORE_INFO } from '../data/storeData';
-import { fetchFirestoreProducts, FIREBASE_PROJECT_ID } from '../firebase';
+import { ACCESSORIES } from '../data/storeData';
+import { fetchFirestoreProducts, FIREBASE_PROJECT_ID, DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 import ProductCard from '../components/ProductCard';
 import { 
   Zap, 
@@ -16,7 +16,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-export default function AccessoriesPage({ onShowToast, onAddToCart, onBuyNow, onSelectProduct }) {
+export default function AccessoriesPage({ onShowToast, onAddToCart, onBuyNow, onSelectProduct, shopInfo = DEFAULT_SHOP_INFO }) {
+  const info = formatShopInfo(shopInfo);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Firestore integration state
@@ -222,11 +223,11 @@ export default function AccessoriesPage({ onShowToast, onAddToCart, onBuyNow, on
         </div>
 
         <a
-          href={`tel:${STORE_INFO.phone}`}
+          href={`tel:${info.dialPhone}`}
           className="gold-btn whitespace-nowrap !text-xs !py-2.5 !px-5"
         >
           <Phone size={14} />
-          <span>Call Udgir Shop: {STORE_INFO.displayPhone}</span>
+          <span>Call {info.shortLocationLabel} Shop: {info.phoneNumber}</span>
         </a>
       </div>
     </div>

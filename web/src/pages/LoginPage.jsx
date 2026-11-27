@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { STORE_INFO } from '../data/storeData';
 import { signInWithGooglePopup, logoutUser, isUserAdmin } from '../firebase';
 import { 
   Lock, 

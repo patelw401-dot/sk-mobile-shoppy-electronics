@@ -184,7 +184,7 @@ fun AdminDashboardLayout(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "SK Mobile Admin • Udgir",
+                                text = "${uiState.settings.shopName} Admin • ${uiState.settings.shortLocationLabel}",
                                 color = TextSecondary,
                                 fontSize = 11.sp,
                                 maxLines = 1,
@@ -278,7 +278,9 @@ fun AdminDashboardLayout(
                     AdminTab.REPAIRS -> {
                         AdminRepairsScreen(
                             repairs = uiState.repairs,
-                            onUpdateRepairStatus = { id, status, cost -> adminViewModel.updateRepairStatus(id, status, cost) }
+                            repairServices = uiState.repairServices,
+                            onUpdateRepairStatus = { id, status, cost -> adminViewModel.updateRepairStatus(id, status, cost) },
+                            onSaveRepairPrices = { services -> adminViewModel.saveRepairServices(services) }
                         )
                     }
 

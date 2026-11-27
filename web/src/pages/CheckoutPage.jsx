@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   createCustomerOrderInFirestore, 
-  signInWithGooglePopup 
+  signInWithGooglePopup,
+  DEFAULT_SHOP_INFO,
+  formatShopInfo
 } from '../firebase';
-import { STORE_INFO } from '../data/storeData';
 import { 
   CheckCircle2, 
   AlertCircle, 
@@ -25,8 +26,10 @@ export default function CheckoutPage({
   currentUser, 
   onClearCart, 
   setActivePage, 
-  onShowToast 
+  onShowToast,
+  shopInfo = DEFAULT_SHOP_INFO
 }) {
+  const info = formatShopInfo(shopInfo);
   const [formData, setFormData] = useState({
     customerName: currentUser?.displayName || '',
     phone: '',
@@ -34,7 +37,7 @@ export default function CheckoutPage({
     address: '',
     city: 'Udgir',
     state: 'Maharashtra',
-    pincode: '413517',
+    pincode: info.pincode || '413517',
     deliveryType: 'Store Pickup (Udgir Showroom)',
     paymentMethod: 'Cash on Delivery (COD)',
     notes: ''
@@ -242,14 +245,14 @@ export default function CheckoutPage({
           <div className="p-4 rounded-xl bg-[#1C180C] border border-[#D4AF37]/30 text-xs text-gray-300 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
             <div>
               <strong className="text-white block font-bold">Need instant pickup or have questions?</strong>
-              <span className="text-gray-400 text-[11px]">Our Udgir store counter is open today 9:30 AM – 9:30 PM.</span>
+              <span className="text-gray-400 text-[11px]">{info.shopName} is open {info.openingHours}.</span>
             </div>
             <a
-              href={`tel:${STORE_INFO.phone}`}
+              href={`tel:${info.dialPhone}`}
               className="gold-btn !text-xs !py-2 !px-4 whitespace-nowrap shrink-0"
             >
               <Phone size={13} />
-              <span>Call: {STORE_INFO.displayPhone}</span>
+              <span>Call: {info.phoneNumber}</span>
             </a>
           </div>
 
@@ -478,7 +481,7 @@ export default function CheckoutPage({
                   <div>
                     <strong className="text-xs font-bold text-white block">Local Store Pickup (Free)</strong>
                     <p className="text-[11px] text-gray-400 mt-0.5">
-                      Pickup instantly at our showroom opposite Nagar Parishad, Udgir.
+                      Pickup instantly at {info.shopName}, {info.fullAddress}.
                     </p>
                   </div>
                 </label>
@@ -643,10 +646,10 @@ export default function CheckoutPage({
             <div className="p-3.5 rounded-xl bg-[#0E0E0E] border border-[#222222] space-y-2 text-[11px] text-gray-400">
               <div className="flex items-center gap-2 text-white font-semibold">
                 <ShieldCheck size={15} className="text-[#D4AF37]" />
-                <span>SK Mobile Verified Showroom</span>
+                <span>{info.shopName} Verified Showroom</span>
               </div>
               <p>
-                Opposite Municipal Complex, Nagar Parishad, Udgir. All orders verified by phone prior to delivery.
+                {info.fullAddress}. All orders verified by phone ({info.phoneNumber}) prior to delivery.
               </p>
             </div>
           </div>

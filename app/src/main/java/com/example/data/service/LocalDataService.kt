@@ -12,6 +12,7 @@ import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.model.ReelItem
 import com.example.model.RepairBooking
+import com.example.model.RepairService
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
 import kotlinx.coroutines.flow.Flow
@@ -37,6 +38,8 @@ class LocalDataService(
     private val _sellRequestsFlow = MutableStateFlow<List<SellRequest>>(emptyList())
     private val _reelsFlow = MutableStateFlow<List<ReelItem>>(emptyList())
     private val _categoriesFlow = MutableStateFlow<List<CategoryRecord>>(emptyList())
+    private val _repairServicesFlow = MutableStateFlow<List<RepairService>>(emptyList())
+    private val _settingsFlow = MutableStateFlow(storage.loadSettings())
 
     private var categoriesCache = mutableListOf<CategoryRecord>()
 
@@ -47,6 +50,8 @@ class LocalDataService(
         _repairsFlow.value = storage.loadRepairBookings()
         _sellRequestsFlow.value = storage.loadSellRequests()
         _reelsFlow.value = storage.loadReels()
+        _repairServicesFlow.value = storage.loadRepairServices()
+        _settingsFlow.value = storage.loadSettings()
         val loadedCategories = storage.loadCategories()
         categoriesCache = loadedCategories.toMutableList()
         _categoriesFlow.value = loadedCategories
@@ -456,13 +461,29 @@ class LocalDataService(
         Result.success(newCat)
     }
 
+    override fun observeSettings(): Flow<ShopSettings> = _settingsFlow.asStateFlow()
+
     override suspend fun getSettings(): ShopSettings = mutex.withLock {
-        storage.loadSettings()
+        _settingsFlow.value
     }
 
     override suspend fun saveSettings(settings: ShopSettings): Result<ShopSettings> = mutex.withLock {
+        _settingsFlow.value = settings
         storage.saveSettings(settings)
         Result.success(settings)
+    }
+
+    // --- REPAIR PRICING ---
+    override fun observeRepairServices(): Flow<List<RepairService>> = _repairServicesFlow.asStateFlow()
+
+    override suspend fun getRepairServices(): List<RepairService> = mutex.withLock {
+        _repairServicesFlow.value
+    }
+
+    override suspend fun saveRepairServices(services: List<RepairService>): Result<List<RepairService>> = mutex.withLock {
+        _repairServicesFlow.value = services
+        storage.saveRepairServices(services)
+        Result.success(services)
     }
 
     // --- NOTIFICATIONS ---

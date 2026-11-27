@@ -19,6 +19,7 @@ import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.model.ReelItem
 import com.example.model.RepairBooking
+import com.example.model.RepairService
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
 import com.google.firebase.firestore.DocumentSnapshot
@@ -52,6 +53,8 @@ class FirestoreDataService(
         const val COLLECTION_CATEGORIES = "categories"
         const val COLLECTION_REVIEWS = "reviews"
         const val COLLECTION_SETTINGS = "settings"
+        const val DOC_SHOP_INFO = "shop_info"
+        const val DOC_REPAIR_PRICING = "repair_pricing"
         const val COLLECTION_NOTIFICATIONS = "notifications"
         const val COLLECTION_REELS = "reels"
 
@@ -78,21 +81,27 @@ class FirestoreDataService(
     private val _oldPhonesFlow = MutableStateFlow<List<SellRequest>>(localStorage.loadSellRequests())
     private val _reelsFlow = MutableStateFlow<List<ReelItem>>(localStorage.loadReels().ifEmpty { MockData.defaultReels })
     private val _categoriesFlow = MutableStateFlow<List<CategoryRecord>>(localStorage.loadCategories())
+    private val _repairServicesFlow = MutableStateFlow<List<RepairService>>(localStorage.loadRepairServices())
+    private val _settingsFlow = MutableStateFlow<ShopSettings>(localStorage.loadSettings())
 
     private var ordersListener: ListenerRegistration? = null
     private var repairsListener: ListenerRegistration? = null
     private var oldPhonesListener: ListenerRegistration? = null
     private var reelsListener: ListenerRegistration? = null
     private var categoriesListener: ListenerRegistration? = null
+    private var repairServicesListener: ListenerRegistration? = null
+    private var shopInfoListener: ListenerRegistration? = null
 
     @Volatile
     private var isSeeding = false
 
     init {
-        // Products, Reels, and Categories collections have public read rules, so safe to listen without auth
+        // Products, Reels, Categories, Repair Pricing, and Shop Info have public read rules, so safe to listen without auth
         setupProductsListener()
         setupReelsListener()
         setupCategoriesListener()
+        setupRepairServicesListener()
+        setupShopInfoListener()
 
         // Auth-gated snapshot listeners for admin collections (orders, repairs, oldPhones)
         try {
@@ -1479,56 +1488,221 @@ class FirestoreDataService(
         return saveCategory(newCat)
     }
 
+    private fun parseShopSettings(doc: DocumentSnapshot): ShopSettings {
+        val def = ShopSettings()
+        val parsedServices = extractStringList(doc, "services")
+        val openTime = doc.getString("openingTime")?.takeIf { it.isNotBlank() } ?: def.openingTime
+        val closeTime = doc.getString("closingTime")?.takeIf { it.isNotBlank() } ?: def.closingTime
+        val hours = doc.getString("openingHours")?.takeIf { it.isNotBlank() }
+            ?: "$openTime – $closeTime (Open All 7 Days)"
+        return ShopSettings(
+            shopName = doc.getString("shopName")?.takeIf { it.isNotBlank() } ?: def.shopName,
+            address = doc.getString("address")?.takeIf { it.isNotBlank() } ?: def.address,
+            pincode = doc.getString("pincode")?.takeIf { it.isNotBlank() } ?: def.pincode,
+            landmark = doc.getString("landmark")?.takeIf { it.isNotBlank() } ?: def.landmark,
+            phoneNumber = doc.getString("phoneNumber")?.takeIf { it.isNotBlank() } ?: def.phoneNumber,
+            whatsappNumber = doc.getString("whatsappNumber")?.takeIf { it.isNotBlank() } ?: def.whatsappNumber,
+            email = doc.getString("email")?.takeIf { it.isNotBlank() } ?: def.email,
+            openingTime = openTime,
+            closingTime = closeTime,
+            openingHours = hours,
+            services = if (parsedServices.isNotEmpty()) parsedServices else def.services,
+            googleMapsUrl = doc.getString("googleMapsUrl")?.takeIf { it.isNotBlank() } ?: def.googleMapsUrl,
+            pickupAvailable = extractBoolean(doc, "pickupAvailable", def.pickupAvailable),
+            homeDeliveryAvailable = extractBoolean(doc, "homeDeliveryAvailable", def.homeDeliveryAvailable),
+            deliveryCharge = extractInt(doc, "deliveryCharge", def.deliveryCharge),
+            freeDeliveryThreshold = extractInt(doc, "freeDeliveryThreshold", def.freeDeliveryThreshold),
+            upiEnabled = extractBoolean(doc, "upiEnabled", def.upiEnabled),
+            codEnabled = extractBoolean(doc, "codEnabled", def.codEnabled),
+            onlinePaymentEnabled = extractBoolean(doc, "onlinePaymentEnabled", def.onlinePaymentEnabled)
+        )
+    }
+
+    private fun setupShopInfoListener() {
+        shopInfoListener?.remove()
+        shopInfoListener = firestore.collection(COLLECTION_SETTINGS)
+            .document(DOC_SHOP_INFO)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "Shop info listener failed: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null && snapshot.exists()) {
+                    try {
+                        val parsed = parseShopSettings(snapshot)
+                        _settingsFlow.value = parsed
+                        localStorage.saveSettings(parsed)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error parsing shop_info doc: ${e.message}", e)
+                    }
+                }
+            }
+    }
+
+    override fun observeSettings(): Flow<ShopSettings> = _settingsFlow.asStateFlow()
+
     override suspend fun getSettings(): ShopSettings {
         return try {
-            val doc = firestore.collection(COLLECTION_SETTINGS).document("store_config").get().await()
-            if (doc.exists()) {
-                ShopSettings(
-                    shopName = doc.getString("shopName") ?: "SK Mobile",
-                    address = doc.getString("address") ?: "Nagar Parishad, Udgir, Maharashtra - 413517",
-                    phoneNumber = doc.getString("phoneNumber") ?: "+91 98765 43210",
-                    whatsappNumber = doc.getString("whatsappNumber") ?: "+91 98765 43210",
-                    openingTime = doc.getString("openingTime") ?: "09:30 AM",
-                    closingTime = doc.getString("closingTime") ?: "09:30 PM",
-                    pickupAvailable = doc.getBoolean("pickupAvailable") ?: true,
-                    homeDeliveryAvailable = doc.getBoolean("homeDeliveryAvailable") ?: true,
-                    deliveryCharge = doc.getLong("deliveryCharge")?.toInt() ?: 49,
-                    freeDeliveryThreshold = doc.getLong("freeDeliveryThreshold")?.toInt() ?: 499,
-                    upiEnabled = doc.getBoolean("upiEnabled") ?: true,
-                    codEnabled = doc.getBoolean("codEnabled") ?: true,
-                    onlinePaymentEnabled = doc.getBoolean("onlinePaymentEnabled") ?: true
-                )
+            val shopInfoDoc = firestore.collection(COLLECTION_SETTINGS).document(DOC_SHOP_INFO).get().await()
+            if (shopInfoDoc.exists()) {
+                val parsed = parseShopSettings(shopInfoDoc)
+                _settingsFlow.value = parsed
+                localStorage.saveSettings(parsed)
+                parsed
             } else {
-                ShopSettings()
+                val legacyDoc = firestore.collection(COLLECTION_SETTINGS).document("store_config").get().await()
+                if (legacyDoc.exists()) {
+                    val parsed = parseShopSettings(legacyDoc)
+                    _settingsFlow.value = parsed
+                    localStorage.saveSettings(parsed)
+                    parsed
+                } else {
+                    _settingsFlow.value
+                }
             }
         } catch (e: Exception) {
-            ShopSettings()
+            Log.w(TAG, "getSettings failed, using cached/default: ${e.message}")
+            _settingsFlow.value
         }
     }
 
     override suspend fun saveSettings(settings: ShopSettings): Result<ShopSettings> {
         return try {
-            val docRef = firestore.collection(COLLECTION_SETTINGS).document("store_config")
-            val data = hashMapOf(
-                "shopName" to settings.shopName,
-                "address" to settings.address,
-                "phoneNumber" to settings.phoneNumber,
-                "whatsappNumber" to settings.whatsappNumber,
-                "openingTime" to settings.openingTime,
-                "closingTime" to settings.closingTime,
+            val data = hashMapOf<String, Any>(
+                "shopName" to settings.shopName.trim(),
+                "address" to settings.address.trim(),
+                "pincode" to settings.pincode.trim(),
+                "landmark" to settings.landmark.trim(),
+                "phoneNumber" to settings.phoneNumber.trim(),
+                "whatsappNumber" to settings.whatsappNumber.trim(),
+                "email" to settings.email.trim(),
+                "openingTime" to settings.openingTime.trim(),
+                "closingTime" to settings.closingTime.trim(),
+                "openingHours" to settings.formattedHours,
+                "services" to settings.services,
+                "googleMapsUrl" to settings.googleMapsUrl.trim(),
                 "pickupAvailable" to settings.pickupAvailable,
                 "homeDeliveryAvailable" to settings.homeDeliveryAvailable,
                 "deliveryCharge" to settings.deliveryCharge,
                 "freeDeliveryThreshold" to settings.freeDeliveryThreshold,
                 "upiEnabled" to settings.upiEnabled,
                 "codEnabled" to settings.codEnabled,
-                "onlinePaymentEnabled" to settings.onlinePaymentEnabled
+                "onlinePaymentEnabled" to settings.onlinePaymentEnabled,
+                "updatedAt" to FieldValue.serverTimestamp()
             )
-            docRef.set(data, SetOptions.merge()).await()
+            firestore.collection(COLLECTION_SETTINGS)
+                .document(DOC_SHOP_INFO)
+                .set(data, SetOptions.merge())
+                .await()
+
+            // Mirror to legacy store_config document for backward compatibility
+            try {
+                firestore.collection(COLLECTION_SETTINGS)
+                    .document("store_config")
+                    .set(data, SetOptions.merge())
+                    .await()
+            } catch (_: Exception) {
+            }
+
+            _settingsFlow.value = settings
+            localStorage.saveSettings(settings)
             Result.success(settings)
         } catch (e: Exception) {
-            Log.e(TAG, "saveSettings failed", e)
-            Result.success(settings)
+            Log.e(TAG, "saveSettings failed: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    // -------------------------------------------------------------
+    // REPAIR SERVICE PRICING (settings/repair_pricing)
+    // -------------------------------------------------------------
+    private fun setupRepairServicesListener() {
+        repairServicesListener?.remove()
+        repairServicesListener = firestore.collection(COLLECTION_SETTINGS)
+            .document(DOC_REPAIR_PRICING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "Repair pricing listener failed: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null && snapshot.exists()) {
+                    try {
+                        val rawPrices = snapshot.get("pricesById") as? Map<*, *>
+                        val rawServices = snapshot.get("services") as? List<*>
+                        val parsedById = mutableMapOf<String, RepairService>()
+
+                        rawServices?.forEach { entry ->
+                            val map = entry as? Map<*, *> ?: return@forEach
+                            val id = map["id"]?.toString()?.takeIf { it.isNotBlank() } ?: return@forEach
+                            val defaultSvc = MockData.repairServices.find { it.id == id }
+                            val price = (map["estimatedStartingPrice"] as? Number)?.toInt()
+                                ?: (rawPrices?.get(id) as? Number)?.toInt()
+                                ?: defaultSvc?.estimatedStartingPrice
+                                ?: 499
+                            parsedById[id] = RepairService(
+                                id = id,
+                                title = map["title"]?.toString()?.takeIf { it.isNotBlank() } ?: (defaultSvc?.title ?: id),
+                                estimatedStartingPrice = price.coerceAtLeast(0),
+                                turnaroundTime = map["turnaroundTime"]?.toString()?.takeIf { it.isNotBlank() } ?: (defaultSvc?.turnaroundTime ?: "30 - 60 Minutes"),
+                                warrantyDays = (map["warrantyDays"] as? Number)?.toInt() ?: (defaultSvc?.warrantyDays ?: 0),
+                                description = map["description"]?.toString()?.takeIf { it.isNotBlank() } ?: (defaultSvc?.description ?: ""),
+                                iconType = map["iconType"]?.toString()?.takeIf { it.isNotBlank() } ?: (defaultSvc?.iconType ?: "repair")
+                            )
+                        }
+
+                        // Also apply any pricesById overrides onto defaults if services array was omitted or partial
+                        val merged = MockData.repairServices.map { def ->
+                            val fromServices = parsedById[def.id]
+                            val priceOverride = (rawPrices?.get(def.id) as? Number)?.toInt()
+                            when {
+                                fromServices != null -> fromServices
+                                priceOverride != null -> def.copy(estimatedStartingPrice = priceOverride.coerceAtLeast(0))
+                                else -> def
+                            }
+                        } + parsedById.values.filter { svc -> MockData.repairServices.none { it.id == svc.id } }
+
+                        _repairServicesFlow.value = merged
+                        localStorage.saveRepairServices(merged)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error parsing repair_pricing doc: ${e.message}", e)
+                    }
+                }
+            }
+    }
+
+    override fun observeRepairServices(): Flow<List<RepairService>> = _repairServicesFlow.asStateFlow()
+
+    override suspend fun getRepairServices(): List<RepairService> = _repairServicesFlow.value
+
+    override suspend fun saveRepairServices(services: List<RepairService>): Result<List<RepairService>> {
+        return try {
+            val serializedServices = services.map { s ->
+                mapOf(
+                    "id" to s.id,
+                    "title" to s.title,
+                    "estimatedStartingPrice" to s.estimatedStartingPrice,
+                    "turnaroundTime" to s.turnaroundTime,
+                    "description" to s.description,
+                    "iconType" to s.iconType
+                )
+            }
+            val pricesById = services.associate { it.id to it.estimatedStartingPrice }
+            val payload = hashMapOf<String, Any>(
+                "services" to serializedServices,
+                "pricesById" to pricesById,
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            firestore.collection(COLLECTION_SETTINGS)
+                .document(DOC_REPAIR_PRICING)
+                .set(payload, SetOptions.merge())
+                .await()
+
+            _repairServicesFlow.value = services
+            localStorage.saveRepairServices(services)
+            Result.success(services)
+        } catch (e: Exception) {
+            Log.e(TAG, "saveRepairServices failed: ${e.message}", e)
+            Result.failure(e)
         }
     }
 

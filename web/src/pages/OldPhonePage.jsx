@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { PRE_OWNED_PHONES, STORE_INFO } from '../data/storeData';
+import { PRE_OWNED_PHONES } from '../data/storeData';
 import ProductCard from '../components/ProductCard';
 import ExchangeComingSoonCard from '../components/ExchangeComingSoonCard';
-import { saveOldPhoneRequestToFirestore, signInWithGooglePopup } from '../firebase';
+import { saveOldPhoneRequestToFirestore, signInWithGooglePopup, DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 import { 
   RefreshCw, 
   ShieldCheck, 
@@ -20,7 +20,8 @@ import {
   ArrowRight
 } from 'lucide-react';
 
-export default function OldPhonePage({ currentUser, setActivePage, onShowToast, onSelectProduct, onAddToCart, onBuyNow }) {
+export default function OldPhonePage({ currentUser, setActivePage, onShowToast, onSelectProduct, onAddToCart, onBuyNow, shopInfo = DEFAULT_SHOP_INFO }) {
+  const info = formatShopInfo(shopInfo);
   const [activeTab, setActiveTab] = useState('buy'); // 'buy' or 'sell'
 
   // Sell Phone form state
@@ -193,11 +194,11 @@ export default function OldPhonePage({ currentUser, setActivePage, onShowToast, 
       <div className="border-b border-[#222222] pb-6">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-xs font-bold text-emerald-400 mb-2">
           <RefreshCw size={13} />
-          <span>SK Mobile Certified Re-Commerce • Udgir</span>
+          <span>{info.shopName} Certified Re-Commerce • {info.shortLocationLabel}</span>
         </div>
         <h1 className="text-3xl font-black text-white">Buy & Sell Pre-Owned Phones</h1>
         <p className="text-xs sm:text-sm text-gray-400 mt-1 max-w-2xl">
-          Upgrade your phone for less or sell your old device for instant cash at our Nagar Parishad, Udgir store. Thorough 32-point inspection with 6 months warranty.
+          Upgrade your phone for less or sell your old device for instant cash at {info.shopName}, {info.fullAddress}. Thorough 32-point inspection with 6 months warranty.
         </p>
 
         {/* Tab Switcher */}
@@ -228,7 +229,7 @@ export default function OldPhonePage({ currentUser, setActivePage, onShowToast, 
         </div>
       </div>
 
-      <ExchangeComingSoonCard onShowToast={onShowToast} />
+      <ExchangeComingSoonCard onShowToast={onShowToast} shopInfo={shopInfo} />
 
       {/* Tab 1: Buy Pre-Owned Phones */}
       {activeTab === 'buy' && (

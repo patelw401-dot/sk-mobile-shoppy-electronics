@@ -19,6 +19,7 @@ import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.model.ReelItem
 import com.example.model.RepairBooking
+import com.example.model.RepairService
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
 import android.app.Activity
@@ -51,6 +52,7 @@ data class AdminUiState(
     val selectedReportFilter: String = "30 Days",
     val toastMessage: String? = null,
     val reels: List<ReelItem> = MockData.defaultReels,
+    val repairServices: List<RepairService> = MockData.repairServices,
     val isUploadingReel: Boolean = false,
     val uploadReelProgress: Int = 0
 ) {
@@ -164,6 +166,13 @@ class AdminViewModel(
             }
         }
 
+        // Collect live repair service pricing
+        viewModelScope.launch {
+            dataService.observeRepairServices().collect { services ->
+                _uiState.update { it.copy(repairServices = services) }
+            }
+        }
+
         // Collect sell requests
         viewModelScope.launch {
             dataService.observeOldPhoneRequests().collect { requests ->
@@ -171,13 +180,19 @@ class AdminViewModel(
             }
         }
 
-        // Load settings
+        // Observe live shop info & settings continuously from DataService
+        viewModelScope.launch {
+            dataService.observeSettings().collect { settings ->
+                _uiState.update { it.copy(settings = settings) }
+            }
+        }
+
+        // Load initial settings if needed
         viewModelScope.launch {
             try {
                 val settings = dataService.getSettings()
                 _uiState.update { it.copy(settings = settings) }
-            } catch (e: Exception) {
-                // Safe fallback
+            } catch (_: Exception) {
             }
         }
 
@@ -494,6 +509,27 @@ class AdminViewModel(
         }
     }
 
+    fun saveRepairServices(services: List<RepairService>) {
+        viewModelScope.launch {
+            val result = dataService.saveRepairServices(services)
+            result.fold(
+                onSuccess = { saved ->
+                    _uiState.update {
+                        it.copy(
+                            repairServices = saved,
+                            toastMessage = "Repair service prices updated in Firestore!"
+                        )
+                    }
+                },
+                onFailure = { err ->
+                    _uiState.update {
+                        it.copy(toastMessage = "Failed to save repair prices: ${err.message ?: "Permission or network error"}")
+                    }
+                }
+            )
+        }
+    }
+
     // Sell requests actions
     fun updateSellRequestStatus(requestId: String, newStatus: String, offerMin: Int? = null, offerMax: Int? = null) {
         viewModelScope.launch {
@@ -604,8 +640,22 @@ class AdminViewModel(
     // Settings actions
     fun updateSettings(newSettings: ShopSettings) {
         viewModelScope.launch {
-            dataService.saveSettings(newSettings)
-            _uiState.update { it.copy(settings = newSettings, toastMessage = "Shop settings saved successfully!") }
+            val result = dataService.saveSettings(newSettings)
+            if (result.isSuccess) {
+                val saved = result.getOrNull() ?: newSettings
+                _uiState.update {
+                    it.copy(
+                        settings = saved,
+                        toastMessage = "Shop information updated and synced in real time!"
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        toastMessage = "Failed to save shop information: ${result.exceptionOrNull()?.message ?: "Permission or network error"}"
+                    )
+                }
+            }
         }
     }
 

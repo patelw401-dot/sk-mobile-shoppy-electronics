@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.admin.model.ShopSettings
 import com.example.ui.theme.*
 import com.example.viewmodel.AppScreen
 
@@ -60,6 +61,7 @@ fun MobileMenuDrawerSheet(
     cartCount: Int,
     userName: String,
     unreadNotificationCount: Int = 0,
+    shopInfo: ShopSettings = ShopSettings(),
     onNavigate: (AppScreen) -> Unit,
     onProfileClick: () -> Unit,
     onClose: () -> Unit,
@@ -107,7 +109,7 @@ fun MobileMenuDrawerSheet(
                             Column {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = "SK Mobile Shoppy and Electronics",
+                                        text = shopInfo.shopName,
                                         color = TextMain,
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 14.sp
@@ -121,7 +123,7 @@ fun MobileMenuDrawerSheet(
                                     )
                                 }
                                 Text(
-                                    text = "Nagar Parishad, Udgir",
+                                    text = shopInfo.shortLocationLabel,
                                     color = TextSecondary,
                                     fontSize = 11.sp
                                 )
@@ -269,7 +271,7 @@ fun MobileMenuDrawerSheet(
                     color = TextMain
                 )
                 Text(
-                    text = "Store: Nagar Parishad, Udgir\nHelpline: +91 9823109313\nEmail: skmobileshoppyandelectronics@gmail.com",
+                    text = "Store: ${shopInfo.fullAddressWithPincode}\nHelpline: ${shopInfo.phoneNumber}\nEmail: ${shopInfo.email}",
                     fontSize = 11.sp,
                     color = TextSecondary,
                     lineHeight = 15.sp

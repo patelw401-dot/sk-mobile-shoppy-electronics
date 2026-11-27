@@ -1,6 +1,7 @@
 import React from 'react';
 import AppDownloadSection from '../components/AppDownloadSection';
-import { STORE_INFO, APP_DOWNLOAD_CONFIG } from '../data/storeData';
+import { APP_DOWNLOAD_CONFIG } from '../data/storeData';
+import { DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 import { 
   ArrowLeft, 
   Smartphone, 
@@ -13,7 +14,8 @@ import {
   FileCheck
 } from 'lucide-react';
 
-export default function AppDownloadPage({ setActivePage, onShowToast }) {
+export default function AppDownloadPage({ setActivePage, onShowToast, shopInfo = DEFAULT_SHOP_INFO }) {
+  const info = formatShopInfo(shopInfo);
   return (
     <div className="space-y-8 pb-16">
       {/* Top Breadcrumb Header */}
@@ -39,7 +41,7 @@ export default function AppDownloadPage({ setActivePage, onShowToast }) {
       </div>
 
       {/* Main Hero Download Section */}
-      <AppDownloadSection onShowToast={onShowToast} />
+      <AppDownloadSection onShowToast={onShowToast} shopInfo={shopInfo} />
 
       {/* Additional Technical Details & Store Verification */}
       <div className="container">
@@ -70,7 +72,7 @@ export default function AppDownloadPage({ setActivePage, onShowToast }) {
             </div>
             <h3 className="text-sm font-bold text-white">In-Store Installation Support</h3>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Need help installing on your device? Visit our store opposite Nagar Parishad Municipal Complex, Udgir. Our technicians will set it up for free.
+              Need help installing on your device? Visit {info.shopName} ({info.fullAddress}) or call {info.phoneNumber}. Our technicians will set it up for free.
             </p>
           </div>
         </div>

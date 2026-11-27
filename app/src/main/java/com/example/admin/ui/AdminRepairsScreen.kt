@@ -23,6 +23,11 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.CurrencyRupee
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -37,7 +42,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -46,9 +53,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.model.MockData
 import com.example.model.RepairBooking
+import com.example.model.RepairService
+import com.example.ui.theme.LightBlueBg
+import com.example.ui.theme.LightBlueText
 import com.example.ui.theme.LightInputBorder
 import com.example.ui.theme.LightTextPrimary
 import com.example.ui.theme.LightTextSecondary
@@ -58,12 +70,22 @@ import com.example.ui.theme.lightOutlinedTextFieldColors
 @Composable
 fun AdminRepairsScreen(
     repairs: List<RepairBooking>,
+    repairServices: List<RepairService> = MockData.repairServices,
     onUpdateRepairStatus: (bookingId: String, newStatus: String, newCost: String?) -> Unit,
+    onSaveRepairPrices: (List<RepairService>) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var repairToEditCost by remember { mutableStateOf<RepairBooking?>(null) }
     var newCostInput by remember { mutableStateOf("") }
+    var isPriceManagerExpanded by remember { mutableStateOf(true) }
+    val priceInputs = remember { mutableStateMapOf<String, String>() }
+
+    LaunchedEffect(repairServices) {
+        repairServices.forEach { svc ->
+            priceInputs[svc.id] = svc.estimatedStartingPrice.toString()
+        }
+    }
 
     val allRepairStatuses = listOf(
         "Requested",
@@ -174,6 +196,165 @@ fun AdminRepairsScreen(
                         shape = RoundedCornerShape(10.dp),
                         singleLine = true
                     )
+                }
+            }
+        }
+
+        // Dynamic Repair Price Management Card
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("admin_repair_price_management_card"),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isPriceManagerExpanded = !isPriceManagerExpanded }
+                            .padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Surface(
+                                color = LightBlueBg,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CurrencyRupee,
+                                    contentDescription = "Repair Prices",
+                                    tint = LightBlueText,
+                                    modifier = Modifier
+                                        .padding(6.dp)
+                                        .size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Repair Price Management",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = LightTextPrimary
+                                )
+                                Text(
+                                    text = "Update live starting rates shown on Home & Booking",
+                                    fontSize = 11.sp,
+                                    color = LightTextSecondary
+                                )
+                            }
+                        }
+
+                        Icon(
+                            imageVector = if (isPriceManagerExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (isPriceManagerExpanded) "Collapse Repair Prices" else "Expand Repair Prices",
+                            tint = LightTextPrimary
+                        )
+                    }
+
+                    if (isPriceManagerExpanded) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        HorizontalDivider(color = Color(0xFFE2E8F0))
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            repairServices.forEach { service ->
+                                val currentValue = priceInputs[service.id] ?: service.estimatedStartingPrice.toString()
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .padding(end = 10.dp)
+                                    ) {
+                                        Text(
+                                            text = service.title,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = LightTextPrimary
+                                        )
+                                        Text(
+                                            text = service.turnaroundTime,
+                                            fontSize = 11.sp,
+                                            color = LightTextSecondary
+                                        )
+                                    }
+
+                                    OutlinedTextField(
+                                        value = currentValue,
+                                        onValueChange = { raw ->
+                                            val digitsOnly = raw.filter { it.isDigit() }
+                                            priceInputs[service.id] = digitsOnly
+                                        },
+                                        prefix = {
+                                            Text(
+                                                text = "₹",
+                                                color = LightTextPrimary,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp
+                                            )
+                                        },
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        colors = lightOutlinedTextFieldColors(),
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier
+                                            .width(124.dp)
+                                            .testTag("repair_price_input_${service.id}")
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = {
+                                val updatedList = repairServices.map { svc ->
+                                    val parsed = priceInputs[svc.id]?.toIntOrNull()
+                                    if (parsed != null && parsed >= 0) {
+                                        svc.copy(estimatedStartingPrice = parsed)
+                                    } else {
+                                        svc
+                                    }
+                                }
+                                onSaveRepairPrices(updatedList)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ShopPrimaryBlue,
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .testTag("save_repair_prices_btn")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Save,
+                                contentDescription = "Save Repair Prices",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Save Repair Prices",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
                 }
             }
         }

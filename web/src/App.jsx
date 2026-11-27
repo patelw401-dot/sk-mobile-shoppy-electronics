@@ -4,7 +4,16 @@ import Footer from './components/Footer';
 import Toast from './components/Toast';
 import ProductDetailsModal from './components/ProductDetailsModal';
 import { REAL_PRODUCTS, ACCESSORIES, PRE_OWNED_PHONES } from './data/storeData';
-import { subscribeToAuthChanges, fetchFirestoreProducts, subscribeToFirestoreProducts } from './firebase';
+import {
+  subscribeToAuthChanges,
+  fetchFirestoreProducts,
+  subscribeToFirestoreProducts,
+  DEFAULT_REPAIR_PRICING,
+  subscribeToRepairPricing,
+  DEFAULT_SHOP_INFO,
+  formatShopInfo,
+  subscribeToShopInfo
+} from './firebase';
 
 import HomePage from './pages/HomePage';
 import ProductsPage from './pages/ProductsPage';
@@ -31,6 +40,8 @@ export default function App() {
     ...(Array.isArray(ACCESSORIES) ? ACCESSORIES : []),
     ...(Array.isArray(PRE_OWNED_PHONES) ? PRE_OWNED_PHONES : [])
   ]);
+  const [repairServices, setRepairServices] = useState(DEFAULT_REPAIR_PRICING);
+  const [shopInfo, setShopInfo] = useState(() => formatShopInfo(DEFAULT_SHOP_INFO));
 
   // Cart State with LocalStorage Persistence
   const [cart, setCart] = useState(() => {
@@ -76,6 +87,32 @@ export default function App() {
       }
     }, (err) => {
       console.warn('Real-time products subscription notice:', err);
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToRepairPricing((services) => {
+      if (Array.isArray(services) && services.length > 0) {
+        setRepairServices(services);
+      }
+    }, (err) => {
+      console.warn('Real-time repair pricing subscription notice:', err);
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToShopInfo((info) => {
+      if (info) {
+        setShopInfo(info);
+      }
+    }, (err) => {
+      console.warn('Real-time shop info subscription notice:', err);
     });
     return () => {
       if (unsubscribe) unsubscribe();
@@ -197,6 +234,8 @@ export default function App() {
             onBuyNow={handleBuyNow}
             onSelectProduct={setSelectedProductForDetails}
             setSelectedProduct={setSelectedProductForDetails}
+            repairServices={repairServices}
+            shopInfo={shopInfo}
           />
         );
       case 'products':
@@ -208,6 +247,7 @@ export default function App() {
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
             onSelectProduct={setSelectedProductForDetails}
+            shopInfo={shopInfo}
           />
         );
       case 'accessories':
@@ -217,6 +257,7 @@ export default function App() {
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
             onSelectProduct={setSelectedProductForDetails}
+            shopInfo={shopInfo}
           />
         );
       case 'cart':
@@ -227,6 +268,7 @@ export default function App() {
             onRemoveItem={handleRemoveFromCart}
             onClearCart={handleClearCart}
             setActivePage={setActivePage}
+            shopInfo={shopInfo}
           />
         );
       case 'checkout':
@@ -237,6 +279,7 @@ export default function App() {
             onClearCart={handleClearCart}
             setActivePage={setActivePage}
             onShowToast={showToast}
+            shopInfo={shopInfo}
           />
         );
       case 'my-orders':
@@ -245,6 +288,7 @@ export default function App() {
             currentUser={currentUser} 
             setActivePage={setActivePage} 
             onShowToast={showToast} 
+            shopInfo={shopInfo}
           />
         );
       case 'app-download':
@@ -252,6 +296,7 @@ export default function App() {
           <AppDownloadPage 
             setActivePage={setActivePage}
             onShowToast={showToast}
+            shopInfo={shopInfo}
           />
         );
       case 'repairs':
@@ -259,7 +304,9 @@ export default function App() {
           <RepairBookingPage 
             currentUser={currentUser} 
             setActivePage={setActivePage} 
-            onShowToast={showToast} 
+            onShowToast={showToast}
+            repairServices={repairServices}
+            shopInfo={shopInfo}
           />
         );
       case 'old-phones':
@@ -271,6 +318,7 @@ export default function App() {
             onSelectProduct={setSelectedProductForDetails}
             onAddToCart={handleAddToCart}
             onBuyNow={handleBuyNow}
+            shopInfo={shopInfo}
           />
         );
       case 'login':
@@ -286,6 +334,7 @@ export default function App() {
           <ContactPage 
             currentUser={currentUser} 
             onShowToast={showToast} 
+            shopInfo={shopInfo}
           />
         );
       case 'admin':
@@ -293,7 +342,9 @@ export default function App() {
           <AdminDashboardPage 
             currentUser={currentUser} 
             setActivePage={setActivePage} 
-            onShowToast={showToast} 
+            onShowToast={showToast}
+            repairServices={repairServices}
+            shopInfo={shopInfo}
           />
         );
       default:
@@ -309,6 +360,8 @@ export default function App() {
             onBuyNow={handleBuyNow}
             onSelectProduct={setSelectedProductForDetails}
             setSelectedProduct={setSelectedProductForDetails}
+            repairServices={repairServices}
+            shopInfo={shopInfo}
           />
         );
     }
@@ -325,6 +378,7 @@ export default function App() {
         onShowToast={showToast}
         allProducts={allStoreProducts}
         onSelectProduct={setSelectedProductForDetails}
+        shopInfo={shopInfo}
       />
 
       {/* Main Page Body */}
@@ -333,7 +387,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <Footer setActivePage={setActivePage} />
+      <Footer setActivePage={setActivePage} shopInfo={shopInfo} />
 
       {/* Universal Product Details Modal (16-point feature set for EVERY product category) */}
       {selectedProductForDetails && (
@@ -344,6 +398,7 @@ export default function App() {
           onBuyNow={handleBuyNow}
           onSelectProduct={setSelectedProductForDetails}
           allProducts={allStoreProducts}
+          shopInfo={shopInfo}
         />
       )}
 

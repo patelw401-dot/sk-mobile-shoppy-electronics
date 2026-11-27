@@ -8,6 +8,7 @@ import com.example.model.CartItem
 import com.example.model.CustomerReview
 import com.example.model.Product
 import com.example.model.RepairBooking
+import com.example.model.RepairService
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
 import kotlinx.coroutines.flow.Flow
@@ -49,6 +50,11 @@ interface DataService {
     suspend fun createRepairBooking(booking: RepairBooking): Result<RepairBooking>
     suspend fun updateRepairStatus(id: String, status: String, cost: String? = null): Result<RepairBooking>
 
+    // --- REPAIR PRICING ---
+    fun observeRepairServices(): Flow<List<RepairService>>
+    suspend fun getRepairServices(): List<RepairService>
+    suspend fun saveRepairServices(services: List<RepairService>): Result<List<RepairService>>
+
     // --- OLD PHONE REQUESTS ---
     fun observeOldPhoneRequests(): Flow<List<SellRequest>>
     suspend fun getOldPhoneRequests(): List<SellRequest>
@@ -72,6 +78,7 @@ interface DataService {
     suspend fun toggleCategoryActive(categoryId: String): Result<CategoryRecord>
     suspend fun deleteCategory(categoryId: String, reassignToSlug: String? = null): Result<Boolean>
     suspend fun addCategory(name: String, slug: String): Result<CategoryRecord>
+    fun observeSettings(): Flow<ShopSettings>
     suspend fun getSettings(): ShopSettings
     suspend fun saveSettings(settings: ShopSettings): Result<ShopSettings>
 
