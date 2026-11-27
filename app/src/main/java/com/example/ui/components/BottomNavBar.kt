@@ -26,13 +26,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.ShopAccentAmber
-import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
-import com.example.viewmodel.AppScreen
-
 import com.example.ui.theme.BlackSurface
+import com.example.ui.theme.LightBlueAccentOnDark
+import com.example.ui.theme.ShopAccentAmber
+import com.example.ui.theme.ShopPrimaryLightBlue
 import com.example.ui.theme.TextSecondary
+import com.example.viewmodel.AppScreen
 
 @Composable
 fun AppBottomNavBar(
@@ -194,8 +193,8 @@ fun AppBottomNavBar(
 
 @Composable
 private fun navItemColors() = NavigationBarItemDefaults.colors(
-    selectedIconColor = ShopPrimaryBlue,
-    selectedTextColor = ShopPrimaryBlue,
+    selectedIconColor = LightBlueAccentOnDark,
+    selectedTextColor = LightBlueAccentOnDark,
     indicatorColor = ShopPrimaryLightBlue,
     unselectedIconColor = TextSecondary,
     unselectedTextColor = TextSecondary

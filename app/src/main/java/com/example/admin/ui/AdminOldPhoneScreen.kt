@@ -54,7 +54,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.SellRequest
 import com.example.ui.components.formatInr
+import com.example.ui.theme.LightInputBorder
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
+import com.example.ui.theme.lightOutlinedTextFieldColors
 
 @Composable
 fun AdminOldPhoneScreen(
@@ -76,12 +80,12 @@ fun AdminOldPhoneScreen(
             onDismissRequest = { requestToSetOffer = null },
             containerColor = Color.White,
             title = {
-                Text(text = "Set Admin Cash Offer Price", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(text = "Set Admin Cash Offer Price", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LightTextPrimary)
             },
             text = {
                 Column {
-                    Text(text = "${req.brand} ${req.model} (${req.storage})", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Customer Expected: ${req.expectedPrice} • Condition: ${req.condition}", fontSize = 12.sp, color = Color(0xFF64748B))
+                    Text(text = "${req.brand} ${req.model} (${req.storage})", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                    Text(text = "Customer Expected: ${req.expectedPrice} • Condition: ${req.condition}", fontSize = 12.sp, color = LightTextSecondary)
 
                     Spacer(modifier = Modifier.height(10.dp))
 
@@ -89,6 +93,7 @@ fun AdminOldPhoneScreen(
                         value = offerMinText,
                         onValueChange = { offerMinText = it },
                         label = { Text("Minimum Offer (₹)") },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true
@@ -100,6 +105,7 @@ fun AdminOldPhoneScreen(
                         value = offerMaxText,
                         onValueChange = { offerMaxText = it },
                         label = { Text("Maximum Offer (₹)") },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true
@@ -114,14 +120,18 @@ fun AdminOldPhoneScreen(
                         onUpdateSellRequestStatus(req.requestId, "Offer Sent", min, max)
                         requestToSetOffer = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White)
                 ) {
-                    Text("Send Offer")
+                    Text("Send Offer", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { requestToSetOffer = null }) {
-                    Text("Cancel")
+                OutlinedButton(
+                    onClick = { requestToSetOffer = null },
+                    border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary)
+                ) {
+                    Text("Cancel", color = LightTextPrimary)
                 }
             }
         )
@@ -166,11 +176,15 @@ fun AdminOldPhoneScreen(
                         Tab(
                             selected = selectedTab == 0,
                             onClick = { selectedTab = 0 },
+                            selectedContentColor = ShopPrimaryBlue,
+                            unselectedContentColor = LightTextSecondary,
                             text = { Text("Sell Requests (${sellRequests.size})", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                         )
                         Tab(
                             selected = selectedTab == 1,
                             onClick = { selectedTab = 1 },
+                            selectedContentColor = ShopPrimaryBlue,
+                            unselectedContentColor = LightTextSecondary,
                             text = { Text("Purchased (${sellRequests.count { it.status == "Purchased" }})", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                         )
                     }
@@ -184,6 +198,7 @@ fun AdminOldPhoneScreen(
                     icon = Icons.Default.PhoneAndroid,
                     title = if (selectedTab == 0) "No Sell Requests" else "No Purchased Phones",
                     message = if (selectedTab == 0) "No customers have requested to sell an old phone yet." else "No pre-owned phones have been marked as purchased yet.",
+                    isDarkSurface = false,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 32.dp)
@@ -235,30 +250,32 @@ fun AdminOldPhoneScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
+                                        val statusTextColor = when (req.status) {
+                                            "Purchased", "Accepted" -> Color(0xFF166534)
+                                            "Rejected" -> Color(0xFF991B1B)
+                                            "Offer Sent" -> Color(0xFF3730A3)
+                                            else -> Color(0xFF92400E)
+                                        }
                                         Text(
                                             text = req.status,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
                                             maxLines = 1,
                                             softWrap = false,
-                                            color = when (req.status) {
-                                                "Purchased", "Accepted" -> Color(0xFF166534)
-                                                "Rejected" -> Color(0xFF991B1B)
-                                                "Offer Sent" -> Color(0xFF3730A3)
-                                                else -> Color(0xFF92400E)
-                                            }
+                                            color = statusTextColor
                                         )
-                                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Change", modifier = Modifier.size(16.dp))
+                                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Change", tint = statusTextColor, modifier = Modifier.size(16.dp))
                                     }
                                 }
 
                                 DropdownMenu(
                                     expanded = showStatusMenu,
-                                    onDismissRequest = { showStatusMenu = false }
+                                    onDismissRequest = { showStatusMenu = false },
+                                    modifier = Modifier.background(Color.White)
                                 ) {
                                     sellStatuses.forEach { status ->
                                         DropdownMenuItem(
-                                            text = { Text(status) },
+                                            text = { Text(status, color = LightTextPrimary) },
                                             onClick = {
                                                 onUpdateSellRequestStatus(req.requestId, status, null, null)
                                                 showStatusMenu = false
@@ -313,11 +330,13 @@ fun AdminOldPhoneScreen(
                                 },
                                 modifier = Modifier.height(32.dp),
                                 shape = RoundedCornerShape(6.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(13.dp))
+                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", tint = LightTextPrimary, modifier = Modifier.size(13.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Set Offer", fontSize = 11.sp, maxLines = 1, softWrap = false)
+                                Text("Set Offer", fontSize = 11.sp, color = LightTextPrimary, maxLines = 1, softWrap = false)
                             }
                         }
                     }

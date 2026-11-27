@@ -49,7 +49,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.RepairBooking
+import com.example.ui.theme.LightInputBorder
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
+import com.example.ui.theme.lightOutlinedTextFieldColors
 
 @Composable
 fun AdminRepairsScreen(
@@ -88,17 +92,18 @@ fun AdminRepairsScreen(
             onDismissRequest = { repairToEditCost = null },
             containerColor = Color.White,
             title = {
-                Text(text = "Update Estimated Repair Cost", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(text = "Update Estimated Repair Cost", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LightTextPrimary)
             },
             text = {
                 Column {
-                    Text(text = "Repair: ${r.bookingId} • ${r.brand} ${r.model}", fontSize = 13.sp)
-                    Text(text = "Issue: ${r.problem}", fontSize = 12.sp, color = Color(0xFF64748B))
+                    Text(text = "Repair: ${r.bookingId} • ${r.brand} ${r.model}", fontSize = 13.sp, color = LightTextPrimary)
+                    Text(text = "Issue: ${r.problem}", fontSize = 12.sp, color = LightTextSecondary)
                     Spacer(modifier = Modifier.height(10.dp))
                     OutlinedTextField(
                         value = newCostInput,
                         onValueChange = { newCostInput = it },
                         label = { Text("Estimated Cost (e.g. ₹1,499)") },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -112,14 +117,18 @@ fun AdminRepairsScreen(
                         }
                         repairToEditCost = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White)
                 ) {
-                    Text("Save Cost")
+                    Text("Save Cost", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { repairToEditCost = null }) {
-                    Text("Cancel")
+                OutlinedButton(
+                    onClick = { repairToEditCost = null },
+                    border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary)
+                ) {
+                    Text("Cancel", color = LightTextPrimary)
                 }
             }
         )
@@ -159,7 +168,8 @@ fun AdminRepairsScreen(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         placeholder = { Text("Search by Repair ID, device or customer...", fontSize = 12.sp) },
-                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = LightTextSecondary, modifier = Modifier.size(18.dp)) },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         shape = RoundedCornerShape(10.dp),
                         singleLine = true
@@ -175,6 +185,7 @@ fun AdminRepairsScreen(
                     icon = Icons.Default.Build,
                     title = "No Repair Bookings Found",
                     message = if (searchQuery.isNotBlank()) "No repair bookings matching '$searchQuery'." else "No active repair bookings registered yet.",
+                    isDarkSurface = false,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 32.dp)
@@ -226,30 +237,32 @@ fun AdminRepairsScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
+                                        val statusTextColor = when (repair.status) {
+                                            "Delivered", "Ready" -> Color(0xFF166534)
+                                            "Cancelled" -> Color(0xFF991B1B)
+                                            "Repairing", "Diagnosing" -> Color(0xFF92400E)
+                                            else -> Color(0xFF0369A1)
+                                        }
                                         Text(
                                             text = repair.status,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
                                             maxLines = 1,
                                             softWrap = false,
-                                            color = when (repair.status) {
-                                                "Delivered", "Ready" -> Color(0xFF166534)
-                                                "Cancelled" -> Color(0xFF991B1B)
-                                                "Repairing", "Diagnosing" -> Color(0xFF92400E)
-                                                else -> Color(0xFF0369A1)
-                                            }
+                                            color = statusTextColor
                                         )
-                                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Change", modifier = Modifier.size(16.dp))
+                                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Change", tint = statusTextColor, modifier = Modifier.size(16.dp))
                                     }
                                 }
 
                                 DropdownMenu(
                                     expanded = showStatusMenu,
-                                    onDismissRequest = { showStatusMenu = false }
+                                    onDismissRequest = { showStatusMenu = false },
+                                    modifier = Modifier.background(Color.White)
                                 ) {
                                     allRepairStatuses.forEach { status ->
                                         DropdownMenuItem(
-                                            text = { Text(status) },
+                                            text = { Text(status, color = LightTextPrimary) },
                                             onClick = {
                                                 onUpdateRepairStatus(repair.bookingId, status, null)
                                                 showStatusMenu = false
@@ -312,11 +325,13 @@ fun AdminRepairsScreen(
                                 },
                                 modifier = Modifier.height(32.dp),
                                 shape = RoundedCornerShape(6.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Cost", modifier = Modifier.size(13.dp))
+                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Cost", tint = LightTextPrimary, modifier = Modifier.size(13.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Edit Cost", fontSize = 11.sp, maxLines = 1, softWrap = false)
+                                Text("Edit Cost", fontSize = 11.sp, color = LightTextPrimary, maxLines = 1, softWrap = false)
                             }
                         }
                     }

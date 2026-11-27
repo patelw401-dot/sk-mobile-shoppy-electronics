@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.admin.model.PaymentRecord
 import com.example.ui.components.formatInr
+import com.example.ui.theme.LightTextPrimary
 import com.example.ui.theme.ShopPrimaryBlue
 
 @Composable
@@ -49,7 +50,7 @@ fun AdminPaymentsScreen(
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text(text = "Payment Transactions (${payments.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "Payment Transactions (${payments.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
                     Text(text = "Transactions across UPI, Cash on Delivery and Cards", fontSize = 11.sp, color = Color(0xFF64748B))
                 }
             }

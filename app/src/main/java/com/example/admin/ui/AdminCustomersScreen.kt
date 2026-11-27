@@ -46,8 +46,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.admin.model.CustomerRecord
 import com.example.ui.components.formatInr
+import com.example.ui.theme.LightBlueBg
+import com.example.ui.theme.LightBlueText
+import com.example.ui.theme.LightInputBorder
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
 
 @Composable
 fun AdminCustomersScreen(
@@ -62,22 +66,25 @@ fun AdminCustomersScreen(
             onDismissRequest = { selectedCustomerToView = null },
             containerColor = Color.White,
             title = {
-                Text(text = "Customer Profile • ${c.name}", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(text = "Customer Profile • ${c.name}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LightTextPrimary)
             },
             text = {
                 Column {
-                    Text(text = "Mobile: +91 ${c.mobileNumber}", fontSize = 13.sp)
-                    Text(text = "Address: ${c.address}", fontSize = 12.sp, color = Color(0xFF64748B))
+                    Text(text = "Mobile: +91 ${c.mobileNumber}", fontSize = 13.sp, color = LightTextPrimary)
+                    Text(text = "Address: ${c.address}", fontSize = 12.sp, color = LightTextSecondary)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Order History: ${c.totalOrders} Completed Orders", fontSize = 13.sp)
-                    Text(text = "Repair History: ${c.totalRepairs} Phone Repairs", fontSize = 13.sp)
+                    Text(text = "Order History: ${c.totalOrders} Completed Orders", fontSize = 13.sp, color = LightTextPrimary)
+                    Text(text = "Repair History: ${c.totalRepairs} Phone Repairs", fontSize = 13.sp, color = LightTextPrimary)
                     Text(text = "Lifetime Spending: ${formatInr(c.totalSpending)}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ShopPrimaryBlue)
-                    Text(text = "Last Store Interaction: ${c.lastActivity}", fontSize = 12.sp, color = Color(0xFF64748B))
+                    Text(text = "Last Store Interaction: ${c.lastActivity}", fontSize = 12.sp, color = LightTextSecondary)
                 }
             },
             confirmButton = {
-                Button(onClick = { selectedCustomerToView = null }, colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)) {
-                    Text("Close")
+                Button(
+                    onClick = { selectedCustomerToView = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White)
+                ) {
+                    Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -98,8 +105,8 @@ fun AdminCustomersScreen(
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text(text = "Registered Customers (${customers.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Udgir store customer records, loyalty and spending", fontSize = 11.sp, color = Color(0xFF64748B))
+                    Text(text = "Registered Customers (${customers.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                    Text(text = "Udgir store customer records, loyalty and spending", fontSize = 11.sp, color = LightTextSecondary)
                 }
             }
         }
@@ -122,10 +129,10 @@ fun AdminCustomersScreen(
                             modifier = Modifier.weight(1f)
                         ) {
                             Box(
-                                modifier = Modifier.size(36.dp).clip(CircleShape).background(ShopPrimaryLightBlue),
+                                modifier = Modifier.size(36.dp).clip(CircleShape).background(LightBlueBg),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.Default.Person, contentDescription = "User", tint = ShopPrimaryBlue, modifier = Modifier.size(20.dp))
+                                Icon(imageVector = Icons.Default.Person, contentDescription = "User", tint = LightBlueText, modifier = Modifier.size(20.dp))
                             }
                             Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
@@ -133,10 +140,11 @@ fun AdminCustomersScreen(
                                     text = customer.name,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
+                                    color = LightTextPrimary,
                                     maxLines = 1,
                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
-                                Text(text = "+91 ${customer.mobileNumber}", fontSize = 12.sp, color = Color(0xFF64748B))
+                                Text(text = "+91 ${customer.mobileNumber}", fontSize = 12.sp, color = LightTextSecondary)
                             }
                         }
 
@@ -144,10 +152,12 @@ fun AdminCustomersScreen(
 
                         OutlinedButton(
                             onClick = { selectedCustomerToView = customer },
+                            border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary),
                             modifier = Modifier.height(32.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
                         ) {
-                            Text("Details", fontSize = 11.sp, maxLines = 1, softWrap = false)
+                            Text("Details", fontSize = 11.sp, color = LightTextPrimary, maxLines = 1, softWrap = false)
                         }
                     }
 

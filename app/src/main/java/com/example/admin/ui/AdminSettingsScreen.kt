@@ -35,7 +35,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.admin.model.ShopSettings
+import com.example.ui.theme.LightTextPrimary
 import com.example.ui.theme.ShopPrimaryBlue
+import com.example.ui.theme.lightOutlinedTextFieldColors
 
 @Composable
 fun AdminSettingsScreen(
@@ -80,6 +82,7 @@ fun AdminSettingsScreen(
                         value = shopName,
                         onValueChange = { shopName = it },
                         label = { Text("Shop Name") },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().testTag("settings_shop_name"),
                         singleLine = true
                     )
@@ -89,6 +92,7 @@ fun AdminSettingsScreen(
                         value = address,
                         onValueChange = { address = it },
                         label = { Text("Physical Store Address") },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().testTag("settings_address"),
                         minLines = 2
                     )
@@ -99,6 +103,7 @@ fun AdminSettingsScreen(
                             value = phone,
                             onValueChange = { phone = it },
                             label = { Text("Phone Number") },
+                            colors = lightOutlinedTextFieldColors(),
                             modifier = Modifier.weight(1f).testTag("settings_phone"),
                             singleLine = true
                         )
@@ -106,6 +111,7 @@ fun AdminSettingsScreen(
                             value = whatsapp,
                             onValueChange = { whatsapp = it },
                             label = { Text("WhatsApp Number") },
+                            colors = lightOutlinedTextFieldColors(),
                             modifier = Modifier.weight(1f).testTag("settings_whatsapp"),
                             singleLine = true
                         )
@@ -117,6 +123,7 @@ fun AdminSettingsScreen(
                             value = openTime,
                             onValueChange = { openTime = it },
                             label = { Text("Opening Time") },
+                            colors = lightOutlinedTextFieldColors(),
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
@@ -124,6 +131,7 @@ fun AdminSettingsScreen(
                             value = closeTime,
                             onValueChange = { closeTime = it },
                             label = { Text("Closing Time") },
+                            colors = lightOutlinedTextFieldColors(),
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
@@ -149,7 +157,7 @@ fun AdminSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Store Pickup Available", fontSize = 13.sp, modifier = Modifier.weight(1f))
+                        Text("Store Pickup Available", fontSize = 13.sp, color = LightTextPrimary, modifier = Modifier.weight(1f))
                         Switch(checked = pickupAvailable, onCheckedChange = { pickupAvailable = it })
                     }
 
@@ -158,7 +166,7 @@ fun AdminSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Doorstep Home Delivery (Udgir)", fontSize = 13.sp, modifier = Modifier.weight(1f))
+                        Text("Doorstep Home Delivery (Udgir)", fontSize = 13.sp, color = LightTextPrimary, modifier = Modifier.weight(1f))
                         Switch(checked = homeDeliveryAvailable, onCheckedChange = { homeDeliveryAvailable = it })
                     }
 
@@ -168,6 +176,7 @@ fun AdminSettingsScreen(
                         value = deliveryChargeText,
                         onValueChange = { deliveryChargeText = it },
                         label = { Text("Standard Delivery Charge (₹) [Free on ₹499+]") },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true
@@ -193,7 +202,7 @@ fun AdminSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("UPI & QR Payments Enabled", fontSize = 13.sp, modifier = Modifier.weight(1f))
+                        Text("UPI & QR Payments Enabled", fontSize = 13.sp, color = LightTextPrimary, modifier = Modifier.weight(1f))
                         Switch(checked = upiEnabled, onCheckedChange = { upiEnabled = it })
                     }
 
@@ -202,7 +211,7 @@ fun AdminSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Cash on Delivery (COD) Enabled", fontSize = 13.sp, modifier = Modifier.weight(1f))
+                        Text("Cash on Delivery (COD) Enabled", fontSize = 13.sp, color = LightTextPrimary, modifier = Modifier.weight(1f))
                         Switch(checked = codEnabled, onCheckedChange = { codEnabled = it })
                     }
 
@@ -211,7 +220,7 @@ fun AdminSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Cards & Net Banking Enabled", fontSize = 13.sp, modifier = Modifier.weight(1f))
+                        Text("Cards & Net Banking Enabled", fontSize = 13.sp, color = LightTextPrimary, modifier = Modifier.weight(1f))
                         Switch(checked = onlinePaymentEnabled, onCheckedChange = { onlinePaymentEnabled = it })
                     }
                 }
@@ -241,9 +250,9 @@ fun AdminSettingsScreen(
                 },
                 modifier = Modifier.fillMaxWidth().height(48.dp).testTag("save_settings_btn"),
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)
+                colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White)
             ) {
-                Text("Save Store Settings", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Save Store Settings", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
             }
             Spacer(modifier = Modifier.height(24.dp))
         }

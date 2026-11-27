@@ -1,5 +1,8 @@
 package com.example.ui.theme
 
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 // Default M3 palette
@@ -10,7 +13,7 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
-// Black & Gold Luxury Theme Palette
+// Black & Gold Luxury Theme Palette (Dark Surfaces)
 val BlackBackground = Color(0xFF0F0F0F)
 val BlackSurface = Color(0xFF1A1A1A)
 val BlackSurfaceSecondary = Color(0xFF262626)
@@ -22,8 +25,8 @@ val GoldDark = Color(0xFFA67C00)
 val GoldBorder = Color(0xFF7A601B)
 
 val TextMain = Color(0xFFFFFFFF)
-val TextSecondary = Color(0xFF9E9E9E)
-val TextMuted = Color(0xFF757575)
+val TextSecondary = Color(0xFFB3B3B3)
+val TextMuted = Color(0xFF8A8A8A)
 
 val ColorSuccess = Color(0xFF10B981)
 val ColorError = Color(0xFFEF4444)
@@ -39,3 +42,72 @@ val ShopOutlineLight = Color(0xFF374151)
 val ShopTextPrimary = Color(0xFFF3F4F6)
 val ShopTextSecondary = Color(0xFF9CA3AF)
 val ShopTextMuted = Color(0xFF6B7280)
+
+// Explicit Light Surface Tokens (guaranteed high-contrast on white / light slate surfaces)
+val LightScreenBg = Color(0xFFF6F8FA)
+val LightAdminBg = Color(0xFFF1F5F9)
+val LightCardBg = Color(0xFFFFFFFF)
+val LightCardSubtleBg = Color(0xFFF8FAFC)
+val LightTextPrimary = Color(0xFF0F172A)
+val LightTextSecondary = Color(0xFF475569)
+val LightTextMuted = Color(0xFF64748B)
+val LightOutline = Color(0xFFE2E8F0)
+val LightInputBorder = Color(0xFFCBD5E1)
+val LightBlueBg = Color(0xFFDBEAFE)
+val LightBlueText = Color(0xFF1D4ED8)
+val LightGreenBg = Color(0xFFDCFCE7)
+val LightGreenText = Color(0xFF166534)
+val LightRedBg = Color(0xFFFEE2E2)
+val LightRedText = Color(0xFF991B1B)
+val LightAmberBg = Color(0xFFFEF3C7)
+val LightAmberText = Color(0xFF92400E)
+val LightBlueAccentOnDark = Color(0xFF60A5FA)
+
+@Composable
+fun lightOutlinedTextFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = LightTextPrimary,
+    unfocusedTextColor = LightTextPrimary,
+    disabledTextColor = LightTextMuted,
+    errorTextColor = LightRedText,
+    focusedContainerColor = LightCardBg,
+    unfocusedContainerColor = LightCardBg,
+    disabledContainerColor = LightCardSubtleBg,
+    cursorColor = ShopPrimaryBlue,
+    focusedBorderColor = ShopPrimaryBlue,
+    unfocusedBorderColor = LightInputBorder,
+    disabledBorderColor = LightOutline,
+    focusedLabelColor = ShopPrimaryBlue,
+    unfocusedLabelColor = LightTextSecondary,
+    disabledLabelColor = LightTextMuted,
+    focusedPlaceholderColor = LightTextMuted,
+    unfocusedPlaceholderColor = LightTextMuted,
+    focusedLeadingIconColor = LightTextSecondary,
+    unfocusedLeadingIconColor = LightTextMuted,
+    focusedTrailingIconColor = LightTextSecondary,
+    unfocusedTrailingIconColor = LightTextMuted
+)
+
+@Composable
+fun darkOutlinedTextFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = TextMain,
+    unfocusedTextColor = TextMain,
+    disabledTextColor = TextMuted,
+    errorTextColor = ColorError,
+    focusedContainerColor = BlackSurfaceSecondary,
+    unfocusedContainerColor = BlackSurfaceSecondary,
+    disabledContainerColor = BlackSurface,
+    cursorColor = GoldPrimary,
+    focusedBorderColor = GoldPrimary,
+    unfocusedBorderColor = BlackBorder,
+    disabledBorderColor = BlackBorder,
+    focusedLabelColor = GoldHighlight,
+    unfocusedLabelColor = TextSecondary,
+    disabledLabelColor = TextMuted,
+    focusedPlaceholderColor = TextMuted,
+    unfocusedPlaceholderColor = TextMuted,
+    focusedLeadingIconColor = GoldPrimary,
+    unfocusedLeadingIconColor = TextSecondary,
+    focusedTrailingIconColor = GoldPrimary,
+    unfocusedTrailingIconColor = TextSecondary
+)
+

@@ -8,33 +8,51 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme =
-  darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
+  darkColorScheme(
+    primary = GoldPrimary,
+    onPrimary = Color(0xFF0B0B0B),
+    secondary = ShopPrimaryBlue,
+    onSecondary = Color.White,
+    tertiary = GoldHighlight,
+    onTertiary = Color(0xFF0B0B0B),
+    background = BlackBackground,
+    onBackground = TextMain,
+    surface = BlackSurface,
+    onSurface = TextMain,
+    surfaceVariant = BlackSurfaceSecondary,
+    onSurfaceVariant = TextSecondary,
+    outline = BlackBorder,
+    error = ColorError,
+    onError = Color.White,
+  )
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = ShopPrimaryBlue,
     onPrimary = Color.White,
+    secondary = GoldDark,
     onSecondary = Color.White,
+    tertiary = ShopAccentAmber,
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    background = LightScreenBg,
+    onBackground = LightTextPrimary,
+    surface = LightCardBg,
+    onSurface = LightTextPrimary,
+    surfaceVariant = LightAdminBg,
+    onSurfaceVariant = LightTextSecondary,
+    outline = LightInputBorder,
+    error = ColorError,
+    onError = Color.White,
   )
 
 @Composable
 fun MyApplicationTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
-  // Dynamic color is available on Android 12+
-  dynamicColor: Boolean = true,
+  dynamicColor: Boolean = false,
   content: @Composable () -> Unit,
 ) {
   val colorScheme =
@@ -50,3 +68,4 @@ fun MyApplicationTheme(
 
   MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }
+

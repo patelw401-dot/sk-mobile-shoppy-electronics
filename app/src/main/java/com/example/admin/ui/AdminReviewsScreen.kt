@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.admin.model.AdminReviewRecord
+import com.example.ui.theme.LightTextPrimary
 import com.example.ui.theme.ShopAccentAmber
 import com.example.ui.theme.ShopPrimaryBlue
 
@@ -59,7 +60,7 @@ fun AdminReviewsScreen(
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text(text = "Customer Reviews Moderation (${reviews.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "Customer Reviews Moderation (${reviews.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
                     Text(text = "Approve or hide customer testimonials shown on homepage", fontSize = 11.sp, color = Color(0xFF64748B))
                 }
             }
@@ -83,6 +84,7 @@ fun AdminReviewsScreen(
                             text = rev.customerName,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
+                            color = LightTextPrimary,
                             maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
@@ -123,6 +125,8 @@ fun AdminReviewsScreen(
                         if (item.isApproved) {
                             OutlinedButton(
                                 onClick = { onToggleApproval(rev.id) },
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFDC2626)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
                                 modifier = Modifier.height(32.dp),
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
                             ) {
@@ -132,10 +136,10 @@ fun AdminReviewsScreen(
                             Button(
                                 onClick = { onToggleApproval(rev.id) },
                                 modifier = Modifier.height(32.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
+                                colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White),
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
                             ) {
-                                Text("Approve Review", fontSize = 11.sp, maxLines = 1, softWrap = false)
+                                Text("Approve Review", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                             }
                         }
                     }

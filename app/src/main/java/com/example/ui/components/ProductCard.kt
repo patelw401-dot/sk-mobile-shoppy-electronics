@@ -48,15 +48,18 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.model.Product
 import com.example.model.ProductCategory
-import com.example.ui.theme.ShopAccentAmber
+import com.example.ui.theme.BlackBorder
+import com.example.ui.theme.BlackSurface
+import com.example.ui.theme.BlackSurfaceSecondary
+import com.example.ui.theme.GoldHighlight
+import com.example.ui.theme.GoldPrimary
+import com.example.ui.theme.LightBlueAccentOnDark
+import com.example.ui.theme.LightTextPrimary
 import com.example.ui.theme.ShopDiscountBadgeBg
 import com.example.ui.theme.ShopDiscountGreen
-import com.example.ui.theme.ShopOutlineLight
 import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
-import com.example.ui.theme.ShopTextMuted
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
+import com.example.ui.theme.TextMain
+import com.example.ui.theme.TextSecondary
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -106,7 +109,7 @@ fun ProductCard(
             ) {
                 Text(
                     text = product.brand.uppercase(),
-                    color = ShopPrimaryBlue,
+                    color = LightBlueAccentOnDark,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.5.sp
@@ -114,12 +117,12 @@ fun ProductCard(
 
                 if (product.highlightBadge != null) {
                     Surface(
-                        color = ShopPrimaryLightBlue,
+                        color = BlackSurfaceSecondary,
                         shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
                             text = product.highlightBadge,
-                            color = ShopPrimaryBlue,
+                            color = GoldHighlight,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -135,7 +138,7 @@ fun ProductCard(
                 text = product.name,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
-                color = ShopTextPrimary,
+                color = TextMain,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 lineHeight = 18.sp,
@@ -178,7 +181,7 @@ fun ProductCard(
                 Text(
                     text = "(${product.reviewCount})",
                     fontSize = 11.sp,
-                    color = ShopTextMuted
+                    color = TextSecondary
                 )
 
                 if (product.isPreOwned) {
@@ -186,7 +189,7 @@ fun ProductCard(
                     Text(
                         text = "• Pre-Owned",
                         fontSize = 11.sp,
-                        color = Color(0xFFD97706),
+                        color = Color(0xFFFBBF24),
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -203,14 +206,14 @@ fun ProductCard(
                     modifier = Modifier
                         .size(6.dp)
                         .clip(androidx.compose.foundation.shape.CircleShape)
-                        .background(if (product.inStock) com.example.ui.theme.ShopSuccessGreen else Color(0xFFEF4444))
+                        .background(if (product.inStock) Color(0xFF4ADE80) else Color(0xFFF87171))
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = product.stockStatus,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = if (product.inStock) Color(0xFF166534) else Color(0xFFB91C1C)
+                    color = if (product.inStock) Color(0xFF4ADE80) else Color(0xFFF87171)
                 )
             }
 
@@ -225,7 +228,7 @@ fun ProductCard(
                     text = formatInr(product.price),
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = ShopTextPrimary
+                    color = TextMain
                 )
 
                 if (product.originalPrice > product.price) {
@@ -233,7 +236,7 @@ fun ProductCard(
                     Text(
                         text = formatInr(product.originalPrice),
                         fontSize = 12.sp,
-                        color = ShopTextMuted,
+                        color = TextSecondary,
                         textDecoration = TextDecoration.LineThrough
                     )
 
@@ -268,9 +271,9 @@ fun ProductCard(
                         .testTag("add_to_cart_btn_${product.id}"),
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, ShopPrimaryBlue),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, LightBlueAccentOnDark),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = ShopPrimaryBlue
+                        contentColor = LightBlueAccentOnDark
                     )
                 ) {
                     Text(
@@ -291,14 +294,14 @@ fun ProductCard(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ShopPrimaryBlue,
-                        contentColor = Color(0xFF0B0B0B)
+                        contentColor = Color.White
                     )
                 ) {
                     Text(
                         text = "Buy Now",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0B0B0B),
+                        color = Color.White,
                         maxLines = 1
                     )
                 }
@@ -358,12 +361,12 @@ fun ProductVisualBox(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Surface(
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = Color.White.copy(alpha = 0.92f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = product.brand,
-                        color = ShopTextPrimary,
+                        color = LightTextPrimary,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)

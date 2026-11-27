@@ -63,9 +63,12 @@ fun OrderSuccessScreen(
         ) {
             Button(
                 onClick = onContinueShopping,
-                colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ShopPrimaryBlue,
+                    contentColor = Color.White
+                )
             ) {
-                Text("Continue Shopping")
+                Text("Continue Shopping", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
         return
@@ -103,7 +106,7 @@ fun OrderSuccessScreen(
                 text = "Order Placed Successfully!",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = ShopTextPrimary,
+                color = TextMain,
                 textAlign = TextAlign.Center
             )
 
@@ -112,7 +115,7 @@ fun OrderSuccessScreen(
             Text(
                 text = "Thank you for shopping at SK Mobile Shoppy and Electronics, Udgir.",
                 fontSize = 13.sp,
-                color = ShopTextSecondary,
+                color = TextSecondary,
                 textAlign = TextAlign.Center
             )
 
@@ -138,14 +141,14 @@ fun OrderSuccessScreen(
                             Text(
                                 text = "Order Number",
                                 fontSize = 11.sp,
-                                color = ShopTextSecondary,
+                                color = TextSecondary,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = order.orderId,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Black,
-                                color = ShopPrimaryBlue
+                                color = LightBlueAccentOnDark
                             )
                         }
 
@@ -164,7 +167,7 @@ fun OrderSuccessScreen(
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = ShopOutlineLight)
+                    HorizontalDivider(color = BlackBorder)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Customer Name & Phone
@@ -172,13 +175,13 @@ fun OrderSuccessScreen(
                         Text(
                             text = "Customer Name: ",
                             fontSize = 13.sp,
-                            color = ShopTextSecondary
+                            color = TextSecondary
                         )
                         Text(
                             text = order.customerName,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
                     }
 
@@ -188,13 +191,13 @@ fun OrderSuccessScreen(
                         Text(
                             text = "Contact Phone: ",
                             fontSize = 13.sp,
-                            color = ShopTextSecondary
+                            color = TextSecondary
                         )
                         Text(
                             text = "+91 ${order.mobileNumber}",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
                     }
 
@@ -205,7 +208,7 @@ fun OrderSuccessScreen(
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = "Address",
-                            tint = ShopPrimaryBlue,
+                            tint = LightBlueAccentOnDark,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -214,12 +217,12 @@ fun OrderSuccessScreen(
                                 text = "Delivery Address:",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = ShopTextPrimary
+                                color = TextMain
                             )
                             Text(
                                 text = "${order.address}, ${order.city}, ${order.state} - ${order.pinCode}",
                                 fontSize = 12.sp,
-                                color = ShopTextSecondary
+                                color = TextSecondary
                             )
                         }
                     }
@@ -230,14 +233,14 @@ fun OrderSuccessScreen(
                         Icon(
                             imageVector = Icons.Default.DeliveryDining,
                             contentDescription = "Speed",
-                            tint = ShopSuccessGreen,
+                            tint = Color(0xFF4ADE80),
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "Option: ${order.deliveryOption}",
                             fontSize = 12.sp,
-                            color = Color(0xFF166534),
+                            color = Color(0xFF4ADE80),
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -261,7 +264,7 @@ fun OrderSuccessScreen(
                         text = "Ordered Products (${order.items.sumOf { it.quantity }} items)",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ShopTextPrimary
+                        color = TextMain
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -287,19 +290,19 @@ fun OrderSuccessScreen(
                                     text = cartItem.product.brand.uppercase(),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = ShopPrimaryBlue
+                                    color = LightBlueAccentOnDark
                                 )
                                 Text(
                                     text = cartItem.product.name,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = ShopTextPrimary,
+                                    color = TextMain,
                                     maxLines = 1
                                 )
                                 Text(
                                     text = "Qty: ${cartItem.quantity} × ${formatInr(cartItem.product.price)}",
                                     fontSize = 11.sp,
-                                    color = ShopTextSecondary
+                                    color = TextSecondary
                                 )
                             }
 
@@ -307,13 +310,13 @@ fun OrderSuccessScreen(
                                 text = formatInr(cartItem.product.price * cartItem.quantity),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ShopTextPrimary
+                                color = TextMain
                             )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
-                    HorizontalDivider(color = ShopOutlineLight)
+                    HorizontalDivider(color = BlackBorder)
                     Spacer(modifier = Modifier.height(10.dp))
 
                     // Total Amount Row
@@ -326,13 +329,13 @@ fun OrderSuccessScreen(
                             text = "Total Amount Paid (${order.paymentMethod})",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
                         Text(
                             text = formatInr(order.totalAmount),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = ShopPrimaryBlue
+                            color = LightBlueAccentOnDark
                         )
                     }
                 }

@@ -50,15 +50,17 @@ import androidx.compose.ui.unit.sp
 import com.example.model.CartItem
 import com.example.ui.components.ProductVisualBox
 import com.example.ui.components.formatInr
-import com.example.ui.theme.ShopDiscountBadgeBg
-import com.example.ui.theme.ShopDiscountGreen
-import com.example.ui.theme.ShopOutlineLight
+import androidx.compose.foundation.BorderStroke
+import com.example.ui.theme.LightBlueBg
+import com.example.ui.theme.LightBlueText
+import com.example.ui.theme.LightGreenBg
+import com.example.ui.theme.LightGreenText
+import com.example.ui.theme.LightOutline
+import com.example.ui.theme.LightTextMuted
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
 import com.example.ui.theme.ShopSuccessGreen
-import com.example.ui.theme.ShopTextMuted
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
 
 @Composable
 fun CartScreen(
@@ -97,7 +99,7 @@ fun CartScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = ShopTextPrimary
+                        tint = LightTextPrimary
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
@@ -105,7 +107,7 @@ fun CartScreen(
                     text = "My Shopping Cart (${cartItems.sumOf { it.quantity }})",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ShopTextPrimary
+                    color = LightTextPrimary
                 )
             }
         }
@@ -123,13 +125,13 @@ fun CartScreen(
                         modifier = Modifier
                             .size(80.dp)
                             .clip(CircleShape)
-                            .background(ShopPrimaryLightBlue),
+                            .background(LightBlueBg),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.ShoppingCart,
                             contentDescription = "Empty Cart",
-                            tint = ShopPrimaryBlue,
+                            tint = LightBlueText,
                             modifier = Modifier.size(42.dp)
                         )
                     }
@@ -140,7 +142,7 @@ fun CartScreen(
                         text = "Your Cart is Empty",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ShopTextPrimary
+                        color = LightTextPrimary
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -148,7 +150,7 @@ fun CartScreen(
                     Text(
                         text = "Looks like you haven't added any mobiles or accessories yet.",
                         fontSize = 13.sp,
-                        color = ShopTextSecondary,
+                        color = LightTextSecondary,
                         textAlign = TextAlign.Center
                     )
 
@@ -157,10 +159,13 @@ fun CartScreen(
                     Button(
                         onClick = onContinueShopping,
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ShopPrimaryBlue,
+                            contentColor = Color.White
+                        ),
                         modifier = Modifier.testTag("empty_cart_shop_btn")
                     ) {
-                        Text("Explore Deals & Mobiles", fontWeight = FontWeight.Bold)
+                        Text("Explore Deals & Mobiles", fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
@@ -234,7 +239,7 @@ fun CartScreen(
                                         text = item.product.name,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = ShopTextPrimary,
+                                        color = LightTextPrimary,
                                         maxLines = 2
                                     )
 
@@ -245,7 +250,7 @@ fun CartScreen(
                                             text = formatInr(item.product.price),
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 15.sp,
-                                            color = ShopTextPrimary
+                                            color = LightTextPrimary
                                         )
 
                                         if (item.product.originalPrice > item.product.price) {
@@ -253,7 +258,7 @@ fun CartScreen(
                                             Text(
                                                 text = formatInr(item.product.originalPrice),
                                                 fontSize = 11.sp,
-                                                color = ShopTextMuted,
+                                                color = LightTextMuted,
                                                 textDecoration = TextDecoration.LineThrough
                                             )
                                         }
@@ -262,7 +267,7 @@ fun CartScreen(
                             }
 
                             Spacer(modifier = Modifier.height(10.dp))
-                            HorizontalDivider(color = ShopOutlineLight)
+                            HorizontalDivider(color = LightOutline)
                             Spacer(modifier = Modifier.height(8.dp))
 
                             // Controls Row: Quantity Increment/Decrement and Remove
@@ -304,6 +309,7 @@ fun CartScreen(
                                         Icon(
                                             imageVector = Icons.Default.Remove,
                                             contentDescription = "Decrease",
+                                            tint = LightTextPrimary,
                                             modifier = Modifier.size(14.dp)
                                         )
                                     }
@@ -312,6 +318,7 @@ fun CartScreen(
                                         text = "${item.quantity}",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
+                                        color = LightTextPrimary,
                                         modifier = Modifier.padding(horizontal = 8.dp)
                                     )
 
@@ -322,6 +329,7 @@ fun CartScreen(
                                         Icon(
                                             imageVector = Icons.Default.Add,
                                             contentDescription = "Increase",
+                                            tint = LightTextPrimary,
                                             modifier = Modifier.size(14.dp)
                                         )
                                     }
@@ -345,21 +353,21 @@ fun CartScreen(
                                 text = "Price Details",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ShopTextPrimary
+                                color = LightTextPrimary
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
 
                             PriceSummaryRow(label = "Price (${cartItems.sumOf { it.quantity }} items)", value = formatInr(subtotal))
-                            PriceSummaryRow(label = "Product Discount", value = "- ${formatInr(totalSavings)}", valueColor = ShopDiscountGreen)
+                            PriceSummaryRow(label = "Product Discount", value = "- ${formatInr(totalSavings)}", valueColor = LightGreenText)
                             PriceSummaryRow(
                                 label = "Delivery Fee",
                                 value = if (deliveryFee == 0) "FREE" else formatInr(deliveryFee),
-                                valueColor = if (deliveryFee == 0) ShopDiscountGreen else ShopTextPrimary
+                                valueColor = if (deliveryFee == 0) LightGreenText else LightTextPrimary
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
-                            HorizontalDivider(color = ShopOutlineLight)
+                            HorizontalDivider(color = LightOutline)
                             Spacer(modifier = Modifier.height(10.dp))
 
                             Row(
@@ -371,7 +379,7 @@ fun CartScreen(
                                     text = "Total Payable Amount",
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = ShopTextPrimary
+                                    color = LightTextPrimary
                                 )
                                 Text(
                                     text = formatInr(total + deliveryFee),
@@ -384,7 +392,7 @@ fun CartScreen(
                             if (totalSavings > 0) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Surface(
-                                    color = ShopDiscountBadgeBg,
+                                    color = LightGreenBg,
                                     shape = RoundedCornerShape(6.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
@@ -392,7 +400,7 @@ fun CartScreen(
                                         text = "You will save ${formatInr(totalSavings)} on this order!",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = ShopDiscountGreen,
+                                        color = LightGreenText,
                                         modifier = Modifier.padding(vertical = 6.dp, horizontal = 8.dp),
                                         textAlign = TextAlign.Center
                                     )
@@ -421,12 +429,12 @@ fun CartScreen(
                             text = formatInr(total + deliveryFee),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = ShopTextPrimary
+                            color = LightTextPrimary
                         )
                         Text(
                             text = "Free Udgir Delivery",
                             fontSize = 11.sp,
-                            color = ShopDiscountGreen,
+                            color = LightGreenText,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -434,18 +442,23 @@ fun CartScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
                             onClick = onContinueShopping,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, ShopPrimaryBlue),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = ShopPrimaryBlue)
                         ) {
-                            Text("Shop More", fontSize = 12.sp)
+                            Text("Shop More", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
 
                         Button(
                             onClick = onProceedToCheckout,
-                            colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ShopPrimaryBlue,
+                                contentColor = Color.White
+                            ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.testTag("checkout_proceed_btn")
                         ) {
-                            Text("Checkout", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("Checkout", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
@@ -458,7 +471,7 @@ fun CartScreen(
 fun PriceSummaryRow(
     label: String,
     value: String,
-    valueColor: Color = ShopTextPrimary
+    valueColor: Color = LightTextPrimary
 ) {
     Row(
         modifier = Modifier
@@ -466,7 +479,7 @@ fun PriceSummaryRow(
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = label, fontSize = 13.sp, color = ShopTextSecondary)
+        Text(text = label, fontSize = 13.sp, color = LightTextSecondary)
         Text(text = value, fontSize = 13.sp, color = valueColor, fontWeight = FontWeight.SemiBold)
     }
 }

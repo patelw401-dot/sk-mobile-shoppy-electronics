@@ -56,6 +56,7 @@ import com.example.ui.theme.GoldPrimary
 import com.example.ui.theme.ShopAccentAmber
 import com.example.ui.theme.ShopPrimaryBlue
 import com.example.ui.theme.TextMain
+import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextSecondary
 
 @Composable
@@ -286,7 +287,7 @@ fun AppHeader(
                     Text(
                         text = "Search mobiles, accessories, repair services...",
                         fontSize = 13.sp,
-                        color = Color(0xFF64748B),
+                        color = TextMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -295,7 +296,7 @@ fun AppHeader(
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search Icon",
-                        tint = ShopPrimaryBlue,
+                        tint = GoldPrimary,
                         modifier = Modifier
                             .size(20.dp)
                             .clickable(onClick = onSearchSubmit)
@@ -311,7 +312,7 @@ fun AppHeader(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Clear Search",
-                                    tint = Color.Gray,
+                                    tint = TextSecondary,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -326,7 +327,7 @@ fun AppHeader(
                             Icon(
                                 imageVector = Icons.Default.ArrowForward,
                                 contentDescription = "Search Now",
-                                tint = ShopPrimaryBlue,
+                                tint = GoldPrimary,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -340,6 +341,8 @@ fun AppHeader(
                     unfocusedBorderColor = BlackBorder,
                     focusedTextColor = TextMain,
                     unfocusedTextColor = TextMain,
+                    focusedPlaceholderColor = TextMuted,
+                    unfocusedPlaceholderColor = TextMuted,
                     cursorColor = GoldPrimary
                 ),
                 singleLine = true,

@@ -58,7 +58,11 @@ import androidx.compose.ui.unit.sp
 import com.example.model.OrderTrackingStage
 import com.example.model.ShopOrder
 import com.example.ui.components.formatInr
+import com.example.ui.theme.LightInputBorder
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
+import com.example.ui.theme.lightOutlinedTextFieldColors
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -95,7 +99,8 @@ fun AdminOrdersScreen(
                 Text(
                     text = "Update Status • ${targetOrder.orderId}",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
+                    color = LightTextPrimary
                 )
             },
             text = {
@@ -168,6 +173,7 @@ fun AdminOrdersScreen(
                             onValueChange = { updateNote = it },
                             label = { Text("Audit Note / Delivery Details (Optional)", fontSize = 11.sp) },
                             placeholder = { Text("e.g., Dispatched with delivery partner / tracking #...", fontSize = 11.sp) },
+                            colors = lightOutlinedTextFieldColors(),
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
                             maxLines = 3
@@ -195,15 +201,19 @@ fun AdminOrdersScreen(
                             onUpdateOrderStatus(targetOrder.orderId, selectedNextStatus, updateNote)
                             orderToUpdateStatus = null
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)
+                        colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White)
                     ) {
-                        Text("Apply Update")
+                        Text("Apply Update", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { orderToUpdateStatus = null }) {
-                    Text("Cancel")
+                OutlinedButton(
+                    onClick = { orderToUpdateStatus = null },
+                    border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary)
+                ) {
+                    Text("Cancel", color = LightTextPrimary)
                 }
             }
         )
@@ -216,14 +226,14 @@ fun AdminOrdersScreen(
             onDismissRequest = { selectedOrderToView = null },
             containerColor = Color.White,
             title = {
-                Text(text = "Order Details • ${o.orderId}", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text(text = "Order Details • ${o.orderId}", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = LightTextPrimary)
             },
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    Text(text = "Customer: ${o.customerName} (+91 ${o.mobileNumber})", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Delivery Address: ${o.address}, ${o.city} - ${o.pinCode}", fontSize = 12.sp, color = Color(0xFF64748B))
-                    Text(text = "Option: ${o.deliveryOption}", fontSize = 12.sp, color = Color(0xFF64748B))
-                    Text(text = "Payment: ${o.paymentMethod} (${o.paymentStatus})", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(text = "Customer: ${o.customerName} (+91 ${o.mobileNumber})", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                    Text(text = "Delivery Address: ${o.address}, ${o.city} - ${o.pinCode}", fontSize = 12.sp, color = LightTextSecondary)
+                    Text(text = "Option: ${o.deliveryOption}", fontSize = 12.sp, color = LightTextSecondary)
+                    Text(text = "Payment: ${o.paymentMethod} (${o.paymentStatus})", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = LightTextPrimary)
                     Text(text = "Current Status: ${o.status}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ShopPrimaryBlue)
 
                     if (!o.cancellationReason.isNullOrBlank()) {
@@ -240,13 +250,13 @@ fun AdminOrdersScreen(
                     HorizontalDivider(color = Color(0xFFE2E8F0))
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(text = "Items Ordered (${o.items.size}):", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "Items Ordered (${o.items.size}):", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
                     o.items.forEach { item ->
-                        Text(text = "• ${item.quantity}x ${item.product.name} (${formatInr(item.product.price)})", fontSize = 12.sp)
+                        Text(text = "• ${item.quantity}x ${item.product.name} (${formatInr(item.product.price)})", fontSize = 12.sp, color = LightTextPrimary)
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Total Amount: ${formatInr(o.totalAmount)}", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(text = "Total Amount: ${formatInr(o.totalAmount)}", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = LightTextPrimary)
 
                     Spacer(modifier = Modifier.height(12.dp))
                     HorizontalDivider(color = Color(0xFFE2E8F0))
@@ -255,12 +265,12 @@ fun AdminOrdersScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.History, contentDescription = "History", tint = ShopPrimaryBlue, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Status History Audit Log:", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "Status History Audit Log:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
                     }
                     Spacer(modifier = Modifier.height(6.dp))
 
                     if (o.statusHistory.isEmpty()) {
-                        Text(text = "No recorded transitions yet.", fontSize = 11.sp, color = Color(0xFF64748B))
+                        Text(text = "No recorded transitions yet.", fontSize = 11.sp, color = LightTextSecondary)
                     } else {
                         val dateFormat = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
                         o.statusHistory.forEach { entry ->
@@ -277,12 +287,12 @@ fun AdminOrdersScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Text(text = entry.status, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ShopPrimaryBlue)
-                                        Text(text = dateFormat.format(Date(entry.timestamp)), fontSize = 10.sp, color = Color(0xFF94A3B8))
+                                        Text(text = dateFormat.format(Date(entry.timestamp)), fontSize = 10.sp, color = LightTextSecondary)
                                     }
                                     if (entry.note.isNotBlank()) {
                                         Text(text = entry.note, fontSize = 11.sp, color = Color(0xFF334155))
                                     }
-                                    Text(text = "By: ${entry.updatedBy}", fontSize = 10.sp, color = Color(0xFF64748B))
+                                    Text(text = "By: ${entry.updatedBy}", fontSize = 10.sp, color = LightTextSecondary)
                                 }
                             }
                         }
@@ -290,8 +300,11 @@ fun AdminOrdersScreen(
                 }
             },
             confirmButton = {
-                Button(onClick = { selectedOrderToView = null }, colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)) {
-                    Text("Close")
+                Button(
+                    onClick = { selectedOrderToView = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White)
+                ) {
+                    Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -331,7 +344,8 @@ fun AdminOrdersScreen(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         placeholder = { Text("Search by Order ID, customer or phone...", fontSize = 12.sp) },
-                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = LightTextSecondary, modifier = Modifier.size(18.dp)) },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         shape = RoundedCornerShape(10.dp),
                         singleLine = true
@@ -347,6 +361,7 @@ fun AdminOrdersScreen(
                     icon = Icons.Default.ReceiptLong,
                     title = "No Orders Found",
                     message = if (searchQuery.isNotBlank()) "No orders matching '$searchQuery'." else "No customer orders have been placed yet.",
+                    isDarkSurface = false,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 32.dp)
@@ -395,23 +410,25 @@ fun AdminOrdersScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
+                                    val statusTextColor = when (order.status) {
+                                        "Delivered" -> Color(0xFF166534)
+                                        "Cancelled" -> Color(0xFF991B1B)
+                                        "Out for Delivery", "Shipped / Out for Delivery" -> Color(0xFF3730A3)
+                                        else -> Color(0xFF92400E)
+                                    }
                                     Text(
                                         text = order.status,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1,
                                         softWrap = false,
-                                        color = when (order.status) {
-                                            "Delivered" -> Color(0xFF166534)
-                                            "Cancelled" -> Color(0xFF991B1B)
-                                            "Out for Delivery", "Shipped / Out for Delivery" -> Color(0xFF3730A3)
-                                            else -> Color(0xFF92400E)
-                                        }
+                                        color = statusTextColor
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(
                                         imageVector = Icons.Default.Edit,
                                         contentDescription = "Edit Status",
+                                        tint = statusTextColor,
                                         modifier = Modifier.size(12.dp)
                                     )
                                 }
@@ -454,11 +471,13 @@ fun AdminOrdersScreen(
                                     onClick = { orderToUpdateStatus = order },
                                     modifier = Modifier.height(32.dp),
                                     shape = RoundedCornerShape(6.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                                 ) {
-                                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Update", modifier = Modifier.size(14.dp))
+                                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Update", tint = LightTextPrimary, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Update", fontSize = 11.sp, maxLines = 1, softWrap = false)
+                                    Text("Update", fontSize = 11.sp, color = LightTextPrimary, maxLines = 1, softWrap = false)
                                 }
 
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -467,11 +486,13 @@ fun AdminOrdersScreen(
                                     onClick = { selectedOrderToView = order },
                                     modifier = Modifier.height(32.dp),
                                     shape = RoundedCornerShape(6.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                                 ) {
-                                    Icon(imageVector = Icons.Default.Visibility, contentDescription = "View", modifier = Modifier.size(14.dp))
+                                    Icon(imageVector = Icons.Default.Visibility, contentDescription = "View", tint = LightTextPrimary, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Details", fontSize = 11.sp, maxLines = 1, softWrap = false)
+                                    Text("Details", fontSize = 11.sp, color = LightTextPrimary, maxLines = 1, softWrap = false)
                                 }
                             }
                         }

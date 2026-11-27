@@ -63,9 +63,12 @@ import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.ui.components.ProductVisualBox
 import com.example.ui.components.formatInr
-import com.example.ui.theme.ShopOutlineLight
+import com.example.ui.theme.LightInputBorder
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
 import com.example.ui.theme.ShopSuccessGreen
+import com.example.ui.theme.lightOutlinedTextFieldColors
 
 @Composable
 fun AdminProductsScreen(
@@ -119,24 +122,27 @@ fun AdminProductsScreen(
             onDismissRequest = { productToView = null },
             containerColor = Color.White,
             title = {
-                Text(text = p.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(text = p.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = LightTextPrimary)
             },
             text = {
                 Column {
-                    Text(text = "Brand: ${p.brand}", fontSize = 13.sp)
-                    Text(text = "Category: ${p.category.displayName}", fontSize = 13.sp)
-                    Text(text = "Selling Price: ${formatInr(p.price)}", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Original MRP: ${formatInr(p.originalPrice)}", fontSize = 13.sp)
-                    Text(text = "Stock: ${p.stockStatus}", fontSize = 13.sp, color = if (p.inStock) ShopSuccessGreen else Color.Red)
-                    Text(text = "Warranty: ${p.warranty}", fontSize = 13.sp)
+                    Text(text = "Brand: ${p.brand}", fontSize = 13.sp, color = LightTextPrimary)
+                    Text(text = "Category: ${p.category.displayName}", fontSize = 13.sp, color = LightTextPrimary)
+                    Text(text = "Selling Price: ${formatInr(p.price)}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                    Text(text = "Original MRP: ${formatInr(p.originalPrice)}", fontSize = 13.sp, color = LightTextSecondary)
+                    Text(text = "Stock: ${p.stockStatus}", fontSize = 13.sp, color = if (p.inStock) Color(0xFF166534) else Color(0xFFDC2626))
+                    Text(text = "Warranty: ${p.warranty}", fontSize = 13.sp, color = LightTextPrimary)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text(text = "Description:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text(text = p.description, fontSize = 12.sp, color = Color(0xFF64748B))
+                    Text(text = "Description:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                    Text(text = p.description, fontSize = 12.sp, color = LightTextSecondary)
                 }
             },
             confirmButton = {
-                Button(onClick = { productToView = null }, colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)) {
-                    Text("Close")
+                Button(
+                    onClick = { productToView = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White)
+                ) {
+                    Text("Close", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -185,19 +191,23 @@ fun AdminProductsScreen(
 
                         Button(
                             onClick = { showAddDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ShopPrimaryBlue,
+                                contentColor = Color.White
+                            ),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                             modifier = Modifier
                                 .heightIn(min = 40.dp)
                                 .testTag("admin_add_product_btn")
                         ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(16.dp))
+                            Icon(imageVector = Icons.Default.Add, contentDescription = "Add", tint = Color.White, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Add",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
+                                color = Color.White,
                                 maxLines = 1,
                                 softWrap = false
                             )
@@ -211,14 +221,15 @@ fun AdminProductsScreen(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         placeholder = { Text("Search product name or brand...", fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = LightTextSecondary, modifier = Modifier.size(18.dp)) },
                         trailingIcon = if (searchQuery.isNotEmpty()) {
                             {
                                 IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(imageVector = Icons.Default.Close, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                                    Icon(imageVector = Icons.Default.Close, contentDescription = "Clear search", tint = LightTextSecondary, modifier = Modifier.size(18.dp))
                                 }
                             }
                         } else null,
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 48.dp)
@@ -239,6 +250,7 @@ fun AdminProductsScreen(
                     message = if (searchQuery.isNotBlank()) "No products match '$searchQuery'." else "No products found in this category.",
                     actionLabel = "Add New Product",
                     onAction = { showAddDialog = true },
+                    isDarkSurface = false,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 32.dp)
@@ -352,11 +364,13 @@ fun AdminProductsScreen(
                                 onClick = { productToView = product },
                                 modifier = Modifier.height(34.dp),
                                 shape = RoundedCornerShape(6.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Visibility, contentDescription = "View", modifier = Modifier.size(14.dp))
+                                Icon(imageVector = Icons.Default.Visibility, contentDescription = "View", tint = LightTextPrimary, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("View", fontSize = 11.sp, maxLines = 1, softWrap = false)
+                                Text("View", fontSize = 11.sp, color = LightTextPrimary, maxLines = 1, softWrap = false)
                             }
 
                             Spacer(modifier = Modifier.width(6.dp))
@@ -377,8 +391,12 @@ fun AdminProductsScreen(
                                 },
                                 modifier = Modifier.height(34.dp).testTag("admin_toggle_active_${product.id}"),
                                 shape = RoundedCornerShape(6.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    if (product.inStock) Color(0xFFD97706) else ShopSuccessGreen
+                                ),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = if (product.inStock) Color(0xFFD97706) else ShopSuccessGreen
+                                    contentColor = if (product.inStock) Color(0xFFB45309) else Color(0xFF166534)
                                 ),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                             ) {
@@ -397,12 +415,12 @@ fun AdminProductsScreen(
                                 onClick = { productToEdit = product },
                                 modifier = Modifier.height(34.dp),
                                 shape = RoundedCornerShape(6.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155), contentColor = Color.White),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(14.dp))
+                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", tint = Color.White, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Edit", fontSize = 11.sp, maxLines = 1, softWrap = false)
+                                Text("Edit", fontSize = 11.sp, color = Color.White, maxLines = 1, softWrap = false)
                             }
 
                             Spacer(modifier = Modifier.width(6.dp))
@@ -447,7 +465,7 @@ fun ProductFormDialog(
         onDismissRequest = onDismiss,
         containerColor = Color.White,
         title = {
-            Text(text = if (initialProduct != null) "Edit Product" else "Add New Product", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(text = if (initialProduct != null) "Edit Product" else "Add New Product", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = LightTextPrimary)
         },
         text = {
             LazyColumn(modifier = Modifier.fillMaxWidth().height(400.dp)) {
@@ -456,6 +474,7 @@ fun ProductFormDialog(
                         value = name,
                         onValueChange = { name = it },
                         label = { Text("Product Name *") },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().testTag("product_form_name"),
                         singleLine = true
                     )
@@ -464,6 +483,7 @@ fun ProductFormDialog(
                         value = brand,
                         onValueChange = { brand = it },
                         label = { Text("Brand * (e.g. Apple, Samsung, boAt)") },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().testTag("product_form_brand"),
                         singleLine = true
                     )
@@ -473,6 +493,7 @@ fun ProductFormDialog(
                             value = priceText,
                             onValueChange = { priceText = it },
                             label = { Text("Selling Price (₹) *") },
+                            colors = lightOutlinedTextFieldColors(),
                             modifier = Modifier.weight(1f).testTag("product_form_price"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
@@ -481,6 +502,7 @@ fun ProductFormDialog(
                             value = origPriceText,
                             onValueChange = { origPriceText = it },
                             label = { Text("Original Price (₹)") },
+                            colors = lightOutlinedTextFieldColors(),
                             modifier = Modifier.weight(1f).testTag("product_form_orig_price"),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
@@ -492,6 +514,7 @@ fun ProductFormDialog(
                             value = stockQuantity,
                             onValueChange = { stockQuantity = it },
                             label = { Text("Stock Quantity") },
+                            colors = lightOutlinedTextFieldColors(),
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
@@ -500,6 +523,7 @@ fun ProductFormDialog(
                             value = sku,
                             onValueChange = { sku = it },
                             label = { Text("SKU Code") },
+                            colors = lightOutlinedTextFieldColors(),
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
@@ -516,23 +540,26 @@ fun ProductFormDialog(
                         } else {
                             selectedCategory.displayName
                         }
-                        Text("Category: $currentCategoryLabel", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Category: $currentCategoryLabel", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = LightTextPrimary)
                         Box {
                             OutlinedButton(
                                 onClick = { categoryExpanded = true },
+                                border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary),
                                 modifier = Modifier.height(34.dp),
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
                             ) {
-                                Text("Select Category", fontSize = 11.sp)
+                                Text("Select Category", fontSize = 11.sp, color = LightTextPrimary)
                             }
                             DropdownMenu(
                                 expanded = categoryExpanded,
-                                onDismissRequest = { categoryExpanded = false }
+                                onDismissRequest = { categoryExpanded = false },
+                                modifier = Modifier.background(Color.White)
                             ) {
                                 if (categories.isNotEmpty()) {
                                     categories.filter { it.isActive }.forEach { catRecord ->
                                         DropdownMenuItem(
-                                            text = { Text(catRecord.name) },
+                                            text = { Text(catRecord.name, color = LightTextPrimary) },
                                             onClick = {
                                                 selectedCategory = catRecord.category
                                                 selectedCategorySlug = catRecord.slug
@@ -543,7 +570,7 @@ fun ProductFormDialog(
                                 } else {
                                     ProductCategory.entries.filterNot { it == ProductCategory.ALL }.forEach { cat ->
                                         DropdownMenuItem(
-                                            text = { Text(cat.displayName) },
+                                            text = { Text(cat.displayName, color = LightTextPrimary) },
                                             onClick = {
                                                 selectedCategory = cat
                                                 selectedCategorySlug = cat.name.lowercase().replace("_", "-")
@@ -560,6 +587,7 @@ fun ProductFormDialog(
                         value = description,
                         onValueChange = { description = it },
                         label = { Text("Description & Specifications") },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
@@ -568,6 +596,7 @@ fun ProductFormDialog(
                         value = imageUrl,
                         onValueChange = { imageUrl = it },
                         label = { Text("Product Image URL (https://...)") },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().testTag("product_form_image_url"),
                         singleLine = true
                     )
@@ -577,7 +606,7 @@ fun ProductFormDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Has Store / Brand Warranty", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        Text("Has Store / Brand Warranty", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
                         Switch(checked = hasWarranty, onCheckedChange = { hasWarranty = it })
                     }
                     if (hasWarranty) {
@@ -586,6 +615,7 @@ fun ProductFormDialog(
                             value = warrantyDuration,
                             onValueChange = { warrantyDuration = it },
                             label = { Text("Warranty Duration (e.g. 1 Year Brand Warranty)") },
+                            colors = lightOutlinedTextFieldColors(),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -596,7 +626,7 @@ fun ProductFormDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Active & In Stock", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        Text("Active & In Stock", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
                         Switch(checked = inStock, onCheckedChange = { inStock = it })
                     }
                     Row(
@@ -604,7 +634,7 @@ fun ProductFormDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Featured on Homepage", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        Text("Featured on Homepage", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
                         Switch(checked = isFeatured, onCheckedChange = { isFeatured = it })
                     }
                 }
@@ -659,14 +689,18 @@ fun ProductFormDialog(
                     )
                     onSave(newProduct)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)
+                colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White)
             ) {
-                Text("Save Product")
+                Text("Save Product", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("Cancel")
+            OutlinedButton(
+                onClick = onDismiss,
+                border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary)
+            ) {
+                Text("Cancel", color = LightTextPrimary)
             }
         }
     )

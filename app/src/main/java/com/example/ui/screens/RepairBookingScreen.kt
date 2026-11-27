@@ -60,13 +60,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.MockData
 import com.example.model.RepairBooking
-import com.example.ui.theme.ShopAccentAmber
-import com.example.ui.theme.ShopOutlineLight
+import androidx.compose.foundation.BorderStroke
+import com.example.ui.theme.BlackBackground
+import com.example.ui.theme.BlackBorder
+import com.example.ui.theme.BlackSurface
+import com.example.ui.theme.BlackSurfaceSecondary
+import com.example.ui.theme.GoldHighlight
+import com.example.ui.theme.LightBlueAccentOnDark
+import com.example.ui.theme.LightBlueBg
+import com.example.ui.theme.LightBlueText
+import com.example.ui.theme.LightGreenText
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
 import com.example.ui.theme.ShopSuccessGreen
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
+import com.example.ui.theme.TextMain
+import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.darkOutlinedTextFieldColors
 
 @Composable
 fun RepairBookingScreen(
@@ -159,7 +169,7 @@ fun RepairBookingScreen(
                         text = "Your repair request has been submitted successfully.",
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
-                        color = ShopTextPrimary,
+                        color = LightTextPrimary,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -167,7 +177,7 @@ fun RepairBookingScreen(
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Surface(
-                        color = ShopPrimaryLightBlue,
+                        color = LightBlueBg,
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -175,7 +185,7 @@ fun RepairBookingScreen(
                             Text(
                                 text = "Repair ID: ${lastConfirmedBooking.bookingId}",
                                 fontWeight = FontWeight.Black,
-                                color = ShopPrimaryBlue,
+                                color = LightBlueText,
                                 fontSize = 16.sp
                             )
                             Spacer(modifier = Modifier.height(4.dp))
@@ -183,17 +193,17 @@ fun RepairBookingScreen(
                                 text = "Device: ${lastConfirmedBooking.brand} ${lastConfirmedBooking.model}",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = ShopTextPrimary
+                                color = LightTextPrimary
                             )
                             Text(
                                 text = "Issue: ${lastConfirmedBooking.problem}",
                                 fontSize = 12.sp,
-                                color = ShopTextSecondary
+                                color = LightTextSecondary
                             )
                             Text(
                                 text = "Status: ${lastConfirmedBooking.status}",
                                 fontSize = 12.sp,
-                                color = ShopSuccessGreen,
+                                color = LightGreenText,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -208,7 +218,7 @@ fun RepairBookingScreen(
                             "Please bring your device to SK Mobile Shoppy and Electronics Shop, Nagar Parishad, Udgir. Your slot has been reserved!"
                         },
                         fontSize = 12.sp,
-                        color = ShopTextSecondary,
+                        color = LightTextSecondary,
                         lineHeight = 17.sp
                     )
 
@@ -218,17 +228,17 @@ fun RepairBookingScreen(
                         text = "Need urgent help? Call SK Mobile Shoppy and Electronics: +91 98765 43210",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = ShopPrimaryBlue
+                        color = LightBlueText
                     )
                 }
             },
             confirmButton = {
                 Button(
                     onClick = onDismissConfirmDialog,
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color(0xFF0B0B0B)),
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White),
                     modifier = Modifier.fillMaxWidth().testTag("repair_dialog_ok_btn")
                 ) {
-                    Text("Got It, Track My Repair", fontWeight = FontWeight.Bold, color = Color(0xFF0B0B0B))
+                    Text("Got It, Track My Repair", fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         )
@@ -257,7 +267,7 @@ fun RepairBookingScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = ShopTextPrimary
+                        tint = TextMain
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
@@ -266,12 +276,12 @@ fun RepairBookingScreen(
                         text = "Mobile Repair Booking",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ShopTextPrimary
+                        color = TextMain
                     )
                     Text(
                         text = "SK Mobile Shoppy and Electronics Service Center • Udgir",
                         fontSize = 11.sp,
-                        color = ShopTextSecondary
+                        color = TextSecondary
                     )
                 }
             }
@@ -288,8 +298,8 @@ fun RepairBookingScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.BlackSurfaceSecondary),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder)
+                    colors = CardDefaults.cardColors(containerColor = BlackSurfaceSecondary),
+                    border = BorderStroke(1.dp, BlackBorder)
                 ) {
                     Row(
                         modifier = Modifier.padding(14.dp),
@@ -305,7 +315,7 @@ fun RepairBookingScreen(
                             Icon(
                                 imageVector = Icons.Default.Security,
                                 contentDescription = "Warranty",
-                                tint = Color(0xFF0B0B0B),
+                                tint = Color.White,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -315,12 +325,12 @@ fun RepairBookingScreen(
                                 text = "90-Day Warranty on All Repairs",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ShopPrimaryBlue
+                                color = LightBlueAccentOnDark
                             )
                             Text(
                                 text = "100% genuine parts & free doorstep diagnosis in Udgir",
                                 fontSize = 11.sp,
-                                color = com.example.ui.theme.TextSecondary
+                                color = TextSecondary
                             )
                         }
                     }
@@ -333,16 +343,16 @@ fun RepairBookingScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.BlackSurface),
+                    colors = CardDefaults.cardColors(containerColor = BlackSurface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder)
+                    border = BorderStroke(1.dp, BlackBorder)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Customer Information",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -355,6 +365,7 @@ fun RepairBookingScreen(
                             },
                             label = { Text("Your Name *") },
                             isError = nameError,
+                            colors = darkOutlinedTextFieldColors(),
                             modifier = Modifier.fillMaxWidth().testTag("repair_customer_name"),
                             singleLine = true
                         )
@@ -369,6 +380,7 @@ fun RepairBookingScreen(
                             },
                             label = { Text("Mobile Number (for updates) *") },
                             isError = phoneError,
+                            colors = darkOutlinedTextFieldColors(),
                             modifier = Modifier.fillMaxWidth().testTag("repair_mobile_number"),
                             singleLine = true
                         )
@@ -382,16 +394,16 @@ fun RepairBookingScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = com.example.ui.theme.BlackSurface),
+                    colors = CardDefaults.cardColors(containerColor = BlackSurface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder)
+                    border = BorderStroke(1.dp, BlackBorder)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Device Information",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
@@ -400,7 +412,7 @@ fun RepairBookingScreen(
                             text = "Select Mobile Brand:",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = ShopTextSecondary
+                            color = TextSecondary
                         )
 
                         Spacer(modifier = Modifier.height(6.dp))
@@ -414,7 +426,15 @@ fun RepairBookingScreen(
                                     label = { Text(brand, fontSize = 12.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = ShopPrimaryBlue,
-                                        selectedLabelColor = Color.White
+                                        selectedLabelColor = Color.White,
+                                        containerColor = BlackSurfaceSecondary,
+                                        labelColor = TextMain
+                                    ),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = isSelected,
+                                        borderColor = BlackBorder,
+                                        selectedBorderColor = ShopPrimaryBlue
                                     )
                                 )
                             }
@@ -431,6 +451,7 @@ fun RepairBookingScreen(
                             label = { Text("Mobile Model (e.g. iPhone 13, OnePlus Nord CE, Galaxy S21) *") },
                             placeholder = { Text("e.g. Redmi Note 12 Pro") },
                             isError = modelError,
+                            colors = darkOutlinedTextFieldColors(),
                             modifier = Modifier.fillMaxWidth().testTag("repair_model_name"),
                             singleLine = true
                         )
@@ -444,7 +465,8 @@ fun RepairBookingScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                    border = BorderStroke(1.dp, BlackBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -452,7 +474,7 @@ fun RepairBookingScreen(
                             text = "Select Problem / Fault",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
@@ -471,17 +493,17 @@ fun RepairBookingScreen(
                                             .padding(vertical = 4.dp)
                                             .clickable { selectedProblem = problem },
                                         shape = RoundedCornerShape(8.dp),
-                                        color = if (isSelected) com.example.ui.theme.BlackSurfaceSecondary else com.example.ui.theme.BlackSurface,
-                                        border = androidx.compose.foundation.BorderStroke(
+                                        color = if (isSelected) BlackSurfaceSecondary else BlackBackground,
+                                        border = BorderStroke(
                                             width = if (isSelected) 1.5.dp else 1.dp,
-                                            color = if (isSelected) ShopPrimaryBlue else com.example.ui.theme.BlackBorder
+                                            color = if (isSelected) ShopPrimaryBlue else BlackBorder
                                         )
                                     ) {
                                         Text(
                                             text = problem,
                                             fontSize = 12.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (isSelected) com.example.ui.theme.GoldHighlight else ShopTextPrimary,
+                                            color = if (isSelected) GoldHighlight else TextMain,
                                             modifier = Modifier.padding(vertical = 8.dp, horizontal = 6.dp),
                                             textAlign = TextAlign.Center
                                         )
@@ -508,7 +530,7 @@ fun RepairBookingScreen(
                             text = "Pickup & Drop Service",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -523,7 +545,10 @@ fun RepairBookingScreen(
                             RadioButton(
                                 selected = pickupRequired,
                                 onClick = { pickupRequired = true },
-                                colors = RadioButtonDefaults.colors(selectedColor = ShopPrimaryBlue)
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = LightBlueAccentOnDark,
+                                    unselectedColor = TextSecondary
+                                )
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Column {
@@ -531,12 +556,12 @@ fun RepairBookingScreen(
                                     text = "Yes, Home Pickup in Udgir (Free)",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = ShopTextPrimary
+                                    color = TextMain
                                 )
                                 Text(
                                     text = "Executive visits your location to collect and return device",
                                     fontSize = 11.sp,
-                                    color = ShopTextSecondary
+                                    color = TextSecondary
                                 )
                             }
                         }
@@ -551,7 +576,10 @@ fun RepairBookingScreen(
                             RadioButton(
                                 selected = !pickupRequired,
                                 onClick = { pickupRequired = false },
-                                colors = RadioButtonDefaults.colors(selectedColor = ShopPrimaryBlue)
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = LightBlueAccentOnDark,
+                                    unselectedColor = TextSecondary
+                                )
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Column {
@@ -559,12 +587,12 @@ fun RepairBookingScreen(
                                     text = "No, I will visit SK Mobile Shoppy and Electronics shop",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = ShopTextPrimary
+                                    color = TextMain
                                 )
                                 Text(
                                     text = "Nagar Parishad, Udgir (Get express 30-min counter service)",
                                     fontSize = 11.sp,
-                                    color = ShopTextSecondary
+                                    color = TextSecondary
                                 )
                             }
                         }
@@ -576,6 +604,7 @@ fun RepairBookingScreen(
                                 onValueChange = { address = it },
                                 label = { Text("Pickup Address in Udgir *") },
                                 placeholder = { Text("House/Shop No., Street, Landmark...") },
+                                colors = darkOutlinedTextFieldColors(),
                                 modifier = Modifier.fillMaxWidth().testTag("repair_address_input"),
                                 minLines = 2
                             )
@@ -587,7 +616,7 @@ fun RepairBookingScreen(
                             text = "Preferred Date & Time:",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = ShopTextSecondary
+                            color = TextSecondary
                         )
 
                         Spacer(modifier = Modifier.height(6.dp))
@@ -601,7 +630,15 @@ fun RepairBookingScreen(
                                     label = { Text(slot, fontSize = 11.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = ShopPrimaryBlue,
-                                        selectedLabelColor = Color.White
+                                        selectedLabelColor = Color.White,
+                                        containerColor = BlackSurfaceSecondary,
+                                        labelColor = TextMain
+                                    ),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = isSelected,
+                                        borderColor = BlackBorder,
+                                        selectedBorderColor = ShopPrimaryBlue
                                     )
                                 )
                             }
@@ -614,6 +651,7 @@ fun RepairBookingScreen(
                             onValueChange = { additionalDetails = it },
                             label = { Text("Additional Fault Details (Optional)") },
                             placeholder = { Text("e.g. Phone fell in water, display flickering, touch delay...") },
+                            colors = darkOutlinedTextFieldColors(),
                             modifier = Modifier.fillMaxWidth().testTag("repair_notes_input"),
                             minLines = 2
                         )
@@ -655,11 +693,11 @@ fun RepairBookingScreen(
                         .height(50.dp)
                         .testTag("submit_repair_booking_btn"),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color(0xFF0B0B0B))
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White)
                 ) {
                     if (isSubmitting) {
                         CircularProgressIndicator(
-                            color = Color(0xFF0B0B0B),
+                            color = Color.White,
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp
                         )
@@ -668,14 +706,14 @@ fun RepairBookingScreen(
                             text = "Booking Repair...",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0B0B0B)
+                            color = Color.White
                         )
                     } else {
                         Text(
                             text = "Book Repair Now",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0B0B0B)
+                            color = Color.White
                         )
                     }
                 }
@@ -684,8 +722,8 @@ fun RepairBookingScreen(
                     Text(
                         text = "Note: You will be prompted to sign in with your Google account to confirm booking.",
                         fontSize = 11.sp,
-                        color = Color(0xFF64748B),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -698,7 +736,7 @@ fun RepairBookingScreen(
                     text = "Track Your Repair Bookings (${activeBookings.size})",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ShopTextPrimary
+                    color = TextMain
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -706,12 +744,13 @@ fun RepairBookingScreen(
                 if (activeBookings.isEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                        border = BorderStroke(1.dp, BlackBorder)
                     ) {
                         Text(
                             text = "No active repairs tracked yet. Book above to get instant tracking ID!",
                             fontSize = 12.sp,
-                            color = ShopTextSecondary,
+                            color = TextSecondary,
                             modifier = Modifier.padding(16.dp)
                         )
                     }
@@ -723,7 +762,8 @@ fun RepairBookingScreen(
                                 .padding(vertical = 4.dp)
                                 .testTag("active_booking_card_${booking.bookingId}"),
                             shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            colors = CardDefaults.cardColors(containerColor = BlackSurface),
+                            border = BorderStroke(1.dp, BlackBorder),
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
@@ -736,7 +776,7 @@ fun RepairBookingScreen(
                                         text = booking.bookingId,
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = ShopPrimaryBlue
+                                        color = LightBlueAccentOnDark
                                     )
 
                                     Surface(
@@ -759,13 +799,13 @@ fun RepairBookingScreen(
                                     text = "${booking.brand} ${booking.model} • ${booking.problem}",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = ShopTextPrimary
+                                    color = TextMain
                                 )
 
                                 Text(
                                     text = "Estimated: ${booking.estimatedCost} • Slot: ${booking.preferredDate}",
                                     fontSize = 11.sp,
-                                    color = ShopTextSecondary
+                                    color = TextSecondary
                                 )
 
                                 if (booking.address.isNotBlank()) {
@@ -773,7 +813,7 @@ fun RepairBookingScreen(
                                     Text(
                                         text = "Address: ${booking.address}",
                                         fontSize = 11.sp,
-                                        color = Color(0xFF64748B)
+                                        color = TextSecondary
                                     )
                                 }
                             }

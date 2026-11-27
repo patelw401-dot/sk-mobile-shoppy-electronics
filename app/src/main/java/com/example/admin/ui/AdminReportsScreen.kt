@@ -29,6 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.admin.viewmodel.AdminUiState
 import com.example.ui.components.formatInr
+import com.example.ui.theme.LightInputBorder
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
 
 @Composable
@@ -70,8 +73,8 @@ fun AdminReportsScreen(
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text(text = "Sales & Operations Reports", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Financial performance & repair metrics for SK Mobile Udgir", fontSize = 11.sp, color = Color(0xFF64748B))
+                    Text(text = "Sales & Operations Reports", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                    Text(text = "Financial performance & repair metrics for SK Mobile Udgir", fontSize = 11.sp, color = LightTextSecondary)
 
                     Spacer(modifier = Modifier.height(10.dp))
 
@@ -85,7 +88,15 @@ fun AdminReportsScreen(
                                 label = { Text(filter, fontSize = 11.sp, maxLines = 1, softWrap = false) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = ShopPrimaryBlue,
-                                    selectedLabelColor = Color.White
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = LightTextPrimary
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = LightInputBorder,
+                                    selectedBorderColor = ShopPrimaryBlue
                                 )
                             )
                         }
@@ -101,7 +112,7 @@ fun AdminReportsScreen(
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "Revenue Summary (${uiState.selectedReportFilter})", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "Revenue Summary (${uiState.selectedReportFilter})", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     ReportMetricRow(label = "Gross Sales Revenue", value = formatInr(totalSales), isBold = true)
@@ -113,7 +124,7 @@ fun AdminReportsScreen(
                     HorizontalDivider(color = Color(0xFFF1F5F9))
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Text(text = "Operations Volume", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "Operations Volume", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     ReportMetricRow(label = "Total Customer Orders", value = "$ordersCount Orders")

@@ -230,14 +230,17 @@ fun AdminCategoriesScreen(
                                 formSlug = it.trim().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
                             }
                         },
-                        label = { Text("Category Name *", color = Color.Gray) },
+                        label = { Text("Category Name *") },
                         modifier = Modifier.fillMaxWidth().testTag("category_name_input"),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             focusedBorderColor = GoldPrimary,
-                            unfocusedBorderColor = DarkBorder
+                            unfocusedBorderColor = DarkBorder,
+                            focusedLabelColor = GoldLight,
+                            unfocusedLabelColor = Color(0xFFB3B3B3),
+                            cursorColor = GoldPrimary
                         )
                     )
 
@@ -248,21 +251,24 @@ fun AdminCategoriesScreen(
                         OutlinedTextField(
                             value = formSlug,
                             onValueChange = { formSlug = it.lowercase().replace(" ", "-") },
-                            label = { Text("Slug / Key *", color = Color.Gray) },
+                            label = { Text("Slug / Key *") },
                             modifier = Modifier.weight(1f).testTag("category_slug_input"),
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White,
                                 unfocusedTextColor = Color.White,
                                 focusedBorderColor = GoldPrimary,
-                                unfocusedBorderColor = DarkBorder
+                                unfocusedBorderColor = DarkBorder,
+                                focusedLabelColor = GoldLight,
+                                unfocusedLabelColor = Color(0xFFB3B3B3),
+                                cursorColor = GoldPrimary
                             )
                         )
 
                         OutlinedTextField(
                             value = formOrder,
                             onValueChange = { formOrder = it.filter { ch -> ch.isDigit() } },
-                            label = { Text("Display Order", color = Color.Gray) },
+                            label = { Text("Display Order") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.width(110.dp).testTag("category_order_input"),
                             singleLine = true,
@@ -270,7 +276,10 @@ fun AdminCategoriesScreen(
                                 focusedTextColor = Color.White,
                                 unfocusedTextColor = Color.White,
                                 focusedBorderColor = GoldPrimary,
-                                unfocusedBorderColor = DarkBorder
+                                unfocusedBorderColor = DarkBorder,
+                                focusedLabelColor = GoldLight,
+                                unfocusedLabelColor = Color(0xFFB3B3B3),
+                                cursorColor = GoldPrimary
                             )
                         )
                     }
@@ -389,12 +398,11 @@ fun AdminCategoriesScreen(
                             imagePickError = null
                             formImageUrl = it
                         },
-                        label = { Text("Category Image URL", color = Color.Gray) },
+                        label = { Text("Category Image URL") },
                         placeholder = {
                             Text(
                                 text = if (isDataUri) "Gallery photo active (paste URL to replace)" else "https://...",
-                                fontSize = 11.sp,
-                                color = Color.Gray
+                                fontSize = 11.sp
                             )
                         },
                         modifier = Modifier.fillMaxWidth().testTag("category_image_input"),
@@ -403,12 +411,17 @@ fun AdminCategoriesScreen(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             focusedBorderColor = GoldPrimary,
-                            unfocusedBorderColor = DarkBorder
+                            unfocusedBorderColor = DarkBorder,
+                            focusedLabelColor = GoldLight,
+                            unfocusedLabelColor = Color(0xFFB3B3B3),
+                            focusedPlaceholderColor = Color(0xFF8A8A8A),
+                            unfocusedPlaceholderColor = Color(0xFF8A8A8A),
+                            cursorColor = GoldPrimary
                         )
                     )
 
                     // Quick image preset chips
-                    Text(text = "Or choose quick preset image:", fontSize = 11.sp, color = Color.Gray)
+                    Text(text = "Or choose quick preset image:", fontSize = 11.sp, color = Color(0xFFB3B3B3))
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -440,14 +453,17 @@ fun AdminCategoriesScreen(
                     OutlinedTextField(
                         value = formDescription,
                         onValueChange = { formDescription = it },
-                        label = { Text("Description (Optional)", color = Color.Gray) },
+                        label = { Text("Description (Optional)") },
                         modifier = Modifier.fillMaxWidth().testTag("category_desc_input"),
                         maxLines = 2,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             focusedBorderColor = GoldPrimary,
-                            unfocusedBorderColor = DarkBorder
+                            unfocusedBorderColor = DarkBorder,
+                            focusedLabelColor = GoldLight,
+                            unfocusedLabelColor = Color(0xFFB3B3B3),
+                            cursorColor = GoldPrimary
                         )
                     )
 
@@ -521,10 +537,11 @@ fun AdminCategoriesScreen(
             dismissButton = {
                 OutlinedButton(
                     onClick = { showFormDialog = false },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE5E7EB)),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Cancel", fontSize = 12.sp)
+                    Text("Cancel", fontSize = 12.sp, color = Color(0xFFE5E7EB))
                 }
             }
         )
@@ -629,13 +646,14 @@ fun AdminCategoriesScreen(
                         onDeleteCategory(cat.id, targetSlug)
                         categoryToDelete = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626), contentColor = Color.White),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.testTag("confirm_delete_category_btn")
                 ) {
                     Text(
                         text = if (assignedProducts > 0) "Reassign & Delete" else "Confirm Delete",
                         fontWeight = FontWeight.Bold,
+                        color = Color.White,
                         fontSize = 12.sp
                     )
                 }
@@ -643,10 +661,11 @@ fun AdminCategoriesScreen(
             dismissButton = {
                 OutlinedButton(
                     onClick = { categoryToDelete = null },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE5E7EB)),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Cancel", fontSize = 12.sp)
+                    Text("Cancel", fontSize = 12.sp, color = Color(0xFFE5E7EB))
                 }
             }
         )
@@ -719,8 +738,8 @@ fun AdminCategoriesScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search category by name or slug...", fontSize = 12.sp, color = Color.Gray) },
-                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = Color.Gray, modifier = Modifier.size(16.dp)) },
+                        placeholder = { Text("Search category by name or slug...", fontSize = 12.sp) },
+                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = Color(0xFFB3B3B3), modifier = Modifier.size(16.dp)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth().testTag("category_search_input"),
                         shape = RoundedCornerShape(10.dp),
@@ -730,7 +749,10 @@ fun AdminCategoriesScreen(
                             focusedContainerColor = DarkSurface,
                             unfocusedContainerColor = DarkSurface,
                             focusedBorderColor = GoldPrimary,
-                            unfocusedBorderColor = DarkBorder
+                            unfocusedBorderColor = DarkBorder,
+                            focusedPlaceholderColor = Color(0xFF8A8A8A),
+                            unfocusedPlaceholderColor = Color(0xFF8A8A8A),
+                            cursorColor = GoldPrimary
                         )
                     )
 

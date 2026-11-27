@@ -74,10 +74,11 @@ import com.example.ui.theme.ColorSuccess
 import com.example.ui.theme.GoldBorder
 import com.example.ui.theme.GoldHighlight
 import com.example.ui.theme.GoldPrimary
-import com.example.ui.theme.ShopPrimaryBlue
+import com.example.ui.theme.LightBlueAccentOnDark
 import com.example.ui.theme.TextMain
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.darkOutlinedTextFieldColors
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -193,6 +194,7 @@ fun OrderDetailScreen(
                             value = cancelReason,
                             onValueChange = { cancelReason = it },
                             placeholder = { Text("Specify your reason...", fontSize = 12.sp, color = TextMuted) },
+                            colors = darkOutlinedTextFieldColors(),
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
                             maxLines = 2
@@ -218,7 +220,11 @@ fun OrderDetailScreen(
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { showCancelDialog = false }) {
+                OutlinedButton(
+                    onClick = { showCancelDialog = false },
+                    border = BorderStroke(1.dp, BlackBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextMain)
+                ) {
                     Text("Keep Order", color = TextMain)
                 }
             }
@@ -691,7 +697,7 @@ private fun OrderStatusHeroCard(
     val statusColor = when {
         order.isCancelled -> ColorError
         order.isDelivered -> ColorSuccess
-        stage == OrderTrackingStage.OUT_FOR_DELIVERY -> ShopPrimaryBlue
+        stage == OrderTrackingStage.OUT_FOR_DELIVERY -> LightBlueAccentOnDark
         else -> GoldPrimary
     }
 

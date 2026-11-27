@@ -59,16 +59,17 @@ import com.example.model.ProductCategory
 import com.example.ui.components.ProductCard
 import com.example.ui.components.ProductVisualBox
 import com.example.ui.components.formatInr
-import com.example.ui.theme.ShopAccentAmber
-import com.example.ui.theme.ShopDiscountBadgeBg
-import com.example.ui.theme.ShopDiscountGreen
-import com.example.ui.theme.ShopOutlineLight
+import androidx.compose.foundation.BorderStroke
+import com.example.ui.theme.LightBlueBg
+import com.example.ui.theme.LightBlueText
+import com.example.ui.theme.LightGreenBg
+import com.example.ui.theme.LightGreenText
+import com.example.ui.theme.LightOutline
+import com.example.ui.theme.LightTextMuted
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
 import com.example.ui.theme.ShopSuccessGreen
-import com.example.ui.theme.ShopTextMuted
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
 
 fun getCategoryAwareDefaultSpecs(categorySlug: String?, brand: String): Map<String, String> {
     val cat = (categorySlug ?: "").lowercase().replace("_", "-")
@@ -180,7 +181,7 @@ fun ProductDetailScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = ShopTextPrimary
+                        tint = LightTextPrimary
                     )
                 }
 
@@ -188,7 +189,7 @@ fun ProductDetailScreen(
                     text = product.brand,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = ShopTextPrimary
+                    color = LightTextPrimary
                 )
 
                 Box(modifier = Modifier.size(48.dp)) // balance layout
@@ -237,17 +238,17 @@ fun ProductDetailScreen(
                                         .clickable { selectedImageIndex = index }
                                         .border(
                                             width = if (selectedImageIndex == index) 2.dp else 1.dp,
-                                            color = if (selectedImageIndex == index) ShopPrimaryBlue else ShopOutlineLight,
+                                            color = if (selectedImageIndex == index) ShopPrimaryBlue else LightOutline,
                                             shape = RoundedCornerShape(8.dp)
                                         ),
                                     shape = RoundedCornerShape(8.dp),
-                                    color = if (selectedImageIndex == index) ShopPrimaryLightBlue else Color(0xFFF8FAFC)
+                                    color = if (selectedImageIndex == index) LightBlueBg else Color(0xFFF8FAFC)
                                 ) {
                                     Text(
                                         text = angle,
                                         fontSize = 9.sp,
                                         fontWeight = if (selectedImageIndex == index) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (selectedImageIndex == index) ShopPrimaryBlue else ShopTextSecondary,
+                                        color = if (selectedImageIndex == index) LightBlueText else LightTextSecondary,
                                         modifier = Modifier.padding(vertical = 6.dp, horizontal = 2.dp),
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                     )
@@ -284,12 +285,12 @@ fun ProductDetailScreen(
 
                             if (product.highlightBadge != null) {
                                 Surface(
-                                    color = ShopPrimaryLightBlue,
+                                    color = LightBlueBg,
                                     shape = RoundedCornerShape(6.dp)
                                 ) {
                                     Text(
                                         text = product.highlightBadge,
-                                        color = ShopPrimaryBlue,
+                                        color = LightBlueText,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
@@ -305,7 +306,7 @@ fun ProductDetailScreen(
                             text = product.name,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary,
+                            color = LightTextPrimary,
                             lineHeight = 23.sp
                         )
 
@@ -342,7 +343,7 @@ fun ProductDetailScreen(
                             Text(
                                 text = "${product.reviewCount} Ratings & Reviews",
                                 fontSize = 12.sp,
-                                color = ShopTextSecondary
+                                color = LightTextSecondary
                             )
                         }
 
@@ -361,7 +362,7 @@ fun ProductDetailScreen(
                                     text = "Category: ${product.category.displayName}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = ShopTextSecondary,
+                                    color = LightTextSecondary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                 )
                             }
@@ -398,7 +399,7 @@ fun ProductDetailScreen(
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
-                        HorizontalDivider(color = ShopOutlineLight)
+                        HorizontalDivider(color = LightOutline)
                         Spacer(modifier = Modifier.height(12.dp))
 
                         // Price Row
@@ -410,7 +411,7 @@ fun ProductDetailScreen(
                                 text = formatInr(product.price),
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 24.sp,
-                                color = ShopTextPrimary
+                                color = LightTextPrimary
                             )
 
                             if (product.originalPrice > product.price) {
@@ -418,18 +419,18 @@ fun ProductDetailScreen(
                                 Text(
                                     text = formatInr(product.originalPrice),
                                     fontSize = 15.sp,
-                                    color = ShopTextMuted,
+                                    color = LightTextMuted,
                                     textDecoration = TextDecoration.LineThrough
                                 )
 
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Surface(
-                                    color = ShopDiscountBadgeBg,
+                                    color = LightGreenBg,
                                     shape = RoundedCornerShape(4.dp)
                                 ) {
                                     Text(
                                         text = "${product.discountPercent}% OFF",
-                                        color = ShopDiscountGreen,
+                                        color = LightGreenText,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -443,7 +444,7 @@ fun ProductDetailScreen(
                             Text(
                                 text = "You save ${formatInr(product.savingsAmount)} on this order!",
                                 fontSize = 12.sp,
-                                color = ShopDiscountGreen,
+                                color = LightGreenText,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -457,7 +458,7 @@ fun ProductDetailScreen(
                             Text(
                                 text = "Availability: ",
                                 fontSize = 12.sp,
-                                color = ShopTextSecondary,
+                                color = LightTextSecondary,
                                 fontWeight = FontWeight.Medium
                             )
                             Surface(
@@ -589,7 +590,7 @@ fun ProductDetailScreen(
                             text = "Product Overview",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary
+                            color = LightTextPrimary
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -597,7 +598,7 @@ fun ProductDetailScreen(
                         Text(
                             text = product.description,
                             fontSize = 13.sp,
-                            color = ShopTextSecondary,
+                            color = LightTextSecondary,
                             lineHeight = 19.sp
                         )
                     }
@@ -618,7 +619,7 @@ fun ProductDetailScreen(
                             text = "Technical Specifications",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary
+                            color = LightTextPrimary
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
@@ -640,14 +641,14 @@ fun ProductDetailScreen(
                                 Text(
                                     text = key,
                                     fontSize = 12.sp,
-                                    color = ShopTextSecondary,
+                                    color = LightTextSecondary,
                                     fontWeight = FontWeight.Medium,
                                     modifier = Modifier.weight(1f)
                                 )
                                 Text(
                                     text = value,
                                     fontSize = 12.sp,
-                                    color = ShopTextPrimary,
+                                    color = LightTextPrimary,
                                     fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.weight(1.3f)
                                 )
@@ -747,7 +748,7 @@ fun ProductDetailScreen(
                                 text = "Customer Reviews & Ratings",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ShopTextPrimary
+                                color = LightTextPrimary
                             )
                             Surface(
                                 color = Color(0xFFFEF3C7),
@@ -792,11 +793,11 @@ fun ProductDetailScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(text = author, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = ShopTextPrimary)
+                                    Text(text = author, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = LightTextPrimary)
                                     Text(text = stars, fontSize = 10.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Bold)
                                 }
                                 Spacer(modifier = Modifier.height(2.dp))
-                                Text(text = comment, fontSize = 11.sp, color = ShopTextSecondary)
+                                Text(text = comment, fontSize = 11.sp, color = LightTextSecondary)
                             }
                         }
                     }
@@ -810,7 +811,7 @@ fun ProductDetailScreen(
                     text = "Related Products",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ShopTextPrimary
+                    color = LightTextPrimary
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -850,6 +851,7 @@ fun ProductDetailScreen(
                         .height(48.dp)
                         .testTag("detail_add_to_cart_btn"),
                     shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, ShopPrimaryBlue),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = ShopPrimaryBlue)
                 ) {
                     Icon(imageVector = Icons.Default.ShoppingCart, contentDescription = "Add to Cart", modifier = Modifier.size(18.dp))
@@ -864,9 +866,12 @@ fun ProductDetailScreen(
                         .height(48.dp)
                         .testTag("detail_buy_now_btn"),
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ShopPrimaryBlue,
+                        contentColor = Color.White
+                    )
                 ) {
-                    Text("Buy Now", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Buy Now", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                 }
             }
         }

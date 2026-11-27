@@ -225,7 +225,7 @@ fun MobileMenuDrawerSheet(
                                 Icon(
                                     imageVector = item.icon,
                                     contentDescription = item.label,
-                                    tint = if (isSelected) GoldHighlight else ShopTextSecondary,
+                                    tint = if (isSelected) GoldHighlight else TextSecondary,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
@@ -233,7 +233,7 @@ fun MobileMenuDrawerSheet(
                                     text = item.label,
                                     fontSize = 14.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) GoldHighlight else ShopTextPrimary
+                                    color = if (isSelected) GoldHighlight else TextMain
                                 )
                             }
 
@@ -257,7 +257,7 @@ fun MobileMenuDrawerSheet(
                 }
             }
 
-            HorizontalDivider(color = ShopOutlineLight, modifier = Modifier.padding(horizontal = 16.dp))
+            HorizontalDivider(color = BlackBorder, modifier = Modifier.padding(horizontal = 16.dp))
             Spacer(modifier = Modifier.height(10.dp))
 
             // Footer Assistance in Drawer
@@ -266,12 +266,12 @@ fun MobileMenuDrawerSheet(
                     text = "Need Urgent Assistance?",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ShopTextPrimary
+                    color = TextMain
                 )
                 Text(
                     text = "Store: Nagar Parishad, Udgir\nHelpline: +91 9823109313\nEmail: skmobileshoppyandelectronics@gmail.com",
                     fontSize = 11.sp,
-                    color = ShopTextSecondary,
+                    color = TextSecondary,
                     lineHeight = 15.sp
                 )
             }

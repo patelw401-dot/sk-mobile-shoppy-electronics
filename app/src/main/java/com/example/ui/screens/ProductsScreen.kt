@@ -55,12 +55,17 @@ import androidx.compose.ui.unit.sp
 import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.ui.components.ProductCard
-import com.example.ui.theme.ShopOutlineLight
+import com.example.ui.theme.BlackBackground
+import com.example.ui.theme.BlackBorder
+import com.example.ui.theme.BlackSurface
+import com.example.ui.theme.BlackSurfaceSecondary
+import com.example.ui.theme.GoldHighlight
+import com.example.ui.theme.GoldPrimary
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
-import com.example.ui.theme.ShopTextMuted
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
+import com.example.ui.theme.TextMain
+import com.example.ui.theme.TextSecondary
 import com.example.viewmodel.SortOption
 
 @Composable
@@ -153,7 +158,7 @@ fun ProductsScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
-                                tint = ShopTextPrimary
+                                tint = TextMain
                             )
                         }
 
@@ -164,12 +169,12 @@ fun ProductsScreen(
                                 text = currentTitle,
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ShopTextPrimary
+                                color = TextMain
                             )
                             Text(
                                 text = "${sortedProducts.size} items available",
                                 fontSize = 11.sp,
-                                color = ShopTextSecondary
+                                color = TextSecondary
                             )
                         }
                     }
@@ -178,7 +183,8 @@ fun ProductsScreen(
                     Box {
                         Surface(
                             shape = RoundedCornerShape(20.dp),
-                            color = ShopPrimaryLightBlue,
+                            color = BlackSurfaceSecondary,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, GoldPrimary),
                             modifier = Modifier.clickable { showSortMenu = true }
                         ) {
                             Row(
@@ -188,14 +194,14 @@ fun ProductsScreen(
                                 Icon(
                                     imageVector = Icons.Default.Sort,
                                     contentDescription = "Sort",
-                                    tint = ShopPrimaryBlue,
+                                    tint = GoldHighlight,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = sortOption.label,
                                     fontSize = 11.sp,
-                                    color = ShopPrimaryBlue,
+                                    color = GoldHighlight,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -203,7 +209,8 @@ fun ProductsScreen(
 
                         DropdownMenu(
                             expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false }
+                            onDismissRequest = { showSortMenu = false },
+                            modifier = Modifier.background(BlackSurface)
                         ) {
                             SortOption.values().forEach { option ->
                                 DropdownMenuItem(
@@ -211,7 +218,7 @@ fun ProductsScreen(
                                         Text(
                                             text = option.label,
                                             fontWeight = if (option == sortOption) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (option == sortOption) ShopPrimaryBlue else ShopTextPrimary
+                                            color = if (option == sortOption) GoldHighlight else TextMain
                                         )
                                     },
                                     onClick = {
@@ -238,13 +245,13 @@ fun ProductsScreen(
                             Text(
                                 text = "Search: \"$searchQuery\"",
                                 fontSize = 12.sp,
-                                color = ShopTextPrimary
+                                color = LightTextPrimary
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Clear Search",
-                                tint = Color.Gray,
+                                tint = LightTextSecondary,
                                 modifier = Modifier
                                     .size(14.dp)
                                     .clickable(onClick = onClearSearch)
@@ -276,14 +283,14 @@ fun ProductsScreen(
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = ShopPrimaryBlue,
-                                    selectedLabelColor = Color(0xFF0B0B0B),
-                                    containerColor = com.example.ui.theme.BlackSurfaceSecondary,
-                                    labelColor = ShopTextPrimary
+                                    selectedLabelColor = Color.White,
+                                    containerColor = BlackSurfaceSecondary,
+                                    labelColor = TextMain
                                 ),
                                 border = FilterChipDefaults.filterChipBorder(
                                     enabled = true,
                                     selected = isAllSelected,
-                                    borderColor = com.example.ui.theme.BlackBorder,
+                                    borderColor = BlackBorder,
                                     selectedBorderColor = ShopPrimaryBlue
                                 ),
                                 shape = RoundedCornerShape(16.dp)
@@ -311,14 +318,14 @@ fun ProductsScreen(
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = ShopPrimaryBlue,
-                                    selectedLabelColor = Color(0xFF0B0B0B),
-                                    containerColor = com.example.ui.theme.BlackSurfaceSecondary,
-                                    labelColor = ShopTextPrimary
+                                    selectedLabelColor = Color.White,
+                                    containerColor = BlackSurfaceSecondary,
+                                    labelColor = TextMain
                                 ),
                                 border = FilterChipDefaults.filterChipBorder(
                                     enabled = true,
                                     selected = isSelected,
-                                    borderColor = com.example.ui.theme.BlackBorder,
+                                    borderColor = BlackBorder,
                                     selectedBorderColor = ShopPrimaryBlue
                                 ),
                                 shape = RoundedCornerShape(16.dp)
@@ -339,14 +346,14 @@ fun ProductsScreen(
                                 },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = ShopPrimaryBlue,
-                                    selectedLabelColor = Color(0xFF0B0B0B),
-                                    containerColor = com.example.ui.theme.BlackSurfaceSecondary,
-                                    labelColor = ShopTextPrimary
+                                    selectedLabelColor = Color.White,
+                                    containerColor = BlackSurfaceSecondary,
+                                    labelColor = TextMain
                                 ),
                                 border = FilterChipDefaults.filterChipBorder(
                                     enabled = true,
                                     selected = isSelected,
-                                    borderColor = com.example.ui.theme.BlackBorder,
+                                    borderColor = BlackBorder,
                                     selectedBorderColor = ShopPrimaryBlue
                                 ),
                                 shape = RoundedCornerShape(16.dp)
@@ -370,13 +377,13 @@ fun ProductsScreen(
                         modifier = Modifier
                             .size(64.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFE2E8F0)),
+                            .background(BlackSurfaceSecondary),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.SearchOff,
                             contentDescription = "No Products",
-                            tint = Color.Gray,
+                            tint = GoldPrimary,
                             modifier = Modifier.size(36.dp)
                         )
                     }
@@ -385,13 +392,13 @@ fun ProductsScreen(
                         text = "No Products Found",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ShopTextPrimary
+                        color = TextMain
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "Try clearing your search or selecting a different category.",
                         fontSize = 12.sp,
-                        color = ShopTextSecondary,
+                        color = TextSecondary,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -400,9 +407,12 @@ fun ProductsScreen(
                             onClearSearch()
                             onCategorySelect(ProductCategory.ALL)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ShopPrimaryBlue,
+                            contentColor = Color.White
+                        )
                     ) {
-                        Text("Show All Products")
+                        Text("Show All Products", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -115,7 +115,7 @@ fun CheckoutScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = ShopTextPrimary
+                        tint = TextMain
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
@@ -123,7 +123,7 @@ fun CheckoutScreen(
                     text = "Checkout & Delivery",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ShopTextPrimary
+                    color = TextMain
                 )
             }
         }
@@ -148,7 +148,7 @@ fun CheckoutScreen(
                             text = "1. Customer Information",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -161,6 +161,7 @@ fun CheckoutScreen(
                             },
                             label = { Text("Customer Name *") },
                             isError = nameError,
+                            colors = darkOutlinedTextFieldColors(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("checkout_name_input"),
@@ -177,6 +178,7 @@ fun CheckoutScreen(
                             },
                             label = { Text("Mobile Number (10 digits) *") },
                             isError = phoneError,
+                            colors = darkOutlinedTextFieldColors(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("checkout_phone_input"),
@@ -201,7 +203,7 @@ fun CheckoutScreen(
                             text = "2. Complete Delivery Address",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -215,6 +217,7 @@ fun CheckoutScreen(
                             label = { Text("House / Street / Landmark Address *") },
                             placeholder = { Text("Near Nagar Parishad Office, Station Road...") },
                             isError = addressError,
+                            colors = darkOutlinedTextFieldColors(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("checkout_address_input"),
@@ -231,6 +234,7 @@ fun CheckoutScreen(
                                 value = city,
                                 onValueChange = { city = it },
                                 label = { Text("City") },
+                                colors = darkOutlinedTextFieldColors(),
                                 modifier = Modifier.weight(1f).testTag("checkout_city_input"),
                                 singleLine = true
                             )
@@ -239,6 +243,7 @@ fun CheckoutScreen(
                                 value = state,
                                 onValueChange = { state = it },
                                 label = { Text("State") },
+                                colors = darkOutlinedTextFieldColors(),
                                 modifier = Modifier.weight(1f).testTag("checkout_state_input"),
                                 singleLine = true
                             )
@@ -250,6 +255,7 @@ fun CheckoutScreen(
                             value = pinCode,
                             onValueChange = { pinCode = it },
                             label = { Text("PIN Code (e.g. 413517)") },
+                            colors = darkOutlinedTextFieldColors(),
                             modifier = Modifier.fillMaxWidth().testTag("checkout_pin_input"),
                             singleLine = true
                         )
@@ -272,7 +278,7 @@ fun CheckoutScreen(
                             text = "3. Delivery Option",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
@@ -294,12 +300,15 @@ fun CheckoutScreen(
                                 RadioButton(
                                     selected = selectedDeliveryOption == title,
                                     onClick = { selectedDeliveryOption = title },
-                                    colors = RadioButtonDefaults.colors(selectedColor = ShopPrimaryBlue)
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = LightBlueAccentOnDark,
+                                        unselectedColor = TextSecondary
+                                    )
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Column {
-                                    Text(text = title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = ShopTextPrimary)
-                                    Text(text = subtitle, fontSize = 11.sp, color = ShopTextSecondary)
+                                    Text(text = title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextMain)
+                                    Text(text = subtitle, fontSize = 11.sp, color = TextSecondary)
                                 }
                             }
                         }
@@ -322,13 +331,13 @@ fun CheckoutScreen(
                             text = "4. Payment Method",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
 
                         Text(
                             text = "Select payment mode for this demo order",
                             fontSize = 11.sp,
-                            color = ShopTextSecondary
+                            color = TextSecondary
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -351,19 +360,22 @@ fun CheckoutScreen(
                                 RadioButton(
                                     selected = selectedPaymentMethod == name,
                                     onClick = { selectedPaymentMethod = name },
-                                    colors = RadioButtonDefaults.colors(selectedColor = ShopPrimaryBlue)
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = LightBlueAccentOnDark,
+                                        unselectedColor = TextSecondary
+                                    )
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Icon(
                                     imageVector = icon,
                                     contentDescription = name,
-                                    tint = ShopPrimaryBlue,
+                                    tint = LightBlueAccentOnDark,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
-                                    Text(text = name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = ShopTextPrimary)
-                                    Text(text = note, fontSize = 11.sp, color = ShopTextSecondary)
+                                    Text(text = name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextMain)
+                                    Text(text = note, fontSize = 11.sp, color = TextSecondary)
                                 }
                             }
                         }
@@ -386,7 +398,7 @@ fun CheckoutScreen(
                             text = "5. Order Summary (${cartItems.sumOf { it.quantity }} items)",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -401,19 +413,19 @@ fun CheckoutScreen(
                                 Text(
                                     text = "${item.quantity}x ${item.product.name.take(28)}...",
                                     fontSize = 12.sp,
-                                    color = ShopTextSecondary
+                                    color = TextSecondary
                                 )
                                 Text(
                                     text = formatInr(item.product.price * item.quantity),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = ShopTextPrimary
+                                    color = TextMain
                                 )
                             }
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
-                        HorizontalDivider(color = ShopOutlineLight)
+                        HorizontalDivider(color = BlackBorder)
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Row(
@@ -425,7 +437,7 @@ fun CheckoutScreen(
                                 text = formatInr(total + deliveryFee),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = ShopPrimaryBlue
+                                color = LightBlueAccentOnDark
                             )
                         }
                     }
@@ -466,7 +478,7 @@ fun CheckoutScreen(
                                 shape = RoundedCornerShape(6.dp),
                                 modifier = Modifier.testTag("checkout_signin_google_btn")
                             ) {
-                                Text("Sign In", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("Sign In", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BlackBackground)
                             }
                         }
                     }
@@ -484,12 +496,12 @@ fun CheckoutScreen(
                             text = formatInr(total + deliveryFee),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
                         Text(
                             text = selectedPaymentMethod,
                             fontSize = 11.sp,
-                            color = ShopTextSecondary
+                            color = TextSecondary
                         )
                     }
 
@@ -523,7 +535,10 @@ fun CheckoutScreen(
                         }
                     },
                     enabled = !isSubmitting,
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ShopPrimaryBlue,
+                        contentColor = Color.White
+                    ),
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.testTag("place_order_button")
                 ) {
@@ -534,9 +549,9 @@ fun CheckoutScreen(
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Placing Order...", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Placing Order...", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                     } else {
-                        Text("Place Order", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Place Order", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                     }
                 }
             }

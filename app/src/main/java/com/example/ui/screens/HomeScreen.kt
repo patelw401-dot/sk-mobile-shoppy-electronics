@@ -84,13 +84,8 @@ import com.example.ui.components.ExchangeComingSoonDialog
 import com.example.ui.components.ProductCard
 import com.example.ui.components.formatInr
 import com.example.ui.theme.ShopAccentAmber
-import com.example.ui.theme.ShopOutlineLight
 import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
 import com.example.ui.theme.ShopSuccessGreen
-import com.example.ui.theme.ShopTextMuted
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
 import com.example.viewmodel.AppScreen
 
 @Composable
@@ -150,14 +145,14 @@ fun HomeScreen(
                         text = "Shop by Category",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ShopTextPrimary
+                        color = TextMain
                     )
 
                     Text(
                         text = "View All",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = ShopPrimaryBlue,
+                        color = LightBlueAccentOnDark,
                         modifier = Modifier
                             .clickable { onNavigate(AppScreen.PRODUCTS) }
                             .testTag("view_all_categories_btn")
@@ -503,7 +498,7 @@ fun PromoHeroBanner(
                         onClick = onShopNow,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = ShopPrimaryBlue,
-                            contentColor = Color(0xFF0B0B0B)
+                            contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.testTag("hero_shop_now_button")
@@ -511,16 +506,16 @@ fun PromoHeroBanner(
                         Text(
                             text = "Shop Now",
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0B0B0B),
+                            color = Color.White,
                             fontSize = 13.sp
                         )
                     }
 
                     OutlinedButton(
                         onClick = onBookRepair,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, ShopPrimaryBlue),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, LightBlueAccentOnDark),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = ShopPrimaryBlue
+                            contentColor = LightBlueAccentOnDark
                         ),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.testTag("hero_book_repair_button")
@@ -528,7 +523,7 @@ fun PromoHeroBanner(
                         Text(
                             text = "Book Repair",
                             fontWeight = FontWeight.Bold,
-                            color = ShopPrimaryBlue,
+                            color = LightBlueAccentOnDark,
                             fontSize = 13.sp
                         )
                     }
@@ -556,12 +551,12 @@ fun SectionHeader(
                 text = title,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
-                color = ShopTextPrimary
+                color = TextMain
             )
             Text(
                 text = subtitle,
                 fontSize = 12.sp,
-                color = ShopTextSecondary
+                color = TextSecondary
             )
         }
 
@@ -571,7 +566,7 @@ fun SectionHeader(
             text = "See All",
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
-            color = ShopPrimaryBlue,
+            color = LightBlueAccentOnDark,
             modifier = Modifier.clickable(onClick = onSeeAll)
         )
     }
@@ -621,24 +616,32 @@ fun RepairSectionCard(
                             text = "Need Mobile Repair?",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary
+                            color = LightTextPrimary
                         )
                         Text(
                             text = "Quick diagnosis & 90-day service warranty",
                             fontSize = 12.sp,
-                            color = ShopTextSecondary
+                            color = LightTextSecondary
                         )
                     }
                 }
 
                 Button(
                     onClick = onBookRepairFull,
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ShopPrimaryBlue,
+                        contentColor = Color.White
+                    ),
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     modifier = Modifier.testTag("book_repair_quick_btn")
                 ) {
-                    Text(text = "Book Repair", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "Book Repair",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 }
             }
 
@@ -734,7 +737,7 @@ fun RepairGridItem(
                 Icon(
                     imageVector = icon,
                     contentDescription = service.title,
-                    tint = ShopPrimaryBlue,
+                    tint = LightBlueAccentOnDark,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -746,7 +749,7 @@ fun RepairGridItem(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
-                color = ShopTextPrimary,
+                color = TextMain,
                 maxLines = 2,
                 lineHeight = 13.sp
             )
@@ -756,7 +759,7 @@ fun RepairGridItem(
             Text(
                 text = "From ${formatInr(service.estimatedStartingPrice)}",
                 fontSize = 10.sp,
-                color = ShopPrimaryBlue,
+                color = LightBlueAccentOnDark,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -821,10 +824,10 @@ fun OldMobilesBannerSection(
                     modifier = Modifier
                         .weight(1f)
                         .testTag("buy_old_phone_btn"),
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color(0xFF0B0B0B)),
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Buy Old Phone", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0B0B0B))
+                    Text("Buy Old Phone", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
 
                 Button(
@@ -832,10 +835,10 @@ fun OldMobilesBannerSection(
                     modifier = Modifier
                         .weight(1f)
                         .testTag("sell_your_phone_btn"),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEA580C)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEA580C), contentColor = Color.White),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Sell Your Phone", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Sell Your Phone", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }
@@ -854,12 +857,12 @@ fun WhyChooseUsSection() {
             text = "Why Choose SK Mobile Shoppy and Electronics?",
             fontSize = 17.sp,
             fontWeight = FontWeight.Bold,
-            color = ShopTextPrimary
+            color = TextMain
         )
         Text(
             text = "Nagar Parishad, Udgir's most trusted smartphone destination",
             fontSize = 12.sp,
-            color = ShopTextSecondary
+            color = TextSecondary
         )
 
         Spacer(modifier = Modifier.height(14.dp))
@@ -895,7 +898,7 @@ fun WhyChooseUsSection() {
                         Icon(
                             imageVector = icon,
                             contentDescription = title,
-                            tint = ShopPrimaryBlue,
+                            tint = LightBlueAccentOnDark,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -907,12 +910,12 @@ fun WhyChooseUsSection() {
                             text = title,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
                         Text(
                             text = desc,
                             fontSize = 11.sp,
-                            color = ShopTextSecondary,
+                            color = TextSecondary,
                             lineHeight = 15.sp
                         )
                     }
@@ -940,12 +943,12 @@ fun CustomerReviewsSection(reviews: List<CustomerReview>) {
                     text = "Customer Reviews",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ShopTextPrimary
+                    color = TextMain
                 )
                 Text(
                     text = "What Udgir locals say about SK Mobile Shoppy and Electronics",
                     fontSize = 12.sp,
-                    color = ShopTextSecondary
+                    color = TextSecondary
                 )
             }
 
@@ -961,7 +964,7 @@ fun CustomerReviewsSection(reviews: List<CustomerReview>) {
                     text = "4.9 / 5.0",
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
-                    color = ShopTextPrimary
+                    color = TextMain
                 )
             }
         }
@@ -989,7 +992,7 @@ fun CustomerReviewsSection(reviews: List<CustomerReview>) {
                                 text = review.customerName,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
-                                color = ShopTextPrimary
+                                color = TextMain
                             )
 
                             Row {
@@ -1007,7 +1010,7 @@ fun CustomerReviewsSection(reviews: List<CustomerReview>) {
                         Text(
                             text = "${review.location} • ${review.date}",
                             fontSize = 10.sp,
-                            color = ShopTextMuted
+                            color = TextMuted
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -1030,7 +1033,7 @@ fun CustomerReviewsSection(reviews: List<CustomerReview>) {
                             Text(
                                 text = "Service: ${review.serviceOrProduct}",
                                 fontSize = 9.sp,
-                                color = ShopPrimaryBlue,
+                                color = LightBlueAccentOnDark,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
@@ -1098,28 +1101,28 @@ fun ShopFooterSection(
             ) {
                 Button(
                     onClick = onCall,
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color(0xFF0B0B0B)),
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .weight(1f)
                         .testTag("footer_call_btn")
                 ) {
-                    Icon(imageVector = Icons.Default.Call, contentDescription = "Call", tint = Color(0xFF0B0B0B), modifier = Modifier.size(16.dp))
+                    Icon(imageVector = Icons.Default.Call, contentDescription = "Call", tint = Color.White, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "Call Shop", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0B0B0B))
+                    Text(text = "Call Shop", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
 
                 Button(
                     onClick = onWhatsApp,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF15803D), contentColor = Color.White),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier
                         .weight(1f)
                         .testTag("footer_whatsapp_btn")
                 ) {
-                    Icon(imageVector = Icons.Default.PhoneAndroid, contentDescription = "WhatsApp", modifier = Modifier.size(16.dp))
+                    Icon(imageVector = Icons.Default.PhoneAndroid, contentDescription = "WhatsApp", tint = Color.White, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "WhatsApp", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "WhatsApp", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
 

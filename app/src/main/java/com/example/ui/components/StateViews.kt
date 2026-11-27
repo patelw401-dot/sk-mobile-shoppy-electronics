@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -36,10 +36,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.BlackSurfaceSecondary
+import com.example.ui.theme.GoldPrimary
+import com.example.ui.theme.LightBlueBg
+import com.example.ui.theme.LightBlueText
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
+import com.example.ui.theme.TextMain
+import com.example.ui.theme.TextSecondary
 
 /**
  * Reusable full-screen or section Empty State
@@ -51,8 +56,14 @@ fun EmptyStateView(
     message: String,
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
-    onAction: (() -> Unit)? = null
+    onAction: (() -> Unit)? = null,
+    isDarkSurface: Boolean = true
 ) {
+    val circleBg = if (isDarkSurface) BlackSurfaceSecondary else LightBlueBg
+    val iconTint = if (isDarkSurface) GoldPrimary else LightBlueText
+    val titleColor = if (isDarkSurface) TextMain else LightTextPrimary
+    val messageColor = if (isDarkSurface) TextSecondary else LightTextSecondary
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -64,13 +75,13 @@ fun EmptyStateView(
             modifier = Modifier
                 .size(76.dp)
                 .clip(CircleShape)
-                .background(ShopPrimaryLightBlue),
+                .background(circleBg),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = title,
-                tint = ShopPrimaryBlue,
+                tint = iconTint,
                 modifier = Modifier.size(38.dp)
             )
         }
@@ -81,7 +92,7 @@ fun EmptyStateView(
             text = title,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = ShopTextPrimary,
+            color = titleColor,
             textAlign = TextAlign.Center
         )
 
@@ -90,7 +101,7 @@ fun EmptyStateView(
         Text(
             text = message,
             fontSize = 13.sp,
-            color = ShopTextSecondary,
+            color = messageColor,
             textAlign = TextAlign.Center,
             lineHeight = 18.sp
         )
@@ -99,14 +110,18 @@ fun EmptyStateView(
             Spacer(modifier = Modifier.height(20.dp))
             Button(
                 onClick = onAction,
-                colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ShopPrimaryBlue,
+                    contentColor = Color.White
+                ),
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.testTag("empty_state_action_btn")
             ) {
                 Text(
                     text = actionLabel,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = Color.White
                 )
             }
         }
@@ -119,7 +134,8 @@ fun EmptyStateView(
 @Composable
 fun LoadingStateView(
     message: String = "Loading...",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDarkSurface: Boolean = true
 ) {
     Column(
         modifier = modifier
@@ -137,7 +153,7 @@ fun LoadingStateView(
         Text(
             text = message,
             fontSize = 14.sp,
-            color = ShopTextSecondary,
+            color = if (isDarkSurface) TextSecondary else LightTextSecondary,
             fontWeight = FontWeight.Medium
         )
     }
@@ -155,7 +171,7 @@ fun ErrorBannerView(
     Surface(
         color = Color(0xFFFEF2F2),
         shape = RoundedCornerShape(10.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFCA5A5)),
+        border = BorderStroke(1.dp, Color(0xFFFCA5A5)),
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -190,6 +206,7 @@ fun ErrorBannerView(
                 OutlinedButton(
                     onClick = onRetry,
                     shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color(0xFFDC2626)),
                     modifier = Modifier.height(34.dp)
                 ) {
                     Icon(

@@ -72,12 +72,23 @@ import com.example.ui.components.ExchangeComingSoonBanner
 import com.example.ui.components.ExchangeComingSoonDialog
 import com.example.ui.components.ProductCard
 import com.example.ui.components.formatInr
-import com.example.ui.theme.ShopOutlineLight
+import androidx.compose.foundation.BorderStroke
+import com.example.ui.theme.BlackBackground
+import com.example.ui.theme.BlackBorder
+import com.example.ui.theme.BlackSurface
+import com.example.ui.theme.GoldHighlight
+import com.example.ui.theme.LightBlueBg
+import com.example.ui.theme.LightBlueText
+import com.example.ui.theme.LightGreenText
+import com.example.ui.theme.LightInputBorder
+import com.example.ui.theme.LightTextMuted
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
 import com.example.ui.theme.ShopSuccessGreen
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
+import com.example.ui.theme.TextMain
+import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.lightOutlinedTextFieldColors
 
 @Composable
 fun OldPhoneScreen(
@@ -140,7 +151,7 @@ fun OldPhoneScreen(
                         text = "Valuation Generated!",
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
-                        color = ShopTextPrimary,
+                        color = LightTextPrimary,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -148,7 +159,7 @@ fun OldPhoneScreen(
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Surface(
-                        color = ShopPrimaryLightBlue,
+                        color = LightBlueBg,
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -156,7 +167,7 @@ fun OldPhoneScreen(
                             Text(
                                 text = "Request ID: ${lastConfirmedSellRequest.requestId}",
                                 fontWeight = FontWeight.Black,
-                                color = ShopPrimaryBlue,
+                                color = LightBlueText,
                                 fontSize = 15.sp
                             )
                             Spacer(modifier = Modifier.height(4.dp))
@@ -164,19 +175,19 @@ fun OldPhoneScreen(
                                 text = "${lastConfirmedSellRequest.brand} ${lastConfirmedSellRequest.model} (${lastConfirmedSellRequest.storage})",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ShopTextPrimary
+                                color = LightTextPrimary
                             )
                             Text(
                                 text = "Condition: ${lastConfirmedSellRequest.condition}",
                                 fontSize = 12.sp,
-                                color = ShopTextSecondary
+                                color = LightTextSecondary
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = "Estimated Instant Cash Quote:\n${formatInr(lastConfirmedSellRequest.estimatedQuoteMin)} - ${formatInr(lastConfirmedSellRequest.estimatedQuoteMax)}",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFF166534)
+                                color = LightGreenText
                             )
                         }
                     }
@@ -186,7 +197,7 @@ fun OldPhoneScreen(
                     Text(
                         text = "SK Mobile Shoppy and Electronics technician will inspect your phone at ${lastConfirmedSellRequest.address} in Udgir and hand over instant cash or UPI payment on the spot!",
                         fontSize = 12.sp,
-                        color = ShopTextSecondary,
+                        color = LightTextSecondary,
                         lineHeight = 17.sp
                     )
                 }
@@ -194,10 +205,10 @@ fun OldPhoneScreen(
             confirmButton = {
                 Button(
                     onClick = onDismissSellDialog,
-                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color(0xFF0B0B0B)),
+                    colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White),
                     modifier = Modifier.fillMaxWidth().testTag("sell_dialog_ok_btn")
                 ) {
-                    Text("OK, View Tracking", fontWeight = FontWeight.Bold, color = Color(0xFF0B0B0B))
+                    Text("OK, View Tracking", fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         )
@@ -206,13 +217,13 @@ fun OldPhoneScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(com.example.ui.theme.BlackBackground)
+            .background(BlackBackground)
             .testTag("old_phone_screen")
     ) {
         // Top App Bar
         Surface(
-            color = com.example.ui.theme.BlackSurface,
-            border = androidx.compose.foundation.BorderStroke(1.dp, com.example.ui.theme.BlackBorder),
+            color = BlackSurface,
+            border = BorderStroke(1.dp, BlackBorder),
             shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -227,7 +238,7 @@ fun OldPhoneScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = ShopTextPrimary
+                            tint = TextMain
                         )
                     }
                     Spacer(modifier = Modifier.width(4.dp))
@@ -235,14 +246,14 @@ fun OldPhoneScreen(
                         text = "Buy & Sell Old Mobiles",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ShopTextPrimary
+                        color = TextMain
                     )
                 }
 
                 TabRow(
                     selectedTabIndex = selectedTab,
-                    containerColor = com.example.ui.theme.BlackSurface,
-                    contentColor = ShopPrimaryBlue,
+                    containerColor = BlackSurface,
+                    contentColor = GoldHighlight,
                     indicator = { tabPositions ->
                         TabRowDefaults.SecondaryIndicator(
                             modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
@@ -258,7 +269,7 @@ fun OldPhoneScreen(
                                 text = "Buy Certified Old Phones",
                                 fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium,
                                 fontSize = 13.sp,
-                                color = if (selectedTab == 0) com.example.ui.theme.GoldHighlight else ShopTextSecondary
+                                color = if (selectedTab == 0) GoldHighlight else TextSecondary
                             )
                         }
                     )
@@ -271,7 +282,7 @@ fun OldPhoneScreen(
                                 text = "Sell Your Phone (Instant Cash)",
                                 fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium,
                                 fontSize = 13.sp,
-                                color = if (selectedTab == 1) com.example.ui.theme.GoldHighlight else ShopTextSecondary
+                                color = if (selectedTab == 1) GoldHighlight else TextSecondary
                             )
                         }
                     )
@@ -420,7 +431,7 @@ fun SellOldPhoneForm(
                         text = "1. Customer Information",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ShopTextPrimary
+                        color = LightTextPrimary
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -433,6 +444,7 @@ fun SellOldPhoneForm(
                         },
                         label = { Text("Your Name *") },
                         isError = nameError,
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().testTag("sell_customer_name"),
                         singleLine = true
                     )
@@ -447,6 +459,7 @@ fun SellOldPhoneForm(
                         },
                         label = { Text("Mobile Number *") },
                         isError = phoneError,
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().testTag("sell_mobile_number"),
                         singleLine = true
                     )
@@ -468,12 +481,12 @@ fun SellOldPhoneForm(
                         text = "2. Phone Specifications",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ShopTextPrimary
+                        color = LightTextPrimary
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Text("Brand:", fontSize = 12.sp, color = ShopTextSecondary)
+                    Text("Brand:", fontSize = 12.sp, color = LightTextSecondary)
                     Spacer(modifier = Modifier.height(4.dp))
 
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -485,7 +498,15 @@ fun SellOldPhoneForm(
                                 label = { Text(brand, fontSize = 12.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = ShopPrimaryBlue,
-                                    selectedLabelColor = Color.White
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = LightTextPrimary
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = LightInputBorder,
+                                    selectedBorderColor = ShopPrimaryBlue
                                 )
                             )
                         }
@@ -502,13 +523,14 @@ fun SellOldPhoneForm(
                         label = { Text("Model Name (e.g. iPhone 12, Galaxy S20 FE, OnePlus 8T) *") },
                         placeholder = { Text("e.g. iPhone 12") },
                         isError = modelError,
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().testTag("sell_model_name"),
                         singleLine = true
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Text("Storage Capacity:", fontSize = 12.sp, color = ShopTextSecondary)
+                    Text("Storage Capacity:", fontSize = 12.sp, color = LightTextSecondary)
                     Spacer(modifier = Modifier.height(4.dp))
 
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -520,7 +542,15 @@ fun SellOldPhoneForm(
                                 label = { Text(storage, fontSize = 12.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = ShopPrimaryBlue,
-                                    selectedLabelColor = Color.White
+                                    selectedLabelColor = Color.White,
+                                    containerColor = Color(0xFFF1F5F9),
+                                    labelColor = LightTextPrimary
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = LightInputBorder,
+                                    selectedBorderColor = ShopPrimaryBlue
                                 )
                             )
                         }
@@ -543,7 +573,7 @@ fun SellOldPhoneForm(
                         text = "3. Phone Condition & Price",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ShopTextPrimary
+                        color = LightTextPrimary
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -556,10 +586,10 @@ fun SellOldPhoneForm(
                                 .padding(vertical = 4.dp)
                                 .clickable { selectedCondition = cond },
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) ShopPrimaryLightBlue else Color(0xFFF8FAFC),
-                            border = androidx.compose.foundation.BorderStroke(
+                            color = if (isSelected) LightBlueBg else Color(0xFFF8FAFC),
+                            border = BorderStroke(
                                 width = if (isSelected) 1.5.dp else 1.dp,
-                                color = if (isSelected) ShopPrimaryBlue else ShopOutlineLight
+                                color = if (isSelected) ShopPrimaryBlue else LightInputBorder
                             )
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
@@ -567,12 +597,12 @@ fun SellOldPhoneForm(
                                     text = cond,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) ShopPrimaryBlue else ShopTextPrimary
+                                    color = if (isSelected) LightBlueText else LightTextPrimary
                                 )
                                 Text(
                                     text = note,
                                     fontSize = 11.sp,
-                                    color = ShopTextSecondary
+                                    color = LightTextSecondary
                                 )
                             }
                         }
@@ -585,6 +615,7 @@ fun SellOldPhoneForm(
                         onValueChange = { expectedPrice = it },
                         label = { Text("Your Expected Price (₹)") },
                         placeholder = { Text("e.g. 18000") },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().testTag("sell_expected_price"),
                         singleLine = true
                     )
@@ -606,7 +637,7 @@ fun SellOldPhoneForm(
                         text = "4. Inspection Address & Photos",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ShopTextPrimary
+                        color = LightTextPrimary
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -615,6 +646,7 @@ fun SellOldPhoneForm(
                         value = address,
                         onValueChange = { address = it },
                         label = { Text("Address in Udgir for Pickup / Verification *") },
+                        colors = lightOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().testTag("sell_address_input"),
                         minLines = 2
                     )
@@ -625,7 +657,7 @@ fun SellOldPhoneForm(
                         text = "Upload Device Photos ($simulatedPhotosCount/4 added):",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = ShopTextPrimary
+                        color = LightTextPrimary
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -645,8 +677,8 @@ fun SellOldPhoneForm(
                                         simulatedPhotosCount = if (isAdded) simulatedPhotosCount - 1 else simulatedPhotosCount + 1
                                     },
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isAdded) ShopPrimaryLightBlue else Color(0xFFF1F5F9),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isAdded) ShopPrimaryBlue else ShopOutlineLight)
+                                color = if (isAdded) LightBlueBg else Color(0xFFF1F5F9),
+                                border = BorderStroke(1.dp, if (isAdded) ShopPrimaryBlue else LightInputBorder)
                             ) {
                                 Column(
                                     modifier = Modifier.fillMaxSize(),
@@ -656,13 +688,13 @@ fun SellOldPhoneForm(
                                     Icon(
                                         imageVector = if (isAdded) Icons.Default.CheckCircle else Icons.Default.AddPhotoAlternate,
                                         contentDescription = "Photo",
-                                        tint = if (isAdded) ShopPrimaryBlue else Color.Gray,
+                                        tint = if (isAdded) LightBlueText else LightTextMuted,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Text(
                                         text = if (isAdded) "Photo ${idx + 1}" else "Add",
                                         fontSize = 9.sp,
-                                        color = if (isAdded) ShopPrimaryBlue else Color.Gray
+                                        color = if (isAdded) LightBlueText else LightTextMuted
                                     )
                                 }
                             }
@@ -706,7 +738,10 @@ fun SellOldPhoneForm(
                     .height(50.dp)
                     .testTag("submit_sell_phone_btn"),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEA580C))
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFEA580C),
+                    contentColor = Color.White
+                )
             ) {
                 if (isSubmitting) {
                     CircularProgressIndicator(
@@ -718,13 +753,15 @@ fun SellOldPhoneForm(
                     Text(
                         text = "Generating Valuation...",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                 } else {
                     Text(
                         text = "Get Instant Quote & Sell",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                 }
             }
@@ -737,7 +774,7 @@ fun SellOldPhoneForm(
                 text = "Your Sell Requests (${activeSellRequests.size})",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = ShopTextPrimary
+                color = TextMain
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -747,7 +784,7 @@ fun SellOldPhoneForm(
                     Text(
                         text = "No sell requests generated yet. Fill the valuation form above for instant quote!",
                         fontSize = 12.sp,
-                        color = ShopTextSecondary,
+                        color = LightTextSecondary,
                         modifier = Modifier.padding(16.dp)
                     )
                 }
@@ -773,20 +810,21 @@ fun SellOldPhoneForm(
                                 Text(
                                     text = req.status,
                                     fontSize = 11.sp,
-                                    color = ShopSuccessGreen,
+                                    color = LightGreenText,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                             Text(
                                 text = "${req.brand} ${req.model} (${req.storage}) • ${req.condition}",
                                 fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                color = LightTextPrimary
                             )
                             Text(
                                 text = "Estimated Value: ${formatInr(req.estimatedQuoteMin)} - ${formatInr(req.estimatedQuoteMax)}",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF166534)
+                                color = LightGreenText
                             )
                         }
                     }

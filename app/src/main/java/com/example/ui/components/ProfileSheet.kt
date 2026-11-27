@@ -228,7 +228,7 @@ fun ProfileSheet(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(ShopPrimaryLightBlue),
+                            .background(BlackSurfaceSecondary),
                         contentAlignment = Alignment.Center
                     ) {
                         if (!uiState.customerPhotoUrl.isNullOrBlank()) {
@@ -244,7 +244,7 @@ fun ProfileSheet(
                             Icon(
                                 imageVector = Icons.Default.AccountCircle,
                                 contentDescription = "Avatar",
-                                tint = ShopPrimaryBlue,
+                                tint = GoldPrimary,
                                 modifier = Modifier.size(36.dp)
                             )
                         }
@@ -528,6 +528,7 @@ fun ProfileSheet(
                     value = nameInput,
                     onValueChange = { nameInput = it },
                     label = { Text("Full Name") },
+                    colors = darkOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().testTag("edit_name_input"),
                     singleLine = true
                 )
@@ -536,6 +537,7 @@ fun ProfileSheet(
                     value = phoneInput,
                     onValueChange = { phoneInput = it },
                     label = { Text("Delivery Mobile Number") },
+                    colors = darkOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().testTag("edit_phone_input"),
                     singleLine = true
                 )
@@ -544,6 +546,7 @@ fun ProfileSheet(
                     value = addressInput,
                     onValueChange = { addressInput = it },
                     label = { Text("Delivery Address (Udgir)") },
+                    colors = darkOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().testTag("edit_address_input"),
                     minLines = 2
                 )

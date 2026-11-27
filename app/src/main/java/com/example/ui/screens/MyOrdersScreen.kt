@@ -74,7 +74,7 @@ import com.example.ui.theme.ColorSuccess
 import com.example.ui.theme.GoldBorder
 import com.example.ui.theme.GoldHighlight
 import com.example.ui.theme.GoldPrimary
-import com.example.ui.theme.ShopPrimaryBlue
+import com.example.ui.theme.LightBlueAccentOnDark
 import com.example.ui.theme.TextMain
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextSecondary
@@ -207,7 +207,10 @@ fun MyOrdersScreen(
                     focusedBorderColor = GoldPrimary,
                     unfocusedBorderColor = BlackBorder,
                     focusedTextColor = TextMain,
-                    unfocusedTextColor = TextMain
+                    unfocusedTextColor = TextMain,
+                    cursorColor = GoldPrimary,
+                    focusedPlaceholderColor = TextMuted,
+                    unfocusedPlaceholderColor = TextMuted
                 ),
                 singleLine = true
             )
@@ -339,14 +342,14 @@ private fun CustomerOrderCard(
     val statusColor = when {
         order.isCancelled -> ColorError
         order.isDelivered -> ColorSuccess
-        stage == OrderTrackingStage.OUT_FOR_DELIVERY -> ShopPrimaryBlue
+        stage == OrderTrackingStage.OUT_FOR_DELIVERY -> LightBlueAccentOnDark
         else -> GoldPrimary
     }
 
     val statusBg = when {
         order.isCancelled -> ColorError.copy(alpha = 0.15f)
         order.isDelivered -> ColorSuccess.copy(alpha = 0.15f)
-        stage == OrderTrackingStage.OUT_FOR_DELIVERY -> ShopPrimaryBlue.copy(alpha = 0.15f)
+        stage == OrderTrackingStage.OUT_FOR_DELIVERY -> LightBlueAccentOnDark.copy(alpha = 0.15f)
         else -> GoldPrimary.copy(alpha = 0.15f)
     }
 

@@ -58,13 +58,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.AppNotification
 import com.example.model.NotificationType
+import com.example.ui.theme.LightBlueBg
+import com.example.ui.theme.LightBlueText
+import com.example.ui.theme.LightInputBorder
+import com.example.ui.theme.LightTextMuted
+import com.example.ui.theme.LightTextPrimary
+import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopAccentAmber
 import com.example.ui.theme.ShopPrimaryBlue
-import com.example.ui.theme.ShopPrimaryLightBlue
 import com.example.ui.theme.ShopSuccessGreen
-import com.example.ui.theme.ShopTextMuted
-import com.example.ui.theme.ShopTextPrimary
-import com.example.ui.theme.ShopTextSecondary
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -114,7 +116,7 @@ fun NotificationCenterScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
-                                tint = ShopTextPrimary
+                                tint = LightTextPrimary
                             )
                         }
                         Spacer(modifier = Modifier.width(4.dp))
@@ -123,12 +125,12 @@ fun NotificationCenterScreen(
                                 text = "Notification Center",
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ShopTextPrimary
+                                color = LightTextPrimary
                             )
                             Text(
                                 text = if (unreadCount > 0) "$unreadCount unread updates" else "All caught up",
                                 fontSize = 11.sp,
-                                color = if (unreadCount > 0) ShopPrimaryBlue else ShopTextSecondary,
+                                color = if (unreadCount > 0) ShopPrimaryBlue else LightTextSecondary,
                                 fontWeight = if (unreadCount > 0) FontWeight.SemiBold else FontWeight.Normal
                             )
                         }
@@ -190,7 +192,13 @@ fun NotificationCenterScreen(
                                 selectedContainerColor = ShopPrimaryBlue,
                                 selectedLabelColor = Color.White,
                                 containerColor = Color(0xFFF1F5F9),
-                                labelColor = ShopTextPrimary
+                                labelColor = LightTextPrimary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = LightInputBorder,
+                                selectedBorderColor = ShopPrimaryBlue
                             ),
                             shape = RoundedCornerShape(16.dp)
                         )
@@ -218,7 +226,7 @@ fun NotificationCenterScreen(
                         Icon(
                             imageVector = Icons.Default.NotificationsNone,
                             contentDescription = "No Notifications",
-                            tint = Color(0xFF94A3B8),
+                            tint = LightTextMuted,
                             modifier = Modifier.size(36.dp)
                         )
                     }
@@ -227,13 +235,13 @@ fun NotificationCenterScreen(
                         text = if (selectedFilter == "All") "No Notifications Yet" else "No $selectedFilter Notifications",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ShopTextPrimary
+                        color = LightTextPrimary
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "Real-time updates for your order status transitions and repair booking milestones will appear here.",
                         fontSize = 12.sp,
-                        color = ShopTextSecondary,
+                        color = LightTextSecondary,
                         textAlign = TextAlign.Center,
                         lineHeight = 16.sp
                     )
@@ -277,7 +285,7 @@ fun NotificationCard(
         statusLower.contains("out for delivery") || statusLower.contains("estimate sent") ->
             Color(0xFFEA580C) to Color(0xFFFFEDD5)
         else ->
-            ShopPrimaryBlue to ShopPrimaryLightBlue
+            LightBlueText to LightBlueBg
     }
 
     val icon = when {
@@ -336,7 +344,7 @@ fun NotificationCard(
                         text = notification.title,
                         fontSize = 14.sp,
                         fontWeight = if (notification.isRead) FontWeight.SemiBold else FontWeight.Bold,
-                        color = ShopTextPrimary
+                        color = LightTextPrimary
                     )
 
                     // Read status dot
@@ -383,7 +391,7 @@ fun NotificationCard(
                     Text(
                         text = formattedTime,
                         fontSize = 11.sp,
-                        color = Color(0xFF94A3B8)
+                        color = LightTextMuted
                     )
                 }
             }

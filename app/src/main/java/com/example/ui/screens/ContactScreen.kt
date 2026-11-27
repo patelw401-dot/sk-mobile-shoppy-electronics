@@ -80,7 +80,7 @@ fun ContactScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = ShopTextPrimary
+                        tint = TextMain
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
@@ -88,7 +88,7 @@ fun ContactScreen(
                     text = "Contact SK Mobile Shoppy and Electronics",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ShopTextPrimary
+                    color = TextMain
                 )
             }
         }
@@ -114,13 +114,13 @@ fun ContactScreen(
                                 modifier = Modifier
                                     .size(46.dp)
                                     .clip(CircleShape)
-                                    .background(ShopPrimaryLightBlue),
+                                    .background(BlackSurfaceSecondary),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Store,
                                     contentDescription = "Store",
-                                    tint = ShopPrimaryBlue,
+                                    tint = GoldPrimary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -130,18 +130,18 @@ fun ContactScreen(
                                     text = "SK Mobile Shoppy and Electronics",
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Black,
-                                    color = ShopPrimaryBlue
+                                    color = GoldHighlight
                                 )
                                 Text(
                                     text = "Nagar Parishad, Udgir, Maharashtra - 413517",
                                     fontSize = 12.sp,
-                                    color = ShopTextSecondary
+                                    color = TextSecondary
                                 )
                             }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = ShopOutlineLight)
+                        HorizontalDivider(color = BlackBorder)
                         Spacer(modifier = Modifier.height(14.dp))
 
                         // Timing
@@ -149,7 +149,7 @@ fun ContactScreen(
                             Icon(
                                 imageVector = Icons.Default.AccessTime,
                                 contentDescription = "Hours",
-                                tint = ShopPrimaryBlue,
+                                tint = LightBlueAccentOnDark,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -157,13 +157,13 @@ fun ContactScreen(
                                 Text(
                                     text = "Store Timings:",
                                     fontSize = 12.sp,
-                                    color = ShopTextSecondary
+                                    color = TextSecondary
                                 )
                                 Text(
                                     text = "9:30 AM – 9:30 PM (Open All 7 Days)",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = ShopTextPrimary
+                                    color = TextMain
                                 )
                             }
                         }
@@ -175,7 +175,7 @@ fun ContactScreen(
                             Icon(
                                 imageVector = Icons.Default.Call,
                                 contentDescription = "Phone",
-                                tint = ShopPrimaryBlue,
+                                tint = LightBlueAccentOnDark,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -183,13 +183,13 @@ fun ContactScreen(
                                 Text(
                                     text = "Phone & Customer Helpline:",
                                     fontSize = 12.sp,
-                                    color = ShopTextSecondary
+                                    color = TextSecondary
                                 )
                                 Text(
                                     text = "+91 9823109313",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = ShopTextPrimary
+                                    color = TextMain
                                 )
                             }
                         }
@@ -201,7 +201,7 @@ fun ContactScreen(
                             Icon(
                                 imageVector = Icons.Default.Email,
                                 contentDescription = "Email",
-                                tint = ShopPrimaryBlue,
+                                tint = LightBlueAccentOnDark,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -209,13 +209,13 @@ fun ContactScreen(
                                 Text(
                                     text = "Official Customer Email:",
                                     fontSize = 12.sp,
-                                    color = ShopTextSecondary
+                                    color = TextSecondary
                                 )
                                 Text(
                                     text = "skmobileshoppyandelectronics@gmail.com",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = ShopTextPrimary
+                                    color = TextMain
                                 )
                             }
                         }
@@ -233,12 +233,15 @@ fun ContactScreen(
                                     context.startActivity(intent)
                                 },
                                 modifier = Modifier.weight(1f).testTag("contact_call_btn"),
-                                colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = ShopPrimaryBlue,
+                                    contentColor = Color.White
+                                ),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Call, contentDescription = "Call", modifier = Modifier.size(16.dp))
+                                Icon(imageVector = Icons.Default.Call, contentDescription = "Call", tint = Color.White, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Call Now", fontWeight = FontWeight.Bold)
+                                Text("Call Now", fontWeight = FontWeight.Bold, color = Color.White)
                             }
 
                             Button(
@@ -248,12 +251,15 @@ fun ContactScreen(
                                     context.startActivity(intent)
                                 },
                                 modifier = Modifier.weight(1f).testTag("contact_whatsapp_btn"),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF15803D),
+                                    contentColor = Color.White
+                                ),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.PhoneAndroid, contentDescription = "WhatsApp", modifier = Modifier.size(16.dp))
+                                Icon(imageVector = Icons.Default.PhoneAndroid, contentDescription = "WhatsApp", tint = Color.White, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("WhatsApp", fontWeight = FontWeight.Bold)
+                                Text("WhatsApp", fontWeight = FontWeight.Bold, color = Color.White)
                             }
                         }
                     }
@@ -275,7 +281,7 @@ fun ContactScreen(
                             Icon(
                                 imageVector = Icons.Default.Map,
                                 contentDescription = "Map",
-                                tint = ShopPrimaryBlue,
+                                tint = LightBlueAccentOnDark,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -283,7 +289,7 @@ fun ContactScreen(
                                 text = "How to Reach SK Mobile Shoppy and Electronics",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ShopTextPrimary
+                                color = TextMain
                             )
                         }
 
@@ -318,12 +324,12 @@ fun ContactScreen(
                                     text = "SK Mobile Shoppy and Electronics • Nagar Parishad Road, Udgir",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = ShopTextPrimary
+                                    color = TextMain
                                 )
                                 Text(
                                     text = "Landmark: Opposite Nagar Parishad Municipal Complex",
                                     fontSize = 10.sp,
-                                    color = ShopTextSecondary
+                                    color = TextSecondary
                                 )
                             }
                         }
@@ -346,7 +352,7 @@ fun ContactScreen(
                             text = "Services Available at SK Mobile Shoppy and Electronics",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
@@ -373,11 +379,11 @@ fun ContactScreen(
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = "Check",
-                                    tint = ShopSuccessGreen,
+                                    tint = Color(0xFF4ADE80),
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = s, fontSize = 12.sp, color = ShopTextPrimary)
+                                Text(text = s, fontSize = 12.sp, color = TextMain)
                             }
                         }
                     }
@@ -399,7 +405,7 @@ fun ContactScreen(
                             text = "Frequently Asked Questions",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ShopTextPrimary
+                            color = TextMain
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -412,9 +418,9 @@ fun ContactScreen(
                         )
 
                         faqs.forEach { (q, a) ->
-                            Text(text = "Q: $q", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ShopTextPrimary)
+                            Text(text = "Q: $q", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextMain)
                             Spacer(modifier = Modifier.height(2.dp))
-                            Text(text = a, fontSize = 12.sp, color = ShopTextSecondary, lineHeight = 16.sp)
+                            Text(text = a, fontSize = 12.sp, color = TextSecondary, lineHeight = 16.sp)
                             Spacer(modifier = Modifier.height(10.dp))
                         }
                     }
