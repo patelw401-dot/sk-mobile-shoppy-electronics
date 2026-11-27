@@ -32,14 +32,6 @@ export default function AppDownloadSection({ onShowToast }) {
 
   const handleDownloadClick = () => {
     onShowToast?.("Starting SK Mobile Android APK download...", "success");
-    const a = document.createElement('a');
-    a.href = APP_DOWNLOAD_CONFIG.downloadUrl;
-    a.download = APP_DOWNLOAD_CONFIG.fallbackFilename;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
   };
 
   return (
@@ -97,15 +89,17 @@ export default function AppDownloadSection({ onShowToast }) {
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-3">
-              <button
+              <a
+                href={APP_DOWNLOAD_CONFIG.downloadUrl}
+                download={APP_DOWNLOAD_CONFIG.fallbackFilename}
                 onClick={handleDownloadClick}
-                className="gold-btn !py-3.5 !px-6 !text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-[#D4AF37]/20 font-black cursor-pointer group"
+                className="gold-btn !py-3.5 !px-6 !text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-[#D4AF37]/20 font-black cursor-pointer group no-underline"
                 title="Download Android APK"
               >
                 <AndroidIcon className="w-5 h-5 text-black group-hover:scale-110 transition-transform" size={20} />
                 <span>Download SK Mobile APK</span>
                 <Download size={16} className="text-black" />
-              </button>
+              </a>
 
               <button
                 onClick={() => setShowGuideModal(true)}
@@ -183,13 +177,15 @@ export default function AppDownloadSection({ onShowToast }) {
                   </div>
 
                   {/* Bottom App Download CTA inside mockup */}
-                  <button
+                  <a
+                    href={APP_DOWNLOAD_CONFIG.downloadUrl}
+                    download={APP_DOWNLOAD_CONFIG.fallbackFilename}
                     onClick={handleDownloadClick}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#D4AF37]/20"
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#D4AF37]/20 no-underline"
                   >
                     <Download size={13} />
                     <span>Download Latest APK</span>
-                  </button>
+                  </a>
                 </div>
 
                 {/* Bottom Home Indicator */}

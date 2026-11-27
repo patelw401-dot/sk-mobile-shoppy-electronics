@@ -4,12 +4,18 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'web/public/sk-mobile-release.apk'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-release:
     name: Build & Sign Release APK
     runs-on: ubuntu-latest
+    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(apk):')
 
     steps:
       - name: Checkout repository
@@ -122,6 +128,35 @@ jobs:
           name: sk-mobile-release-apk
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+      - name: Publish Signed APK to Website (web/public)
+        run: |
+          set -euo pipefail
+
+          APK_FILE="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          if [ -z "${APK_FILE}" ] || [ ! -f "${APK_FILE}" ]; then
+            echo "::error::No signed release APK found in app/build/outputs/apk/release/"
+            exit 1
+          fi
+
+          mkdir -p web/public
+          cp -f "${APK_FILE}" web/public/sk-mobile-release.apk
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f web/public/sk-mobile-release.apk
+
+          if git diff --cached --quiet; then
+            echo "Website release APK is unchanged. Skipping commit."
+            exit 0
+          fi
+
+          git commit -m "chore(apk): update website release APK"
+          if ! git push origin HEAD:main; then
+            git fetch origin main
+            git rebase --autostash origin/main
+            git push origin HEAD:main
+          fi
 
       - name: Clean up temporary keystores
         if: always()
