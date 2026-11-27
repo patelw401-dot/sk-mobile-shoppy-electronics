@@ -83,8 +83,15 @@ suspend fun compressUriToDataUri(
         }
 
         val outputStream = ByteArrayOutputStream()
-        finalBitmap.compress(Bitmap.CompressFormat.JPEG, jpegQuality, outputStream)
-        val compressedBytes = outputStream.toByteArray()
+        var quality = jpegQuality
+        finalBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+        var compressedBytes = outputStream.toByteArray()
+        while (compressedBytes.size > 220_000 && quality > 45) {
+            quality -= 15
+            outputStream.reset()
+            finalBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
+            compressedBytes = outputStream.toByteArray()
+        }
         finalBitmap.recycle()
 
         val base64 = Base64.encodeToString(compressedBytes, Base64.NO_WRAP)

@@ -1,6 +1,10 @@
 package com.example.admin.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,10 +21,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -33,6 +40,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -48,27 +56,34 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.ui.components.ProductVisualBox
+import com.example.ui.components.compressUriToDataUri
 import com.example.ui.components.formatInr
+import com.example.ui.components.rememberImageModel
 import com.example.ui.theme.LightInputBorder
 import com.example.ui.theme.LightTextPrimary
 import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
 import com.example.ui.theme.ShopSuccessGreen
 import com.example.ui.theme.lightOutlinedTextFieldColors
+import kotlinx.coroutines.launch
 
 @Composable
 fun AdminProductsScreen(
@@ -446,198 +461,382 @@ fun ProductFormDialog(
     onDismiss: () -> Unit,
     onSave: (Product) -> Unit
 ) {
-    var name by remember { mutableStateOf(initialProduct?.name ?: "") }
-    var brand by remember { mutableStateOf(initialProduct?.brand ?: "") }
-    var priceText by remember { mutableStateOf(initialProduct?.price?.toString() ?: "") }
-    var origPriceText by remember { mutableStateOf(initialProduct?.originalPrice?.toString() ?: "") }
-    var description by remember { mutableStateOf(initialProduct?.description ?: "") }
-    var stockQuantity by remember { mutableStateOf("15") }
-    var sku by remember { mutableStateOf("SKM-PROD-${(100..999).random()}") }
-    var inStock by remember { mutableStateOf(initialProduct?.inStock ?: true) }
-    var isFeatured by remember { mutableStateOf(initialProduct?.isFeatured ?: false) }
-    var selectedCategory by remember { mutableStateOf(initialProduct?.category ?: ProductCategory.MOBILE_PHONES) }
-    var selectedCategorySlug by remember { mutableStateOf(initialProduct?.categorySlug ?: "smartphones") }
-    var imageUrl by remember { mutableStateOf(initialProduct?.primaryImage ?: "") }
-    var hasWarranty by remember { mutableStateOf(initialProduct?.hasWarranty ?: true) }
-    var warrantyDuration by remember { mutableStateOf(if (initialProduct?.warrantyDuration.isNullOrBlank()) (initialProduct?.warranty ?: "1 Year Brand Warranty") else initialProduct.warrantyDuration) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    var name by remember(initialProduct?.id) { mutableStateOf(initialProduct?.name ?: "") }
+    var brand by remember(initialProduct?.id) { mutableStateOf(initialProduct?.brand ?: "") }
+    var priceText by remember(initialProduct?.id) { mutableStateOf(initialProduct?.price?.toString() ?: "") }
+    var origPriceText by remember(initialProduct?.id) { mutableStateOf(initialProduct?.originalPrice?.toString() ?: "") }
+    var description by remember(initialProduct?.id) { mutableStateOf(initialProduct?.description ?: "") }
+    var stockQuantity by remember(initialProduct?.id) { mutableStateOf(initialProduct?.stock?.toString() ?: "15") }
+    var sku by remember(initialProduct?.id) {
+        mutableStateOf(
+            initialProduct?.sku?.takeIf { it.isNotBlank() } ?: "SKM-PROD-${(100..999).random()}"
+        )
+    }
+    var inStock by remember(initialProduct?.id) { mutableStateOf(initialProduct?.inStock ?: true) }
+    var isFeatured by remember(initialProduct?.id) { mutableStateOf(initialProduct?.isFeatured ?: false) }
+    var selectedCategory by remember(initialProduct?.id) { mutableStateOf(initialProduct?.category ?: ProductCategory.MOBILE_PHONES) }
+    var selectedCategorySlug by remember(initialProduct?.id) { mutableStateOf(initialProduct?.categorySlug ?: "smartphones") }
+    var imageUrl by remember(initialProduct?.id) { mutableStateOf(initialProduct?.primaryImage ?: "") }
+    var hasWarranty by remember(initialProduct?.id) { mutableStateOf(initialProduct?.hasWarranty ?: true) }
+    var warrantyDuration by remember(initialProduct?.id) {
+        mutableStateOf(
+            if (initialProduct?.warrantyDuration.isNullOrBlank()) (initialProduct?.warranty ?: "1 Year Brand Warranty") else initialProduct.warrantyDuration
+        )
+    }
+    var isCompressingImage by remember { mutableStateOf(false) }
+    var imagePickError by remember { mutableStateOf<String?>(null) }
+
+    val galleryPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            isCompressingImage = true
+            imagePickError = null
+            coroutineScope.launch {
+                val dataUri = compressUriToDataUri(
+                    context = context,
+                    uri = uri,
+                    maxDimension = 512,
+                    jpegQuality = 80
+                )
+                if (dataUri != null) {
+                    imageUrl = dataUri
+                } else {
+                    imagePickError = "Unable to read the selected photo. Try another image."
+                }
+                isCompressingImage = false
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Color.White,
         title = {
-            Text(text = if (initialProduct != null) "Edit Product" else "Add New Product", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = LightTextPrimary)
+            Text(
+                text = if (initialProduct != null) "Edit Product" else "Add New Product",
+                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp,
+                color = LightTextPrimary
+            )
         },
         text = {
-            LazyColumn(modifier = Modifier.fillMaxWidth().height(400.dp)) {
-                item {
+            val isDataUri = imageUrl.trim().startsWith("data:image/", ignoreCase = true)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 460.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Product Name *") },
+                    colors = lightOutlinedTextFieldColors(),
+                    modifier = Modifier.fillMaxWidth().testTag("product_form_name"),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = brand,
+                    onValueChange = { brand = it },
+                    label = { Text("Brand * (e.g. Apple, Samsung, boAt)") },
+                    colors = lightOutlinedTextFieldColors(),
+                    modifier = Modifier.fillMaxWidth().testTag("product_form_brand"),
+                    singleLine = true
+                )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Product Name *") },
+                        value = priceText,
+                        onValueChange = { priceText = it },
+                        label = { Text("Selling Price (₹) *") },
                         colors = lightOutlinedTextFieldColors(),
-                        modifier = Modifier.fillMaxWidth().testTag("product_form_name"),
+                        modifier = Modifier.weight(1f).testTag("product_form_price"),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
-                        value = brand,
-                        onValueChange = { brand = it },
-                        label = { Text("Brand * (e.g. Apple, Samsung, boAt)") },
+                        value = origPriceText,
+                        onValueChange = { origPriceText = it },
+                        label = { Text("Original Price (₹)") },
                         colors = lightOutlinedTextFieldColors(),
-                        modifier = Modifier.fillMaxWidth().testTag("product_form_brand"),
+                        modifier = Modifier.weight(1f).testTag("product_form_orig_price"),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = priceText,
-                            onValueChange = { priceText = it },
-                            label = { Text("Selling Price (₹) *") },
-                            colors = lightOutlinedTextFieldColors(),
-                            modifier = Modifier.weight(1f).testTag("product_form_price"),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
-                        OutlinedTextField(
-                            value = origPriceText,
-                            onValueChange = { origPriceText = it },
-                            label = { Text("Original Price (₹)") },
-                            colors = lightOutlinedTextFieldColors(),
-                            modifier = Modifier.weight(1f).testTag("product_form_orig_price"),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = stockQuantity,
+                        onValueChange = { stockQuantity = it },
+                        label = { Text("Stock Quantity") },
+                        colors = lightOutlinedTextFieldColors(),
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = sku,
+                        onValueChange = { sku = it },
+                        label = { Text("SKU Code") },
+                        colors = lightOutlinedTextFieldColors(),
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                }
+
+                var categoryExpanded by remember { mutableStateOf(false) }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val currentCategoryLabel = if (categories.isNotEmpty()) {
+                        categories.find { it.slug.equals(selectedCategorySlug, true) }?.name ?: selectedCategory.displayName
+                    } else {
+                        selectedCategory.displayName
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = stockQuantity,
-                            onValueChange = { stockQuantity = it },
-                            label = { Text("Stock Quantity") },
-                            colors = lightOutlinedTextFieldColors(),
-                            modifier = Modifier.weight(1f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
-                        OutlinedTextField(
-                            value = sku,
-                            onValueChange = { sku = it },
-                            label = { Text("SKU Code") },
-                            colors = lightOutlinedTextFieldColors(),
-                            modifier = Modifier.weight(1f),
-                            singleLine = true
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    var categoryExpanded by remember { mutableStateOf(false) }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val currentCategoryLabel = if (categories.isNotEmpty()) {
-                            categories.find { it.slug.equals(selectedCategorySlug, true) }?.name ?: selectedCategory.displayName
-                        } else {
-                            selectedCategory.displayName
+                    Text(
+                        text = "Category: $currentCategoryLabel",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = LightTextPrimary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Box {
+                        OutlinedButton(
+                            onClick = { categoryExpanded = true },
+                            border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary),
+                            modifier = Modifier.heightIn(min = 38.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text("Select Category", fontSize = 11.sp, color = LightTextPrimary)
                         }
-                        Text("Category: $currentCategoryLabel", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = LightTextPrimary)
-                        Box {
-                            OutlinedButton(
-                                onClick = { categoryExpanded = true },
-                                border = androidx.compose.foundation.BorderStroke(1.dp, LightInputBorder),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = LightTextPrimary),
-                                modifier = Modifier.height(34.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
-                            ) {
-                                Text("Select Category", fontSize = 11.sp, color = LightTextPrimary)
-                            }
-                            DropdownMenu(
-                                expanded = categoryExpanded,
-                                onDismissRequest = { categoryExpanded = false },
-                                modifier = Modifier.background(Color.White)
-                            ) {
-                                if (categories.isNotEmpty()) {
-                                    categories.filter { it.isActive }.forEach { catRecord ->
-                                        DropdownMenuItem(
-                                            text = { Text(catRecord.name, color = LightTextPrimary) },
-                                            onClick = {
-                                                selectedCategory = catRecord.category
-                                                selectedCategorySlug = catRecord.slug
-                                                categoryExpanded = false
-                                            }
-                                        )
-                                    }
-                                } else {
-                                    ProductCategory.entries.filterNot { it == ProductCategory.ALL }.forEach { cat ->
-                                        DropdownMenuItem(
-                                            text = { Text(cat.displayName, color = LightTextPrimary) },
-                                            onClick = {
-                                                selectedCategory = cat
-                                                selectedCategorySlug = cat.name.lowercase().replace("_", "-")
-                                                categoryExpanded = false
-                                            }
-                                        )
-                                    }
+                        DropdownMenu(
+                            expanded = categoryExpanded,
+                            onDismissRequest = { categoryExpanded = false },
+                            modifier = Modifier.background(Color.White)
+                        ) {
+                            if (categories.isNotEmpty()) {
+                                categories.filter { it.isActive }.forEach { catRecord ->
+                                    DropdownMenuItem(
+                                        text = { Text(catRecord.name, color = LightTextPrimary) },
+                                        onClick = {
+                                            selectedCategory = catRecord.category
+                                            selectedCategorySlug = catRecord.slug
+                                            categoryExpanded = false
+                                        }
+                                    )
+                                }
+                            } else {
+                                ProductCategory.entries.filterNot { it == ProductCategory.ALL }.forEach { cat ->
+                                    DropdownMenuItem(
+                                        text = { Text(cat.displayName, color = LightTextPrimary) },
+                                        onClick = {
+                                            selectedCategory = cat
+                                            selectedCategorySlug = cat.name.lowercase().replace("_", "-")
+                                            categoryExpanded = false
+                                        }
+                                    )
                                 }
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text("Description & Specifications") },
-                        colors = lightOutlinedTextFieldColors(),
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = imageUrl,
-                        onValueChange = { imageUrl = it },
-                        label = { Text("Product Image URL (https://...)") },
-                        colors = lightOutlinedTextFieldColors(),
-                        modifier = Modifier.fillMaxWidth().testTag("product_form_image_url"),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                }
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description & Specifications") },
+                    colors = lightOutlinedTextFieldColors(),
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 4
+                )
+
+                // Live Thumbnail Preview + Phone Gallery Upload Card
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFFF8FAFC))
+                        .border(1.dp, LightInputBorder, RoundedCornerShape(10.dp))
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFE2E8F0))
+                            .border(1.dp, LightInputBorder, RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text("Has Store / Brand Warranty", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
-                        Switch(checked = hasWarranty, onCheckedChange = { hasWarranty = it })
+                        if (imageUrl.isNotBlank()) {
+                            AsyncImage(
+                                model = rememberImageModel(imageUrl),
+                                contentDescription = "Product photo preview",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.AddPhotoAlternate,
+                                contentDescription = "No product photo",
+                                tint = LightTextSecondary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
-                    if (hasWarranty) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        OutlinedTextField(
-                            value = warrantyDuration,
-                            onValueChange = { warrantyDuration = it },
-                            label = { Text("Warranty Duration (e.g. 1 Year Brand Warranty)") },
-                            colors = lightOutlinedTextFieldColors(),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text("Active & In Stock", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
-                        Switch(checked = inStock, onCheckedChange = { inStock = it })
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Featured on Homepage", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
-                        Switch(checked = isFeatured, onCheckedChange = { isFeatured = it })
+                        OutlinedButton(
+                            onClick = {
+                                galleryPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            enabled = !isCompressingImage,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = ShopPrimaryBlue),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, ShopPrimaryBlue),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .testTag("product_upload_gallery_btn")
+                        ) {
+                            if (isCompressingImage) {
+                                CircularProgressIndicator(
+                                    color = ShopPrimaryBlue,
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Compressing...",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ShopPrimaryBlue
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.AddPhotoAlternate,
+                                    contentDescription = "Upload Photo from Gallery",
+                                    tint = ShopPrimaryBlue,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (imageUrl.isNotBlank()) "Replace Photo from Gallery" else "Upload Photo from Gallery",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = ShopPrimaryBlue,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
+                        if (imageUrl.isNotBlank()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (isDataUri) "Gallery photo ready" else "Image URL active",
+                                    fontSize = 11.sp,
+                                    color = if (isDataUri) Color(0xFF166534) else LightTextSecondary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "Clear",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFDC2626),
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier
+                                        .clickable {
+                                            imagePickError = null
+                                            imageUrl = ""
+                                        }
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        .testTag("product_clear_image_btn")
+                                )
+                            }
+                        }
+
+                        imagePickError?.let { errMsg ->
+                            Text(
+                                text = errMsg,
+                                fontSize = 11.sp,
+                                color = Color(0xFFDC2626)
+                            )
+                        }
                     }
                 }
+
+                OutlinedTextField(
+                    value = if (isDataUri) "" else imageUrl,
+                    onValueChange = {
+                        imagePickError = null
+                        imageUrl = it
+                    },
+                    label = { Text("Product Image URL (https://...)") },
+                    placeholder = {
+                        Text(
+                            text = if (isDataUri) "Gallery photo active (paste URL to replace)" else "https://...",
+                            fontSize = 11.sp
+                        )
+                    },
+                    colors = lightOutlinedTextFieldColors(),
+                    modifier = Modifier.fillMaxWidth().testTag("product_form_image_url"),
+                    singleLine = true
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Has Store / Brand Warranty", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
+                    Switch(checked = hasWarranty, onCheckedChange = { hasWarranty = it })
+                }
+                if (hasWarranty) {
+                    OutlinedTextField(
+                        value = warrantyDuration,
+                        onValueChange = { warrantyDuration = it },
+                        label = { Text("Warranty Duration (e.g. 1 Year Brand Warranty)") },
+                        colors = lightOutlinedTextFieldColors(),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Active & In Stock", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
+                    Switch(checked = inStock, onCheckedChange = { inStock = it })
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Featured on Homepage", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
+                    Switch(checked = isFeatured, onCheckedChange = { isFeatured = it })
+                }
+                Spacer(modifier = Modifier.height(6.dp))
             }
         },
         confirmButton = {
@@ -658,7 +857,7 @@ fun ProductFormDialog(
                     val imagesList = if (finalImageUrl.isNotBlank()) {
                         listOf(finalImageUrl)
                     } else {
-                        initialProduct?.images ?: emptyList()
+                        emptyList()
                     }
 
                     val newProduct = Product(
@@ -675,7 +874,7 @@ fun ProductFormDialog(
                         specifications = resolvedSpecs,
                         stock = parsedStock,
                         sku = sku,
-                        imageUrl = finalImageUrl.ifBlank { imagesList.firstOrNull() ?: "" },
+                        imageUrl = finalImageUrl,
                         images = imagesList,
                         hasWarranty = hasWarranty,
                         warrantyDuration = if (hasWarranty) warrantyDuration.trim() else "",
@@ -689,7 +888,9 @@ fun ProductFormDialog(
                     )
                     onSave(newProduct)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White)
+                enabled = !isCompressingImage,
+                colors = ButtonDefaults.buttonColors(containerColor = ShopPrimaryBlue, contentColor = Color.White),
+                modifier = Modifier.testTag("save_product_btn")
             ) {
                 Text("Save Product", color = Color.White, fontWeight = FontWeight.Bold)
             }
