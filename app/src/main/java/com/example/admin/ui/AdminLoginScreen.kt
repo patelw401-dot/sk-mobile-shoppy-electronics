@@ -18,20 +18,27 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,6 +54,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,9 +83,8 @@ private fun Context.findActivity(): Activity? {
 }
 
 /**
- * Phase 11: Google-Only Admin Authentication Screen.
- * Password-based admin login and public registration have been removed.
- * Only verified Google accounts on the authorized allowlist or Firestore /admins registry can access the portal.
+ * Admin Authentication Screen supporting both verified Google Sign-In and Email & Password.
+ * Only verified accounts on the authorized allowlist, custom admin claims, or Firestore /admins registry can access the portal.
  */
 @Composable
 fun AdminLoginScreen(
@@ -83,6 +92,7 @@ fun AdminLoginScreen(
     onBackToStore: () -> Unit,
     onGoogleSignIn: ((idToken: String, onComplete: (Boolean, String?) -> Unit) -> Unit)? = null,
     onGoogleSignInProvider: ((activity: Activity, onComplete: (Boolean, String?) -> Unit) -> Unit)? = null,
+    onEmailPasswordSignIn: ((email: String, password: String, onComplete: (Boolean, String?) -> Unit) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -90,6 +100,9 @@ fun AdminLoginScreen(
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var emailInput by remember { mutableStateOf("") }
+    var passwordInput by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     fun handleProviderSignIn() {
         val hostActivity = context.findActivity() ?: (context as? Activity)
@@ -350,7 +363,7 @@ fun AdminLoginScreen(
                         }
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Admin login uses verified Google Sign-In only. Only authorized administrator Gmail accounts (including store owner skmobileshoppyandelectronics@gmail.com) have access. Regular customer accounts will be denied.",
+                            text = "Admin login supports authorized Google Sign-In or authorized Admin Email & Password. Only approved administrator accounts (including store owner skmobileshoppyandelectronics@gmail.com) have access. Regular customer accounts will be denied.",
                             fontSize = 11.sp,
                             color = TextSecondary,
                             lineHeight = 16.sp
@@ -415,6 +428,128 @@ fun AdminLoginScreen(
                     }
                 }
 
+                if (onEmailPasswordSignIn != null) {
+                    OutlinedTextField(
+                        value = emailInput,
+                        onValueChange = { emailInput = it },
+                        label = { Text("Admin Email") },
+                        placeholder = { Text("admin@skmobile.com") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = "Admin Email"
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        colors = darkOutlinedTextFieldColors(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("admin_email_input")
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = passwordInput,
+                        onValueChange = { passwordInput = it },
+                        label = { Text("Admin Password") },
+                        placeholder = { Text("Enter administrator password") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = "Admin Password"
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { passwordVisible = !passwordVisible },
+                                modifier = Modifier.testTag("admin_password_visibility_btn")
+                            ) {
+                                Icon(
+                                    imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                                )
+                            }
+                        },
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        colors = darkOutlinedTextFieldColors(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("admin_password_input")
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            errorMessage = null
+                            isLoading = true
+                            onEmailPasswordSignIn(emailInput, passwordInput) { success, error ->
+                                isLoading = false
+                                if (success) {
+                                    onLoginSuccess()
+                                } else {
+                                    errorMessage = error ?: "Access Denied: Account is not an authorized administrator."
+                                }
+                            }
+                        },
+                        enabled = !isLoading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("admin_email_signin_btn"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color(0xFF0B0B0B))
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = Color(0xFF0B0B0B),
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("Verifying Administrator...", color = Color(0xFF0B0B0B), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = "Sign In with Email",
+                                tint = Color(0xFF0B0B0B),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Sign In with Email & Password",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0B0B0B)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = BlackBorder)
+                        Text(
+                            text = "  OR WITH GOOGLE  ",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextSecondary
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = BlackBorder)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
                 // Primary Google Sign-In Button
                 Button(
                     onClick = { handleGoogleSignIn() },
@@ -424,21 +559,29 @@ fun AdminLoginScreen(
                         .height(50.dp)
                         .testTag("admin_google_signin_btn"),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color(0xFF0B0B0B))
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (onEmailPasswordSignIn != null) BlackSurfaceSecondary else GoldPrimary,
+                        contentColor = if (onEmailPasswordSignIn != null) GoldHighlight else Color(0xFF0B0B0B)
+                    ),
+                    border = if (onEmailPasswordSignIn != null) BorderStroke(1.2.dp, GoldPrimary) else null
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
-                            color = Color(0xFF0B0B0B),
+                            color = if (onEmailPasswordSignIn != null) GoldPrimary else Color(0xFF0B0B0B),
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text("Verifying Administrator...", color = Color(0xFF0B0B0B), fontSize = 13.sp)
+                        Text(
+                            "Verifying Administrator...",
+                            color = if (onEmailPasswordSignIn != null) GoldHighlight else Color(0xFF0B0B0B),
+                            fontSize = 13.sp
+                        )
                     } else {
                         Icon(
                             imageVector = Icons.Default.Email,
                             contentDescription = "Google",
-                            tint = Color(0xFF0B0B0B),
+                            tint = if (onEmailPasswordSignIn != null) GoldPrimary else Color(0xFF0B0B0B),
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -446,7 +589,7 @@ fun AdminLoginScreen(
                             text = "Sign in with Authorized Google Account",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0B0B0B)
+                            color = if (onEmailPasswordSignIn != null) GoldHighlight else Color(0xFF0B0B0B)
                         )
                     }
                 }

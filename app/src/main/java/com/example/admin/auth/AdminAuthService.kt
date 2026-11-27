@@ -79,7 +79,11 @@ object AdminAuthService {
      * - Email/Password provider not enabled in Firebase Console
      * - Certificate hash / SHA-1 mismatch
      */
-    fun parseAuthError(error: Throwable?, context: Context? = null): String {
+    fun parseAuthError(
+        error: Throwable?,
+        context: Context? = null,
+        isEmailPassword: Boolean = false
+    ): String {
         if (error == null) return "Authentication failed. Please try again."
 
         Log.e(TAG, "Auth error: ${error.javaClass.simpleName}: ${error.message}", error)
@@ -91,7 +95,7 @@ object AdminAuthService {
                 code == "ERROR_INVALID_EMAIL" ->
                     "The email address format is invalid. Please enter a valid administrator email."
                 code == "ERROR_WRONG_PASSWORD" || code == "ERROR_INVALID_CREDENTIAL" ->
-                    "Invalid email or password. Please verify your administrator credentials."
+                    "Invalid administrator email or password. Please verify your credentials."
                 else ->
                     "Invalid administrator credentials. Please check your email and password."
             }
@@ -125,6 +129,12 @@ object AdminAuthService {
             return "Authentication service is currently unavailable. Please try again in a few moments."
         }
 
+        val providerNotAllowedMsg = if (isEmailPassword) {
+            "Email/Password Sign-In is not enabled in Firebase Console. Go to Firebase Console > Authentication > Sign-in method, and enable 'Email/Password'."
+        } else {
+            "Google Sign-In is not enabled in Firebase Console. Go to Firebase Console > Authentication > Sign-in method, and enable 'Google'."
+        }
+
         // 6. Generic FirebaseAuthException by ErrorCode
         if (error is FirebaseAuthException) {
             return when (error.errorCode) {
@@ -132,8 +142,7 @@ object AdminAuthService {
                     val sha1 = getAppCertificateSha1(context)
                     "Firebase certificate mismatch: App signing certificate SHA-1 ($sha1) is not registered in Firebase Console for package 'com.aistudio.skmobile.udgirs'. Please add this SHA-1 fingerprint in Firebase Console > Project Settings."
                 }
-                "ERROR_OPERATION_NOT_ALLOWED" ->
-                    "Google Sign-In is not enabled in Firebase Console. Go to Firebase Console > Authentication > Sign-in method, and enable 'Google'."
+                "ERROR_OPERATION_NOT_ALLOWED" -> providerNotAllowedMsg
                 "ERROR_TOO_MANY_REQUESTS" ->
                     "Too many unsuccessful login attempts. Access to this account has been temporarily disabled. Please try again later."
                 "ERROR_USER_NOT_FOUND" ->
@@ -141,7 +150,11 @@ object AdminAuthService {
                 "ERROR_USER_DISABLED" ->
                     "This administrator account has been disabled. Please contact the store owner."
                 "ERROR_WRONG_PASSWORD", "ERROR_INVALID_CREDENTIAL" ->
-                    "Invalid Google credentials or ID token expired. Please select your Google account again."
+                    if (isEmailPassword) {
+                        "Invalid administrator email or password. Please verify your credentials."
+                    } else {
+                        "Invalid Google credentials or ID token expired. Please select your Google account again."
+                    }
                 "ERROR_INVALID_EMAIL" ->
                     "The email address format is invalid."
                 "ERROR_WEB_CONTEXT_CANCELED" ->
@@ -156,7 +169,7 @@ object AdminAuthService {
                     } else if (msg.contains("network", ignoreCase = true) || msg.contains("timeout", ignoreCase = true)) {
                         "Network error. Please check your internet connection and try again."
                     } else if (msg.contains("operation is not allowed", ignoreCase = true) || msg.contains("CONFIGURATION_NOT_FOUND", ignoreCase = true)) {
-                        "Google Sign-In is not enabled in Firebase Console. Go to Firebase Console > Authentication > Sign-in method, and enable 'Google'."
+                        providerNotAllowedMsg
                     } else {
                         "Authentication failed: ${error.localizedMessage ?: "Please try again."}"
                     }
@@ -178,7 +191,7 @@ object AdminAuthService {
             rawMessage.contains("too many", ignoreCase = true) ->
                 "Too many unsuccessful login attempts. Access to this account has been temporarily disabled. Please try again later."
             rawMessage.contains("not allowed", ignoreCase = true) ->
-                "Google Sign-In is not enabled in Firebase Console. Go to Firebase Console > Authentication > Sign-in method, and enable 'Google'."
+                providerNotAllowedMsg
             else ->
                 error.localizedMessage ?: "Authentication failed. Please verify your connection and credentials."
         }

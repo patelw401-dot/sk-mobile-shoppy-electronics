@@ -23,6 +23,7 @@ import com.example.model.RepairService
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
 import com.google.firebase.auth.AuthCredential
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
@@ -101,6 +102,7 @@ data class ShopUiState(
     val customerPhotoUrl: String? = null,
     val isGoogleLinked: Boolean = false,
     val isPhoneLinked: Boolean = false,
+    val isEmailLinked: Boolean = false,
     val isSendingOtp: Boolean = false,
     val isVerifyingOtp: Boolean = false,
     val phoneVerificationId: String? = null,
@@ -348,7 +350,8 @@ class ShopViewModel(
                 if (user != null) {
                     val isGoogle = user.providerData.any { it.providerId == GoogleAuthProvider.PROVIDER_ID }
                     val isPhone = user.providerData.any { it.providerId == PhoneAuthProvider.PROVIDER_ID }
-                    val name = user.displayName ?: if (!user.phoneNumber.isNullOrBlank()) "Customer (${user.phoneNumber})" else "Customer"
+                    val isEmail = user.providerData.any { it.providerId == EmailAuthProvider.PROVIDER_ID }
+                    val name = user.displayName ?: if (!user.phoneNumber.isNullOrBlank()) "Customer (${user.phoneNumber})" else if (!user.email.isNullOrBlank()) user.email!!.substringBefore("@") else "Customer"
                     val phone = user.phoneNumber?.replace("+91", "")?.trim() ?: _uiState.value.userPhone
 
                     _uiState.update { current ->
@@ -360,7 +363,8 @@ class ShopViewModel(
                             customerPhotoUrl = user.photoUrl?.toString(),
                             isGoogleLinked = isGoogle,
                             isPhoneLinked = isPhone,
-                            userName = if (user.displayName.isNullOrBlank()) current.userName else name,
+                            isEmailLinked = isEmail,
+                            userName = if (user.displayName.isNullOrBlank()) (if (current.userName == "Guest Customer") name else current.userName) else name,
                             userPhone = if (phone.isNotBlank()) phone else current.userPhone,
                             customerAuthError = null
                         )
@@ -377,6 +381,7 @@ class ShopViewModel(
                             customerPhotoUrl = null,
                             isGoogleLinked = false,
                             isPhoneLinked = false,
+                            isEmailLinked = false,
                             notifications = emptyList(),
                             customerOrders = emptyList(),
                             selectedOrder = null,
@@ -888,6 +893,137 @@ class ShopViewModel(
     }
 
     /**
+     * Customer Email & Password Sign-In.
+     */
+    fun signInCustomerWithEmail(
+        email: String,
+        password: String,
+        onComplete: (Boolean, String?) -> Unit
+    ) {
+        val trimmedEmail = email.trim()
+        if (trimmedEmail.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
+            val err = "Please enter a valid email address."
+            _uiState.update { it.copy(customerAuthError = err) }
+            onComplete(false, err)
+            return
+        }
+        if (password.isBlank()) {
+            val err = "Please enter your password."
+            _uiState.update { it.copy(customerAuthError = err) }
+            onComplete(false, err)
+            return
+        }
+
+        _uiState.update { it.copy(isLoading = true, customerAuthError = null) }
+        viewModelScope.launch {
+            val result = CustomerAuthService.signInWithEmailPassword(trimmedEmail, password)
+            _uiState.update { it.copy(isLoading = false) }
+            result.fold(
+                onSuccess = { user ->
+                    _uiState.update {
+                        it.copy(
+                            toastMessage = "Welcome back, ${user.displayName ?: user.email ?: "Customer"}!"
+                        )
+                    }
+                    onComplete(true, null)
+                },
+                onFailure = { error ->
+                    val errorMsg = CustomerAuthService.parseAuthError(error)
+                    _uiState.update { it.copy(customerAuthError = errorMsg) }
+                    onComplete(false, errorMsg)
+                }
+            )
+        }
+    }
+
+    /**
+     * Customer Email & Password Account Creation.
+     */
+    fun signUpCustomerWithEmail(
+        name: String,
+        email: String,
+        password: String,
+        onComplete: (Boolean, String?) -> Unit
+    ) {
+        val trimmedName = name.trim()
+        val trimmedEmail = email.trim()
+        if (trimmedName.isBlank()) {
+            val err = "Please enter your full name."
+            _uiState.update { it.copy(customerAuthError = err) }
+            onComplete(false, err)
+            return
+        }
+        if (trimmedEmail.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
+            val err = "Please enter a valid email address."
+            _uiState.update { it.copy(customerAuthError = err) }
+            onComplete(false, err)
+            return
+        }
+        if (password.length < 6) {
+            val err = "Password must be at least 6 characters long."
+            _uiState.update { it.copy(customerAuthError = err) }
+            onComplete(false, err)
+            return
+        }
+
+        _uiState.update { it.copy(isLoading = true, customerAuthError = null) }
+        viewModelScope.launch {
+            val result = CustomerAuthService.signUpWithEmailPassword(trimmedName, trimmedEmail, password)
+            _uiState.update { it.copy(isLoading = false) }
+            result.fold(
+                onSuccess = { user ->
+                    _uiState.update {
+                        it.copy(
+                            userName = user.displayName?.takeIf { n -> n.isNotBlank() } ?: trimmedName,
+                            toastMessage = "Account created! Welcome, ${trimmedName}!"
+                        )
+                    }
+                    onComplete(true, null)
+                },
+                onFailure = { error ->
+                    val errorMsg = CustomerAuthService.parseAuthError(error)
+                    _uiState.update { it.copy(customerAuthError = errorMsg) }
+                    onComplete(false, errorMsg)
+                }
+            )
+        }
+    }
+
+    /**
+     * Send password reset link to customer's email address.
+     */
+    fun sendCustomerPasswordReset(
+        email: String,
+        onComplete: (Boolean, String?) -> Unit
+    ) {
+        val trimmedEmail = email.trim()
+        if (trimmedEmail.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
+            val err = "Please enter your registered email address to reset your password."
+            _uiState.update { it.copy(customerAuthError = err) }
+            onComplete(false, err)
+            return
+        }
+
+        _uiState.update { it.copy(isLoading = true, customerAuthError = null) }
+        viewModelScope.launch {
+            val result = CustomerAuthService.sendPasswordResetEmail(trimmedEmail)
+            _uiState.update { it.copy(isLoading = false) }
+            result.fold(
+                onSuccess = {
+                    val msg = "Password reset link sent to $trimmedEmail. Please check your inbox or spam folder."
+                    _uiState.update { it.copy(toastMessage = msg) }
+                    onComplete(true, msg)
+                },
+                onFailure = { error ->
+                    val errorMsg = CustomerAuthService.parseAuthError(error)
+                    _uiState.update { it.copy(customerAuthError = errorMsg) }
+                    onComplete(false, errorMsg)
+                }
+            )
+        }
+    }
+
+    /**
      * Initiate phone OTP dispatch using real Firebase Phone Authentication.
      */
     fun sendCustomerPhoneOtp(
@@ -1072,6 +1208,7 @@ class ShopViewModel(
                 customerPhotoUrl = null,
                 isGoogleLinked = false,
                 isPhoneLinked = false,
+                isEmailLinked = false,
                 phoneVerificationId = null,
                 customerAuthError = null,
                 userName = "Guest Customer",

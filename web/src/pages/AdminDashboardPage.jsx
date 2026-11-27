@@ -8,6 +8,8 @@ import {
   updateAdminRepairBookingStatus,
   updateAdminOldPhoneStatus,
   signInWithGooglePopup,
+  signInWithEmail,
+  formatFirebaseAuthError,
   logoutUser,
   DEFAULT_REPAIR_PRICING,
   saveAdminRepairPricingToFirestore,
@@ -45,7 +47,9 @@ import {
   Mail,
   Save,
   MessageCircle,
-  Globe
+  Globe,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import ProductManagementTab from '../components/ProductManagementTab';
 import OrdersManagementTab from '../components/OrdersManagementTab';
@@ -67,6 +71,10 @@ export default function AdminDashboardPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [adminEmailInput, setAdminEmailInput] = useState('');
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [adminAuthError, setAdminAuthError] = useState(null);
   const [repairPriceInputs, setRepairPriceInputs] = useState(() =>
     (Array.isArray(repairServices) && repairServices.length > 0 ? repairServices : DEFAULT_REPAIR_PRICING).reduce((acc, s) => {
       acc[s.id] = String(s.estimatedStartingPrice ?? 0);
@@ -144,6 +152,7 @@ export default function AdminDashboardPage({
 
   const handleAdminSignIn = async () => {
     setIsAuthLoading(true);
+    setAdminAuthError(null);
     try {
       const result = await signInWithGooglePopup();
       const user = result.user;
@@ -154,7 +163,44 @@ export default function AdminDashboardPage({
       }
     } catch (err) {
       console.error("Admin Sign-In failed:", err);
-      onShowToast?.(err.message || 'Failed to sign in.', 'error');
+      const msg = formatFirebaseAuthError(err);
+      setAdminAuthError(msg);
+      onShowToast?.(msg, 'error');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleAdminEmailSignIn = async (e) => {
+    e.preventDefault();
+    setAdminAuthError(null);
+    const trimmedEmail = adminEmailInput.trim();
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      setAdminAuthError('Please enter a valid administrator email address.');
+      return;
+    }
+    if (!adminPasswordInput) {
+      setAdminAuthError('Please enter your administrator password.');
+      return;
+    }
+
+    setIsAuthLoading(true);
+    try {
+      const result = await signInWithEmail(trimmedEmail, adminPasswordInput);
+      const user = result.user;
+      if (isUserAdmin(user)) {
+        onShowToast?.(`Welcome Store Administrator (${user.email})!`, 'success');
+      } else {
+        await logoutUser();
+        const msg = `Access Denied: Account ${user?.email || trimmedEmail} is not in the Store Admin allowlist.`;
+        setAdminAuthError(msg);
+        onShowToast?.(msg, 'error');
+      }
+    } catch (err) {
+      console.error('Admin Email Sign-In failed:', err);
+      const msg = formatFirebaseAuthError(err);
+      setAdminAuthError(msg);
+      onShowToast?.(msg, 'error');
     } finally {
       setIsAuthLoading(false);
     }
@@ -313,11 +359,65 @@ export default function AdminDashboardPage({
             </ul>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4 text-left">
+            {adminAuthError && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-start gap-2">
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                <span>{adminAuthError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAdminEmailSignIn} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">Admin Email</label>
+                <input
+                  type="email"
+                  placeholder="admin@skmobile.com"
+                  value={adminEmailInput}
+                  onChange={(e) => setAdminEmailInput(e.target.value)}
+                  className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">Admin Password</label>
+                <div className="relative">
+                  <input
+                    type={showAdminPassword ? 'text' : 'password'}
+                    placeholder="Enter administrator password"
+                    value={adminPasswordInput}
+                    onChange={(e) => setAdminPasswordInput(e.target.value)}
+                    className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg pl-3.5 pr-10 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminPassword((prev) => !prev)}
+                    aria-label={showAdminPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  >
+                    {showAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={isAuthLoading}
+                className="w-full py-3 px-4 rounded-xl bg-[#D4AF37] hover:bg-[#C29F2F] text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-[#D4AF37]/20 disabled:opacity-50"
+              >
+                <Lock size={15} />
+                <span>{isAuthLoading ? 'Verifying Administrator...' : 'Sign In with Email & Password'}</span>
+              </button>
+            </form>
+
+            <div className="flex items-center gap-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+              <div className="h-px flex-1 bg-[#262626]"></div>
+              <span>Or With Google</span>
+              <div className="h-px flex-1 bg-[#262626]"></div>
+            </div>
+
             <button
               onClick={handleAdminSignIn}
               disabled={isAuthLoading}
-              className="w-full py-3.5 px-4 rounded-xl bg-[#D4AF37] hover:bg-[#C29F2F] text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition shadow-lg shadow-[#D4AF37]/20 disabled:opacity-50"
+              className="w-full py-3 px-4 rounded-xl border border-[#D4AF37] bg-[#141414] hover:bg-[#1E1B12] text-[#D4AF37] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition disabled:opacity-50"
             >
               {isAuthLoading ? (
                 <span>Authenticating with Google...</span>

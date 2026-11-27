@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { signInWithGooglePopup, logoutUser, isUserAdmin } from '../firebase';
+import {
+  signInWithGooglePopup,
+  signInWithEmail,
+  signUpWithEmail,
+  resetPasswordWithEmail,
+  formatFirebaseAuthError,
+  logoutUser,
+  isUserAdmin
+} from '../firebase';
 import { 
   Lock, 
   ShieldCheck, 
@@ -11,34 +19,99 @@ import {
   Sparkles,
   KeyRound,
   LogOut,
-  ArrowRight
+  ArrowRight,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 export default function LoginPage({ currentUser, setActivePage, onShowToast }) {
-  const [authMode, setAuthMode] = useState('google'); // Default to real Google Auth
+  const [authMode, setAuthMode] = useState('google'); // 'google' | 'email' | 'phone'
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [resetMessage, setResetMessage] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState(null);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setAuthError(null);
+    setResetMessage(null);
     try {
       const result = await signInWithGooglePopup();
       const user = result.user;
       onShowToast?.(`Signed in successfully as ${user.displayName || user.email}!`, 'success');
     } catch (err) {
       console.error('Google Sign-In error:', err);
-      let errorMsg = 'Failed to sign in with Google.';
-      if (err.code === 'auth/popup-closed-by-user') {
-        errorMsg = 'Sign-in window was closed before completing.';
-      } else if (err.code === 'auth/unauthorized-domain') {
-        errorMsg = 'Current preview domain is not yet whitelisted in Firebase Auth Authorized Domains.';
-      } else if (err.message) {
-        errorMsg = err.message;
-      }
+      const errorMsg = formatFirebaseAuthError(err);
+      setAuthError(errorMsg);
+      onShowToast?.(errorMsg, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmailAuth = async (e) => {
+    e.preventDefault();
+    setAuthError(null);
+    setResetMessage(null);
+
+    const trimmedEmail = email.trim();
+    if (isSignUp && !fullName.trim()) {
+      setAuthError('Please enter your full name.');
+      return;
+    }
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      setAuthError('Please enter a valid email address.');
+      return;
+    }
+    if (!password || (isSignUp && password.length < 6)) {
+      setAuthError(isSignUp ? 'Password must be at least 6 characters long.' : 'Please enter your password.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = isSignUp
+        ? await signUpWithEmail(fullName, trimmedEmail, password)
+        : await signInWithEmail(trimmedEmail, password);
+      const user = result.user;
+      onShowToast?.(
+        isSignUp
+          ? `Account created! Welcome, ${fullName.trim()}!`
+          : `Signed in successfully as ${user.displayName || user.email}!`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Email auth error:', err);
+      const errorMsg = formatFirebaseAuthError(err);
+      setAuthError(errorMsg);
+      onShowToast?.(errorMsg, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setAuthError(null);
+    setResetMessage(null);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      setAuthError('Please enter your registered email address to reset your password.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await resetPasswordWithEmail(trimmedEmail);
+      const msg = `Password reset link sent to ${trimmedEmail}. Please check your inbox or spam folder.`;
+      setResetMessage(msg);
+      onShowToast?.(msg, 'success');
+    } catch (err) {
+      const errorMsg = formatFirebaseAuthError(err);
       setAuthError(errorMsg);
       onShowToast?.(errorMsg, 'error');
     } finally {
@@ -64,8 +137,8 @@ export default function LoginPage({ currentUser, setActivePage, onShowToast }) {
       onShowToast?.('Please enter a valid 10-digit mobile number.', 'error');
       return;
     }
-    setAuthError('Phone SMS OTP requires Firebase SMS reCAPTCHA quota. Please use Google Sign-In for instant verified authentication.');
-    onShowToast?.('For web browser security, please use Google Sign-In.', 'info');
+    setAuthError('Phone SMS OTP requires Firebase SMS reCAPTCHA quota. Please use Google Sign-In or Email & Password.');
+    onShowToast?.('Please use Google Sign-In or Email & Password.', 'info');
   };
 
   return (
@@ -90,7 +163,7 @@ export default function LoginPage({ currentUser, setActivePage, onShowToast }) {
             <div className="p-4 rounded-xl bg-[#1C180B] border border-[#D4AF37]/40">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 rounded-full bg-[#D4AF37] text-black font-bold flex items-center justify-center text-sm">
-                  {currentUser.displayName ? currentUser.displayName[0].toUpperCase() : 'U'}
+                  {currentUser.displayName ? currentUser.displayName[0].toUpperCase() : (currentUser.email ? currentUser.email[0].toUpperCase() : 'U')}
                 </div>
                 <div className="overflow-hidden">
                   <div className="text-sm font-bold text-white truncate">
@@ -142,27 +215,40 @@ export default function LoginPage({ currentUser, setActivePage, onShowToast }) {
           </div>
         ) : (
           <>
-            {/* Tab Selection: Google vs Phone */}
-            <div className="grid grid-cols-2 gap-2 mb-6 p-1 rounded-xl bg-[#0E0E0E] border border-[#222222]">
+            {/* Tab Selection: Google vs Email vs Phone */}
+            <div className="grid grid-cols-3 gap-1.5 mb-6 p-1 rounded-xl bg-[#0E0E0E] border border-[#222222]">
               <button
-                onClick={() => { setAuthMode('google'); setAuthError(null); }}
+                type="button"
+                onClick={() => { setAuthMode('google'); setAuthError(null); setResetMessage(null); }}
                 className={`py-2 text-xs font-bold rounded-lg transition ${
                   authMode === 'google'
                     ? 'bg-[#D4AF37] text-black shadow'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                Google Sign-In
+                Google
               </button>
               <button
-                onClick={() => { setAuthMode('phone'); setAuthError(null); }}
+                type="button"
+                onClick={() => { setAuthMode('email'); setAuthError(null); setResetMessage(null); }}
+                className={`py-2 text-xs font-bold rounded-lg transition ${
+                  authMode === 'email'
+                    ? 'bg-[#D4AF37] text-black shadow'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Email
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMode('phone'); setAuthError(null); setResetMessage(null); }}
                 className={`py-2 text-xs font-bold rounded-lg transition ${
                   authMode === 'phone'
                     ? 'bg-[#D4AF37] text-black shadow'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                Mobile Number OTP
+                Mobile OTP
               </button>
             </div>
 
@@ -173,11 +259,18 @@ export default function LoginPage({ currentUser, setActivePage, onShowToast }) {
               </div>
             )}
 
+            {resetMessage && (
+              <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-start gap-2">
+                <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
+                <span>{resetMessage}</span>
+              </div>
+            )}
+
             {/* Mode 1: Google Sign-In */}
             {authMode === 'google' && (
               <div className="space-y-4 text-center">
                 <p className="text-xs text-gray-300 leading-relaxed">
-                  Sign in with your Google account to securely link repair bookings to your Firebase customer UID.
+                  Sign in with your Google account to securely link repair bookings and orders to your Firebase customer UID.
                 </p>
 
                 <button
@@ -205,7 +298,107 @@ export default function LoginPage({ currentUser, setActivePage, onShowToast }) {
               </div>
             )}
 
-            {/* Mode 2: Phone OTP */}
+            {/* Mode 2: Email & Password */}
+            {authMode === 'email' && (
+              <form onSubmit={handleEmailAuth} className="space-y-4">
+                <div className="grid grid-cols-2 gap-2 p-1 rounded-lg bg-[#0E0E0E] border border-[#222222]">
+                  <button
+                    type="button"
+                    onClick={() => { setIsSignUp(false); setAuthError(null); setResetMessage(null); }}
+                    className={`py-1.5 text-xs font-bold rounded-md transition ${
+                      !isSignUp ? 'bg-[#262626] text-[#D4AF37]' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsSignUp(true); setAuthError(null); setResetMessage(null); }}
+                    className={`py-1.5 text-xs font-bold rounded-md transition ${
+                      isSignUp ? 'bg-[#262626] text-[#D4AF37]' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Create Account
+                  </button>
+                </div>
+
+                {isSignUp && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37]"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-300 mb-1.5">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder={isSignUp ? 'Minimum 6 characters' : 'Enter your password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg pl-3.5 pr-10 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                {!isSignUp && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      disabled={isLoading}
+                      className="text-xs font-semibold text-[#D4AF37] hover:underline disabled:opacity-50"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="gold-btn w-full !py-2.5 !text-sm disabled:opacity-50"
+                >
+                  {isLoading
+                    ? (isSignUp ? 'Creating Account...' : 'Signing In...')
+                    : (isSignUp ? 'Create Account' : 'Sign In with Email')}
+                </button>
+              </form>
+            )}
+
+            {/* Mode 3: Phone OTP */}
             {authMode === 'phone' && (
               <div className="space-y-4">
                 <form onSubmit={handleSendOtp} className="space-y-4">

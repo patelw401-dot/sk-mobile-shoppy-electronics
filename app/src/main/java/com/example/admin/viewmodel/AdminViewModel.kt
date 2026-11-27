@@ -341,6 +341,43 @@ class AdminViewModel(
             }
     }
 
+    /**
+     * Authenticate Administrator using Firebase Email & Password Sign-In.
+     * Enforces exact same authorized admin check (allowlist, custom claims, Firestore /admins)
+     * and signs out immediately if unauthorized.
+     */
+    fun signInWithEmailPassword(email: String, password: String, onComplete: (Boolean, String?) -> Unit) {
+        val trimmedEmail = email.trim()
+        if (trimmedEmail.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
+            onComplete(false, "Please enter a valid administrator email address.")
+            return
+        }
+        if (password.isBlank()) {
+            onComplete(false, "Please enter your administrator password.")
+            return
+        }
+
+        val fbAuth = auth ?: run {
+            Log.e("AdminViewModel", "Firebase Auth is null in signInWithEmailPassword")
+            onComplete(false, "Firebase Authentication is currently unavailable.")
+            return
+        }
+
+        _uiState.update { it.copy(isAuthenticating = true) }
+        Log.i("AdminViewModel", "Authenticating Admin with Email/Password: $trimmedEmail")
+        fbAuth.signInWithEmailAndPassword(trimmedEmail, password)
+            .addOnSuccessListener { result ->
+                Log.i("AdminViewModel", "Firebase Email/Password signIn succeeded for: ${result.user?.email}")
+                handleAuthResult(result, onComplete)
+            }
+            .addOnFailureListener { error ->
+                _uiState.update { it.copy(isAuthenticating = false) }
+                val errorMsg = AdminAuthService.parseAuthError(error, isEmailPassword = true)
+                Log.e("AdminViewModel", "Firebase Email/Password signIn failed: ${error.javaClass.simpleName} ($errorMsg)", error)
+                onComplete(false, errorMsg)
+            }
+    }
+
     private fun handleAuthResult(result: AuthResult, onComplete: (Boolean, String?) -> Unit) {
         val user = result.user
         if (user == null) {
@@ -359,7 +396,7 @@ class AdminViewModel(
                     it.copy(
                         isAuthenticated = true,
                         adminEmail = user.email ?: user.displayName ?: "Admin",
-                        toastMessage = "Welcome, ${user.displayName ?: "Administrator"}!"
+                        toastMessage = "Welcome, ${user.displayName ?: user.email ?: "Administrator"}!"
                     )
                 }
                 onComplete(true, null)
@@ -374,7 +411,7 @@ class AdminViewModel(
                 }
                 onComplete(
                     false,
-                    "Access Denied: Google Account '${user.email}' is not registered as an authorized store administrator."
+                    "Access Denied: Account '${user.email}' is not registered as an authorized store administrator."
                 )
             }
         }

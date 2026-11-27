@@ -33,10 +33,13 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -53,6 +56,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -70,6 +74,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -104,6 +110,9 @@ fun ProfileSheet(
     onGoogleSignIn: (idToken: String, onComplete: (Boolean, String?) -> Unit) -> Unit,
     onGoogleSignInProvider: (Activity, (Boolean, String?) -> Unit) -> Unit,
     onGoogleSignInError: (String) -> Unit,
+    onEmailSignIn: (email: String, password: String, onComplete: (Boolean, String?) -> Unit) -> Unit = { _, _, cb -> cb(false, "Email login unavailable") },
+    onEmailSignUp: (name: String, email: String, password: String, onComplete: (Boolean, String?) -> Unit) -> Unit = { _, _, _, cb -> cb(false, "Account creation unavailable") },
+    onSendPasswordReset: (email: String, onComplete: (Boolean, String?) -> Unit) -> Unit = { _, cb -> cb(false, "Password reset unavailable") },
     onLogout: () -> Unit,
     onClearAuthError: () -> Unit,
     onUpdateProfile: (name: String, phone: String, address: String) -> Unit,
@@ -121,8 +130,15 @@ fun ProfileSheet(
     var phoneInput by remember { mutableStateOf(uiState.userPhone) }
     var addressInput by remember { mutableStateOf(uiState.userAddress) }
 
-    // Customer Google Login Sub-state
+    // Customer Auth Sub-states
     var isGoogleLoading by remember { mutableStateOf(false) }
+    var isEmailAuthLoading by remember { mutableStateOf(false) }
+    var isSignUpMode by remember { mutableStateOf(false) }
+    var authNameInput by remember { mutableStateOf("") }
+    var authEmailInput by remember { mutableStateOf("") }
+    var authPasswordInput by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var resetSuccessMessage by remember { mutableStateOf<String?>(null) }
 
     fun handleGoogleSignIn() {
         val webClientId = try {
@@ -318,7 +334,7 @@ fun ProfileSheet(
             }
 
             // ==========================================
-            // CASE 1: UNLOGGED CUSTOMER -> GOOGLE SIGN-IN
+            // CASE 1: UNLOGGED CUSTOMER -> GOOGLE + EMAIL/PASSWORD SIGN-IN
             // ==========================================
             if (!uiState.isCustomerAuthenticated) {
                 Card(
@@ -336,17 +352,22 @@ fun ProfileSheet(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Browse items freely without login. Sign in with your Google account to place orders, book repairs, and access your order history.",
+                            text = "Browse items freely without login. Sign in with Google or Email & Password to place orders, book repairs, and track orders.",
                             fontSize = 12.sp,
                             color = TextSecondary,
                             lineHeight = 16.sp
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
+                        // Existing Google Sign-In Button
                         Button(
-                            onClick = { handleGoogleSignIn() },
-                            enabled = !isGoogleLoading && !uiState.isLoading,
+                            onClick = {
+                                resetSuccessMessage = null
+                                onClearAuthError()
+                                handleGoogleSignIn()
+                            },
+                            enabled = !isGoogleLoading && !isEmailAuthLoading && !uiState.isLoading,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp)
@@ -354,7 +375,7 @@ fun ProfileSheet(
                             colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color(0xFF0B0B0B)),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            if (isGoogleLoading || uiState.isLoading) {
+                            if (isGoogleLoading) {
                                 CircularProgressIndicator(
                                     color = Color(0xFF0B0B0B),
                                     modifier = Modifier.size(18.dp),
@@ -362,7 +383,7 @@ fun ProfileSheet(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Signing In...",
+                                    text = "Connecting with Google...",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color(0xFF0B0B0B)
@@ -380,6 +401,272 @@ fun ProfileSheet(
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF0B0B0B)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = BlackBorder)
+                            Text(
+                                text = "  OR WITH EMAIL  ",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextSecondary
+                            )
+                            HorizontalDivider(modifier = Modifier.weight(1f), color = BlackBorder)
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Sign In / Create Account Mode Switch
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(BlackSurface)
+                                .padding(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp)
+                                    .testTag("customer_auth_mode_signin")
+                                    .clickable {
+                                        isSignUpMode = false
+                                        resetSuccessMessage = null
+                                        onClearAuthError()
+                                    },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (!isSignUpMode) GoldPrimary else Color.Transparent
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = "Sign In",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (!isSignUpMode) Color(0xFF0B0B0B) else TextSecondary
+                                    )
+                                }
+                            }
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp)
+                                    .testTag("customer_auth_mode_signup")
+                                    .clickable {
+                                        isSignUpMode = true
+                                        resetSuccessMessage = null
+                                        onClearAuthError()
+                                    },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSignUpMode) GoldPrimary else Color.Transparent
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = "Create Account",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSignUpMode) Color(0xFF0B0B0B) else TextSecondary
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        if (resetSuccessMessage != null) {
+                            Surface(
+                                color = Color(0xFF0E291D),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, ShopSuccessGreen),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Success",
+                                        tint = ShopSuccessGreen,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = resetSuccessMessage ?: "",
+                                        color = Color(0xFFA7F3D0),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+
+                        if (isSignUpMode) {
+                            OutlinedTextField(
+                                value = authNameInput,
+                                onValueChange = { authNameInput = it },
+                                label = { Text("Full Name") },
+                                placeholder = { Text("Enter your full name") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = "Full Name"
+                                    )
+                                },
+                                colors = darkOutlinedTextFieldColors(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("customer_name_input"),
+                                singleLine = true,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
+
+                        OutlinedTextField(
+                            value = authEmailInput,
+                            onValueChange = { authEmailInput = it },
+                            label = { Text("Email Address") },
+                            placeholder = { Text("name@example.com") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Email,
+                                    contentDescription = "Email Address"
+                                )
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            colors = darkOutlinedTextFieldColors(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("customer_email_input"),
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        OutlinedTextField(
+                            value = authPasswordInput,
+                            onValueChange = { authPasswordInput = it },
+                            label = { Text("Password") },
+                            placeholder = {
+                                Text(if (isSignUpMode) "Minimum 6 characters" else "Enter your password")
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Password"
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { passwordVisible = !passwordVisible },
+                                    modifier = Modifier.testTag("customer_password_visibility_btn")
+                                ) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                                    )
+                                }
+                            },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            colors = darkOutlinedTextFieldColors(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("customer_password_input"),
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+
+                        if (!isSignUpMode) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        resetSuccessMessage = null
+                                        onClearAuthError()
+                                        isEmailAuthLoading = true
+                                        onSendPasswordReset(authEmailInput) { success, msg ->
+                                            isEmailAuthLoading = false
+                                            if (success) {
+                                                resetSuccessMessage = msg
+                                            }
+                                        }
+                                    },
+                                    enabled = !isEmailAuthLoading && !isGoogleLoading && !uiState.isLoading,
+                                    modifier = Modifier.testTag("customer_forgot_password_btn")
+                                ) {
+                                    Text(
+                                        text = "Forgot Password?",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = GoldHighlight
+                                    )
+                                }
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.height(14.dp))
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                resetSuccessMessage = null
+                                onClearAuthError()
+                                isEmailAuthLoading = true
+                                if (isSignUpMode) {
+                                    onEmailSignUp(authNameInput, authEmailInput, authPasswordInput) { _, _ ->
+                                        isEmailAuthLoading = false
+                                    }
+                                } else {
+                                    onEmailSignIn(authEmailInput, authPasswordInput) { _, _ ->
+                                        isEmailAuthLoading = false
+                                    }
+                                }
+                            },
+                            enabled = !isEmailAuthLoading && !isGoogleLoading && !uiState.isLoading,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("customer_email_submit_btn"),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.2.dp, GoldPrimary),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = BlackSurface,
+                                contentColor = GoldHighlight
+                            )
+                        ) {
+                            if (isEmailAuthLoading || (uiState.isLoading && !isGoogleLoading)) {
+                                CircularProgressIndicator(
+                                    color = GoldPrimary,
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (isSignUpMode) "Creating Account..." else "Signing In...",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = GoldHighlight
+                                )
+                            } else {
+                                Text(
+                                    text = if (isSignUpMode) "Create Account" else "Sign In with Email",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = GoldHighlight
                                 )
                             }
                         }
@@ -486,7 +773,7 @@ fun ProfileSheet(
                         HorizontalDivider(color = BlackBorder)
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Sign-In Method (Phase 11: Google-Only Authentication)
+                        // Sign-In Method
                         Text(
                             text = "Authentication Method",
                             fontSize = 12.sp,
@@ -494,6 +781,18 @@ fun ProfileSheet(
                             color = TextMain
                         )
                         Spacer(modifier = Modifier.height(6.dp))
+
+                        val authBadgeText = when {
+                            uiState.isGoogleLinked && !uiState.customerEmail.isNullOrBlank() ->
+                                "Verified Google Account (${uiState.customerEmail})"
+                            uiState.isEmailLinked && !uiState.customerEmail.isNullOrBlank() ->
+                                "Verified Email Account (${uiState.customerEmail})"
+                            uiState.isPhoneLinked && !uiState.customerPhone.isNullOrBlank() ->
+                                "Verified Mobile (${uiState.customerPhone})"
+                            !uiState.customerEmail.isNullOrBlank() ->
+                                "Verified Account (${uiState.customerEmail})"
+                            else -> "Verified Customer Account"
+                        }
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -503,13 +802,13 @@ fun ProfileSheet(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Email,
-                                    contentDescription = "Google",
+                                    contentDescription = "Verified Account",
                                     tint = ShopSuccessGreen,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = if (!uiState.customerEmail.isNullOrBlank()) "Verified Google Account (${uiState.customerEmail})" else "Verified Google Account",
+                                    text = authBadgeText,
                                     fontSize = 12.sp,
                                     color = ShopSuccessGreen,
                                     fontWeight = FontWeight.Medium

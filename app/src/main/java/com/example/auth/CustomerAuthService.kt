@@ -10,16 +10,20 @@ import com.google.firebase.FirebaseApiNotAvailableException
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.AuthCredential
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.auth.userProfileChangeRequest
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
@@ -84,14 +88,33 @@ object CustomerAuthService {
 
         Log.e(TAG, "Customer Auth error: ${error.javaClass.simpleName}: ${error.message}", error)
 
+        if (error is FirebaseAuthWeakPasswordException) {
+            return "Password is too weak. Please enter at least 6 characters."
+        }
+
         if (error is FirebaseAuthUserCollisionException) {
-            return "This phone number or email is already associated with another account. Please sign in with that account to access your profile."
+            return "An account with this email or phone number already exists. Please sign in instead."
+        }
+
+        if (error is FirebaseAuthInvalidUserException) {
+            return when (error.errorCode) {
+                "ERROR_USER_DISABLED" ->
+                    "This account has been disabled. Please contact SK Mobile Shoppy and Electronics support."
+                "ERROR_USER_NOT_FOUND" ->
+                    "No account found with this email address. Please create an account or verify your email."
+                else ->
+                    "Account not found. Please check your email address or create a new account."
+            }
         }
 
         if (error is FirebaseAuthInvalidCredentialsException) {
             val code = error.errorCode
             val msg = error.message.orEmpty()
             return when {
+                code == "ERROR_INVALID_EMAIL" ->
+                    "Please enter a valid email address."
+                code == "ERROR_WRONG_PASSWORD" || code == "ERROR_INVALID_CREDENTIAL" ->
+                    "Incorrect email or password. Please double check your credentials and try again."
                 code == "ERROR_INVALID_VERIFICATION_CODE" || msg.contains("verification code", ignoreCase = true) ->
                     "Invalid 6-digit OTP entered. Please check the SMS and try again."
                 code == "ERROR_SESSION_EXPIRED" || msg.contains("expired", ignoreCase = true) ->
@@ -99,12 +122,12 @@ object CustomerAuthService {
                 code == "ERROR_INVALID_PHONE_NUMBER" || msg.contains("phone number", ignoreCase = true) ->
                     "Invalid phone number format. Please enter a valid 10-digit Indian mobile number."
                 else ->
-                    "Invalid verification credentials. Please double check and try again."
+                    "Invalid login credentials. Please double check and try again."
             }
         }
 
         if (error is FirebaseTooManyRequestsException) {
-            return "Too many requests. SMS quota or attempt limit exceeded. Please wait a few minutes before trying again."
+            return "Too many requests. Attempt limit exceeded. Please wait a few minutes before trying again."
         }
 
         if (error is FirebaseNetworkException) {
@@ -118,9 +141,19 @@ object CustomerAuthService {
         if (error is FirebaseAuthException) {
             return when (error.errorCode) {
                 "ERROR_OPERATION_NOT_ALLOWED" ->
-                    "This sign-in provider is not enabled in Firebase Console. Please verify Authentication providers in Firebase Console."
+                    "This sign-in method is not enabled in Firebase Console. Please enable Email/Password & Google under Authentication > Sign-in method."
+                "ERROR_EMAIL_ALREADY_IN_USE" ->
+                    "An account with this email already exists. Please switch to Sign In."
+                "ERROR_WEAK_PASSWORD" ->
+                    "Password is too weak. Please enter at least 6 characters."
+                "ERROR_INVALID_EMAIL" ->
+                    "Please enter a valid email address."
+                "ERROR_WRONG_PASSWORD", "ERROR_INVALID_CREDENTIAL" ->
+                    "Incorrect email or password. Please double check your credentials and try again."
+                "ERROR_USER_NOT_FOUND" ->
+                    "No account found with this email address. Please create an account first."
                 "ERROR_TOO_MANY_REQUESTS" ->
-                    "Too many requests. Please wait a few minutes before requesting another OTP."
+                    "Too many requests. Please wait a few minutes before trying again."
                 "ERROR_SESSION_EXPIRED" ->
                     "OTP expired. Please request a new verification code."
                 "ERROR_INVALID_VERIFICATION_CODE" ->
@@ -134,7 +167,7 @@ object CustomerAuthService {
                     if (msg.contains("network", ignoreCase = true) || msg.contains("timeout", ignoreCase = true)) {
                         "Network connection error. Please check your internet connection."
                     } else if (msg.contains("quota", ignoreCase = true) || msg.contains("too many", ignoreCase = true)) {
-                        "SMS quota or attempt limit reached. Please wait before retrying."
+                        "Attempt limit reached. Please wait a moment before retrying."
                     } else {
                         "Authentication error: ${error.localizedMessage ?: "Please try again."}"
                     }
@@ -273,6 +306,68 @@ object CustomerAuthService {
     }
 
     /**
+     * Sign in customer with Email & Password.
+     */
+    suspend fun signInWithEmailPassword(email: String, password: String): Result<FirebaseUser> {
+        val auth = getFirebaseAuth() ?: return Result.failure(Exception("Firebase Auth unavailable"))
+        return try {
+            val authResult = auth.signInWithEmailAndPassword(email.trim(), password).await()
+            val user = authResult.user ?: return Result.failure(Exception("User is null after sign-in"))
+            syncCustomerProfileToFirestore(user)
+            Result.success(user)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Create a new customer account with Email & Password and optional display name.
+     */
+    suspend fun signUpWithEmailPassword(name: String, email: String, password: String): Result<FirebaseUser> {
+        val auth = getFirebaseAuth() ?: return Result.failure(Exception("Firebase Auth unavailable"))
+        return try {
+            val authResult = auth.createUserWithEmailAndPassword(email.trim(), password).await()
+            val user = authResult.user ?: return Result.failure(Exception("User is null after account creation"))
+            val cleanName = name.trim()
+            if (cleanName.isNotBlank()) {
+                try {
+                    val profileUpdates = userProfileChangeRequest {
+                        displayName = cleanName
+                    }
+                    user.updateProfile(profileUpdates).await()
+                    user.reload().await()
+                } catch (profileErr: Exception) {
+                    Log.w(TAG, "Profile displayName update warning: ${profileErr.message}")
+                }
+            }
+            val finalUser = auth.currentUser ?: user
+            syncCustomerProfileToFirestore(finalUser)
+            Result.success(finalUser)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Send password reset link to customer's email address.
+     */
+    suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
+        val auth = getFirebaseAuth() ?: return Result.failure(Exception("Firebase Auth unavailable"))
+        return try {
+            auth.sendPasswordResetEmail(email.trim()).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Firebase-hosted Google OAuth fallback for devices where Credential Manager cannot obtain a token.
      */
     suspend fun signInWithGoogleProvider(activity: Activity): Result<FirebaseUser> {
@@ -335,12 +430,14 @@ object CustomerAuthService {
 
             val isGoogleLinked = user.providerData.any { it.providerId == GoogleAuthProvider.PROVIDER_ID }
             val isPhoneLinked = user.providerData.any { it.providerId == PhoneAuthProvider.PROVIDER_ID }
+            val isEmailLinked = user.providerData.any { it.providerId == EmailAuthProvider.PROVIDER_ID }
 
             val profileData = mutableMapOf<String, Any>(
                 "uid" to uid,
                 "name" to (user.displayName ?: if (!user.phoneNumber.isNullOrBlank()) "Customer (${user.phoneNumber})" else "Customer"),
                 "isGoogleLinked" to isGoogleLinked,
                 "isPhoneLinked" to isPhoneLinked,
+                "isEmailLinked" to isEmailLinked,
                 "lastLoginAt" to System.currentTimeMillis()
             )
 

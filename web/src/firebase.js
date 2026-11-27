@@ -5,6 +5,10 @@ import {
   onAuthStateChanged, 
   signInWithPopup, 
   GoogleAuthProvider, 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
   signOut 
 } from 'firebase/auth';
 
@@ -51,6 +55,70 @@ export async function signInWithGooglePopup() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
   return await signInWithPopup(auth, provider);
+}
+
+/**
+ * Sign in using Email & Password
+ */
+export async function signInWithEmail(email, password) {
+  return await signInWithEmailAndPassword(auth, (email || '').trim(), password);
+}
+
+/**
+ * Create a new account using Email & Password
+ */
+export async function signUpWithEmail(name, email, password) {
+  const cred = await createUserWithEmailAndPassword(auth, (email || '').trim(), password);
+  const cleanName = (name || '').trim();
+  if (cleanName && cred?.user) {
+    try {
+      await updateProfile(cred.user, { displayName: cleanName });
+    } catch (err) {
+      console.warn('Could not set displayName after signup:', err);
+    }
+  }
+  return cred;
+}
+
+/**
+ * Send password reset email
+ */
+export async function resetPasswordWithEmail(email) {
+  return await sendPasswordResetEmail(auth, (email || '').trim());
+}
+
+/**
+ * Format Firebase Auth error into a user-friendly message
+ */
+export function formatFirebaseAuthError(err) {
+  const code = err?.code || '';
+  switch (code) {
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/user-not-found':
+      return 'No account found with this email address.';
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Incorrect email or password. Please verify your credentials.';
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists. Please sign in instead.';
+    case 'auth/weak-password':
+      return 'Password is too weak. Please enter at least 6 characters.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled. Please contact store support.';
+    case 'auth/operation-not-allowed':
+      return 'Email/Password sign-in is not enabled in Firebase Console (Authentication > Sign-in method).';
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts. Please wait a few minutes before trying again.';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your internet connection.';
+    case 'auth/popup-closed-by-user':
+      return 'Sign-in window was closed before completing.';
+    case 'auth/unauthorized-domain':
+      return 'Current preview domain is not yet whitelisted in Firebase Auth Authorized Domains.';
+    default:
+      return err?.message || 'Authentication failed. Please try again.';
+  }
 }
 
 /**

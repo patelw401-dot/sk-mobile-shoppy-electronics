@@ -155,6 +155,9 @@ private fun SKMobileMainContent(
             },
             onGoogleSignInProvider = { activity, onComplete ->
                 adminViewModel.signInWithGoogleProvider(activity, onComplete)
+            },
+            onEmailPasswordSignIn = { email, password, onComplete ->
+                adminViewModel.signInWithEmailPassword(email, password, onComplete)
             }
         )
         return
@@ -509,6 +512,25 @@ private fun SKMobileMainContent(
             },
             onGoogleSignInError = { error ->
                 shopViewModel.setCustomerAuthError(error)
+            },
+            onEmailSignIn = { email, password, onComplete ->
+                shopViewModel.signInCustomerWithEmail(email, password) { success, error ->
+                    onComplete(success, error)
+                    if (success) {
+                        shopViewModel.setLoginSheetVisible(false)
+                    }
+                }
+            },
+            onEmailSignUp = { name, email, password, onComplete ->
+                shopViewModel.signUpCustomerWithEmail(name, email, password) { success, error ->
+                    onComplete(success, error)
+                    if (success) {
+                        shopViewModel.setLoginSheetVisible(false)
+                    }
+                }
+            },
+            onSendPasswordReset = { email, onComplete ->
+                shopViewModel.sendCustomerPasswordReset(email, onComplete)
             },
             onLogout = { shopViewModel.logoutCustomer() },
             onClearAuthError = { shopViewModel.setCustomerAuthError(null) },
