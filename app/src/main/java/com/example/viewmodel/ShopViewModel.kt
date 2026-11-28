@@ -526,14 +526,15 @@ class ShopViewModel(
     }
 
     fun addToCart(product: Product, quantity: Int = 1) {
+        if (!product.inStock || product.stock <= 0 || quantity <= 0) return
         _uiState.update { state ->
             val existingIndex = state.cartItems.indexOfFirst { it.product.id == product.id }
             val newItems = if (existingIndex != -1) {
                 state.cartItems.mapIndexed { index, item ->
-                    if (index == existingIndex) item.copy(quantity = item.quantity + quantity) else item
+                    if (index == existingIndex) item.copy(quantity = (item.quantity + quantity).coerceAtMost(product.stock)) else item
                 }
             } else {
-                state.cartItems + CartItem(product = product, quantity = quantity)
+                state.cartItems + CartItem(product = product, quantity = quantity.coerceAtMost(product.stock))
             }
             viewModelScope.launch {
                 dataService.saveCart(newItems)
@@ -549,7 +550,8 @@ class ShopViewModel(
         _uiState.update { state ->
             val newItems = state.cartItems.mapNotNull { item ->
                 if (item.product.id == productId) {
-                    val newQty = item.quantity + delta
+                    val available = state.products.find { it.id == productId } ?: item.product
+                    val newQty = if (delta > 0) (item.quantity + delta).coerceAtMost(if (available.inStock) available.stock.coerceAtLeast(0) else 0) else item.quantity + delta
                     if (newQty > 0) item.copy(quantity = newQty) else null
                 } else {
                     item
@@ -634,8 +636,7 @@ class ShopViewModel(
 
         return viewModelScope.launch {
             try {
-                val nextNumber = 1000 + _uiState.value.activeRepairBookings.size + repairCounter.getAndIncrement()
-                val bookingId = "SKM-REP-$nextNumber"
+                val bookingId = "SKM-REP-${java.util.UUID.randomUUID()}"
                 val currentUid = try {
                     FirebaseConfig.getAuth().currentUser?.uid
                 } catch (e: Exception) {
@@ -713,8 +714,7 @@ class ShopViewModel(
         }
         _uiState.update { it.copy(isSubmittingSell = true) }
 
-        val nextNumber = 1000 + _uiState.value.activeSellRequests.size + sellCounter.getAndIncrement()
-        val requestId = "SKM-SELL-$nextNumber"
+        val requestId = "SKM-SELL-${java.util.UUID.randomUUID()}"
         val currentUid = try {
             FirebaseConfig.getAuth().currentUser?.uid
         } catch (e: Exception) {
@@ -786,8 +786,7 @@ class ShopViewModel(
         _uiState.update { it.copy(isSubmittingOrder = true) }
 
         val currentUiState = _uiState.value
-        val nextNumber = 1000 + currentUiState.pastOrders.size + orderCounter.getAndIncrement()
-        val orderId = "SKM-ORD-$nextNumber"
+        val orderId = "SKM-ORD-${java.util.UUID.randomUUID()}"
         val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
         val currentDate = sdf.format(Date())
         val currentUid = try {
@@ -1236,6 +1235,8 @@ class ShopViewModel(
                 customerAuthError = null,
                 userName = "Guest Customer",
                 userPhone = "",
+                userAddress = "",
+                cartItems = emptyList(),
                 pastOrders = emptyList(),
                 customerOrders = emptyList(),
                 selectedOrder = null,
