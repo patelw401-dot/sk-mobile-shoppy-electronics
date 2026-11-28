@@ -825,25 +825,26 @@ class ShopViewModel(
             idempotencyKey = idempotencyKey
         )
 
-        _uiState.update { current ->
-            current.copy(
-                isSubmittingOrder = false,
-                pastOrders = listOf(order) + current.pastOrders,
-                customerOrders = listOf(order) + current.customerOrders,
-                lastConfirmedOrder = order,
-                selectedOrder = order,
-                cartItems = emptyList(),
-                currentScreen = AppScreen.ORDER_SUCCESS,
-                screenStack = current.screenStack + AppScreen.ORDER_SUCCESS,
-                toastMessage = "Order $orderId placed successfully!"
-            )
-        }
         viewModelScope.launch {
             try {
-                dataService.createOrder(order)
-                dataService.clearCart()
+                val saved = dataService.createOrder(order).getOrThrow()
+                if (_uiState.value.customerUid != currentUid) return@launch
+                _uiState.update { current ->
+                    current.copy(
+                        isSubmittingOrder = false,
+                        pastOrders = listOf(saved) + current.pastOrders.filterNot { it.orderId == saved.orderId },
+                        customerOrders = listOf(saved) + current.customerOrders.filterNot { it.orderId == saved.orderId },
+                        lastConfirmedOrder = saved,
+                        selectedOrder = saved,
+                        cartItems = emptyList(),
+                        currentScreen = AppScreen.ORDER_SUCCESS,
+                        screenStack = current.screenStack + AppScreen.ORDER_SUCCESS,
+                        toastMessage = "Order ${saved.orderId} placed successfully!"
+                    )
+                }
+                runCatching { dataService.clearCart() }
             } catch (e: Exception) {
-                Log.w("ShopViewModel", "Order creation offline or network fallback: ${e.message}")
+                _uiState.update { it.copy(isSubmittingOrder = false, toastMessage = "Order could not be confirmed. Please check your orders before retrying.") }
             }
         }
         return order
