@@ -23,6 +23,7 @@ import com.example.model.RepairService
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
 import com.example.model.isOwnedByFirebaseUid
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -111,7 +112,7 @@ class FirestoreDataService(
         // Auth-gated snapshot listeners for admin collections (orders, repairs, oldPhones)
         try {
             val auth = FirebaseConfig.getAuth()
-            auth.addIdTokenListener { fbAuth ->
+            auth.addIdTokenListener(FirebaseAuth.IdTokenListener { fbAuth ->
                 val user = fbAuth.currentUser
                 val session = adminOrders.reset()
                 detachAdminListeners()
@@ -128,7 +129,7 @@ class FirestoreDataService(
                         }
                     }
                 }
-            }
+            })
         } catch (e: Exception) {
             Log.w(TAG, "Auth listener error: ${e.message}")
         }
