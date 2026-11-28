@@ -417,7 +417,7 @@ export const AUTHORIZED_ADMIN_EMAILS = [
  * Check if a Firebase user is an authorized store administrator.
  */
 export function isUserAdmin(user) {
-  if (!user || !user.email) return false;
+  if (!user || !user.email || user.emailVerified !== true) return false;
   return AUTHORIZED_ADMIN_EMAILS.some(
     adminEmail => adminEmail.toLowerCase() === user.email.toLowerCase()
   );
@@ -734,7 +734,7 @@ export async function seedDefaultProductsToFirestore(currentUser, initialItems =
  *     request.resource.data.items is list && request.resource.data.items.size() > 0 &&
  *     request.resource.data.total is int && request.resource.data.total >= 0 &&
  *     request.resource.data.orderStatus in ['Pending', 'Order Confirmed', 'Processing', 'Order Placed'] &&
- *     request.resource.data.paymentStatus in ['Pending', 'Paid']
+ *     request.resource.data.paymentStatus == 'Pending'
  *   );
  * }
  */
