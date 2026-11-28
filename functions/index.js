@@ -108,6 +108,32 @@ function activeAdminRecord(snapshot) {
     (record.isAdmin ?? ['admin', 'superadmin'].includes(record.role)) === true;
 }
 
+// Bind each registry-authorized upload to one object, size and media type.
+exports.createReelUpload = onCall(async request => {
+  const { uid, token } = authenticated(request);
+  const byUid = activeAdminRecord(await db.collection('admins').doc(uid).get());
+  const byEmail = !byUid && token.email_verified === true && token.email &&
+    activeAdminRecord(await db.collection('admins').doc(token.email).get());
+  if (!byUid && !byEmail) throw new HttpsError('permission-denied', 'Active media administrator required.');
+
+  const id = documentId(request.data?.reelId);
+  const { size, contentType } = request.data;
+  if (!Number.isSafeInteger(size) || size < 1 || size >= 50 * 1024 * 1024 ||
+      typeof contentType !== 'string' || !/^video\/[a-z0-9.+-]+$/i.test(contentType)) {
+    throw new HttpsError('invalid-argument', 'Choose a video smaller than 50 MB.');
+  }
+  const downloadToken = require('node:crypto').randomUUID();
+  const file = require('firebase-admin/storage').getStorage().bucket().file(`reels/${id}.mp4`);
+  const [url] = await file.getSignedUrl({
+    version: 'v4', action: 'write', expires: Date.now() + 5 * 60 * 1000, contentType,
+    extensionHeaders: {
+      'content-length': String(size),
+      'x-goog-meta-firebasestoragedownloadtokens': downloadToken
+    }
+  });
+  return { url, downloadToken };
+});
+
 exports.cancelStoreOrder = onCall(async request => {
   const { uid, token } = authenticated(request);
   const ref = db.collection('orders').doc(documentId(request.data?.orderId));

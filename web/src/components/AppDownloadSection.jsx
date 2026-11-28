@@ -31,6 +31,7 @@ function AndroidIcon({ className = "w-5 h-5", size = 20 }) {
 export default function AppDownloadSection({ onShowToast, shopInfo = DEFAULT_SHOP_INFO }) {
   const info = formatShopInfo(shopInfo);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [downloadUrl, setDownloadUrl] = useState(APP_DOWNLOAD_CONFIG.downloadUrl);
   const [latestVersionLabel, setLatestVersionLabel] = useState(APP_DOWNLOAD_CONFIG.version);
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export default function AppDownloadSection({ onShowToast, shopInfo = DEFAULT_SHO
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (active && data?.versionName) {
+          if (data.apkPath?.startsWith("https://github.com/patelw401-dot/sk-mobile-shoppy-electronics/releases/download/")) setDownloadUrl(data.apkPath);
           const clean = String(data.versionName).replace(/^v/i, '').trim();
           if (clean) setLatestVersionLabel(`v${clean}`);
         }
@@ -109,7 +111,7 @@ export default function AppDownloadSection({ onShowToast, shopInfo = DEFAULT_SHO
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-3">
               <a
-                href={APP_DOWNLOAD_CONFIG.downloadUrl}
+                href={downloadUrl}
                 download={APP_DOWNLOAD_CONFIG.fallbackFilename}
                 onClick={handleDownloadClick}
                 className="gold-btn !py-3.5 !px-6 !text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-[#D4AF37]/20 font-black cursor-pointer group no-underline"
@@ -197,7 +199,7 @@ export default function AppDownloadSection({ onShowToast, shopInfo = DEFAULT_SHO
 
                   {/* Bottom App Download CTA inside mockup */}
                   <a
-                    href={APP_DOWNLOAD_CONFIG.downloadUrl}
+                    href={downloadUrl}
                     download={APP_DOWNLOAD_CONFIG.fallbackFilename}
                     onClick={handleDownloadClick}
                     className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#D4AF37]/20 no-underline"

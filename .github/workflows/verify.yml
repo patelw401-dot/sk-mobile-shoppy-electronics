@@ -60,4 +60,4 @@ jobs:
             "configuration_version": "1"
           }
           JSON
-      - run: gradle :app:testDebugUnitTest --no-daemon
+      - run: ./gradlew :app:testDebugUnitTest --no-daemon

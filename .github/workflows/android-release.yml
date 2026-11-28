@@ -133,7 +133,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
           APP_VERSION_CODE: ${{ github.run_number }}
           APP_VERSION_NAME: 1.0.${{ github.run_number }}
-        run: gradle :app:testDebugUnitTest :app:assembleRelease --no-daemon
+        run: ./gradlew :app:testDebugUnitTest :app:assembleRelease --no-daemon
 
       - name: Upload Signed Release APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -157,10 +157,11 @@ jobs:
         with:
           name: sk-mobile-release-apk
           path: release-artifact
-      - name: Publish Signed APK to Website (web/public)
+      - name: Publish versioned APK and update website metadata
         env:
           APP_VERSION_CODE: ${{ github.run_number }}
           APP_VERSION_NAME: 1.0.${{ github.run_number }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -171,7 +172,13 @@ jobs:
           fi
 
           mkdir -p web/public
-          cp -f "${APK_FILE}" web/public/sk-mobile-release.apk
+          mv "$APK_FILE" release-artifact/sk-mobile-release.apk
+          TAG="v$APP_VERSION_NAME"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-artifact/sk-mobile-release.apk --clobber
+          else
+            gh release create "$TAG" release-artifact/sk-mobile-release.apk --target "$GITHUB_SHA" --title "$TAG" --notes "Signed Android release."
+          fi
 
           python3 - <<'PY'
           import json
@@ -182,7 +189,7 @@ jobs:
           payload = {
               "versionCode": version_code,
               "versionName": version_name,
-              "apkPath": "/sk-mobile-release.apk",
+              "apkPath": f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/releases/download/v{version_name}/sk-mobile-release.apk",
               "releaseNotes": "New features and improvements are available."
           }
           with open("web/public/app-version.json", "w", encoding="utf-8") as f:
@@ -192,7 +199,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f web/public/sk-mobile-release.apk web/public/app-version.json
+          git add web/public/app-version.json
 
           if git diff --cached --quiet; then
             echo "Website release APK and app-version.json are unchanged. Skipping commit."

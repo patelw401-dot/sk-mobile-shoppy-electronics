@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import okhttp3.MediaType.Companion.toMediaType
 import java.util.UUID
 
 object FirebaseStorageService {
@@ -57,6 +58,13 @@ object FirebaseStorageService {
         onProgress: (percentage: Int, bytesTransferred: Long, totalBytes: Long) -> Unit
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
+            val user = FirebaseConfig.getAuth().currentUser ?: error("Please sign in again.")
+            val token = user.getIdToken(false).await()
+            val owner = user.isEmailVerified &&
+                com.example.admin.auth.AdminAuthService.AUTHORIZED_ADMIN_GMAILS.contains(user.email?.lowercase())
+            if (!owner && token.claims["admin"] != true) {
+                return@withContext Result.success(uploadRegistryVideo(context, videoUri, reelId, onProgress))
+            }
             // First extract content type or default to video/mp4
             val mimeType = context.contentResolver.getType(videoUri) ?: "video/mp4"
             val ref = storage.reference.child("reels").child("${reelId}.mp4")
@@ -99,6 +107,40 @@ object FirebaseStorageService {
             }
             Result.failure(Exception(cleanMsg, e))
         }
+    }
+
+    private val httpClient by lazy { okhttp3.OkHttpClient() }
+
+    private suspend fun uploadRegistryVideo(
+        context: Context, uri: Uri, reelId: String, onProgress: (Int, Long, Long) -> Unit
+    ): String {
+        val size = validateVideoSize(context, uri).getOrThrow()
+        val type = context.contentResolver.getType(uri) ?: "video/mp4"
+        val ticket = com.google.firebase.functions.FirebaseFunctions.getInstance()
+            .getHttpsCallable("createReelUpload")
+            .call(mapOf("reelId" to reelId, "size" to size, "contentType" to type)).await().data as Map<*, *>
+        val body = object : okhttp3.RequestBody() {
+            override fun contentLength() = size
+            override fun contentType() = type.toMediaType()
+            override fun writeTo(sink: okio.BufferedSink) {
+                requireNotNull(context.contentResolver.openInputStream(uri)).use { stream ->
+                    val buffer = ByteArray(32 * 1024)
+                    var sent = 0L
+                    while (true) {
+                        val count = stream.read(buffer)
+                        if (count < 0) break
+                        sink.write(buffer, 0, count)
+                        sent += count
+                        onProgress((sent * 100 / size).toInt(), sent, size)
+                    }
+                }
+            }
+        }
+        val request = okhttp3.Request.Builder().url(ticket["url"] as String)
+            .header("x-goog-meta-firebasestoragedownloadtokens", ticket["downloadToken"] as String)
+            .put(body).build()
+        httpClient.newCall(request).execute().use { check(it.isSuccessful) { "Upload failed (HTTP ${it.code})." } }
+        return storage.reference.child("reels").child("${reelId}.mp4").downloadUrl.await().toString()
     }
 
     /**
