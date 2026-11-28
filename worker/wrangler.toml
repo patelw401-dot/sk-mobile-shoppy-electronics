@@ -1,0 +1,9 @@
+name = "sk-mobile-staging-backend"
+main = "index.js"
+compatibility_date = "2026-11-28"
+
+[vars]
+FIREBASE_PROJECT_ID = "sk-mobile-staging"
+STAGING_FIREBASE_PROJECT_ID = "sk-mobile-staging"
+FIRESTORE_DATABASE = "(default)"
+ENABLE_STAGING_ORDERS = "false"
