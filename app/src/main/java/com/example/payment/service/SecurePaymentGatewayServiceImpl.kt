@@ -84,25 +84,8 @@ class SecurePaymentGatewayServiceImpl : PaymentGatewayService {
             return Result.success(result)
         }
 
-        // For online gateways: require trusted backend HMAC verification.
-        // If gatewaySignature is empty or invalid, the verification fails securely.
-        if (request.gatewaySignature.isBlank() || request.gatewayPaymentId.isBlank()) {
-            return Result.failure(
-                SecurityException("Payment verification failed: Missing cryptographic gateway signature.")
-            )
-        }
-
-        // Server-side check confirmation simulation
-        val result = PaymentVerificationResult(
-            isVerified = true,
-            orderId = request.orderId,
-            paymentStatus = PaymentStatus.SUCCESSFUL,
-            bankSettlementStatus = BankSettlementStatus.PENDING_SETTLEMENT,
-            message = "Transaction verified by backend signature check.",
-            transactionRef = request.gatewayPaymentId
-        )
-        verifiedPayments[request.idempotencyKey] = result
-        return Result.success(result)
+        // Fail closed until a trusted backend performs real gateway verification.
+        return Result.failure(SecurityException("Online payment verification is unavailable until the payment backend is configured."))
     }
 
     override suspend fun fetchPaymentStatus(orderId: String): Result<PaymentVerificationResult> {
