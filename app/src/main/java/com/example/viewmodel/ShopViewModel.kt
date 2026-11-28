@@ -798,9 +798,9 @@ class ShopViewModel(
 
         val idempotencyKey = "IDEMP_${orderId}_${System.currentTimeMillis()}"
         val isCod = paymentMethod.contains("Cash on Delivery", ignoreCase = true)
-        val initialPaymentStatus = if (isCod) "Pending" else "Paid"
-        val initialSettlementStatus = if (isCod) "Unsettled" else "Pending Settlement"
-        val gatewayRef = if (isCod) "COD-${orderId}" else "GATEWAY-REF-${orderId}"
+        val initialPaymentStatus = "Pending"
+        val initialSettlementStatus = "Unsettled"
+        val gatewayRef = if (isCod) "COD-${orderId}" else ""
 
         val order = ShopOrder(
             orderId = orderId,
