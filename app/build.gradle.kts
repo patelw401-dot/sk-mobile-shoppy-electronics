@@ -16,8 +16,10 @@ android {
     applicationId = "com.aistudio.skmobile.udgirs"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    val envVersionCode = System.getenv("APP_VERSION_CODE")?.trim()?.toIntOrNull()?.takeIf { it > 0 } ?: 1
+    val envVersionName = System.getenv("APP_VERSION_NAME")?.trim()?.takeIf { it.isNotEmpty() } ?: "1.0.0"
+    versionCode = envVersionCode
+    versionName = envVersionName
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

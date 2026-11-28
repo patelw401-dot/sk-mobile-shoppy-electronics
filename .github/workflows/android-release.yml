@@ -6,6 +6,7 @@ on:
       - main
     paths-ignore:
       - 'web/public/sk-mobile-release.apk'
+      - 'web/public/app-version.json'
   workflow_dispatch:
 
 permissions:
@@ -120,6 +121,8 @@ jobs:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
           STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+          APP_VERSION_CODE: ${{ github.run_number }}
+          APP_VERSION_NAME: 1.0.${{ github.run_number }}
         run: gradle :app:assembleRelease --no-daemon
 
       - name: Upload Signed Release APK
@@ -130,6 +133,9 @@ jobs:
           if-no-files-found: error
 
       - name: Publish Signed APK to Website (web/public)
+        env:
+          APP_VERSION_CODE: ${{ github.run_number }}
+          APP_VERSION_NAME: 1.0.${{ github.run_number }}
         run: |
           set -euo pipefail
 
@@ -142,16 +148,33 @@ jobs:
           mkdir -p web/public
           cp -f "${APK_FILE}" web/public/sk-mobile-release.apk
 
+          python3 - <<'PY'
+          import json
+          import os
+
+          version_code = int(os.environ["APP_VERSION_CODE"])
+          version_name = os.environ["APP_VERSION_NAME"]
+          payload = {
+              "versionCode": version_code,
+              "versionName": version_name,
+              "apkPath": "/sk-mobile-release.apk",
+              "releaseNotes": "New features and improvements are available."
+          }
+          with open("web/public/app-version.json", "w", encoding="utf-8") as f:
+              json.dump(payload, f, indent=2)
+              f.write("\n")
+          PY
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f web/public/sk-mobile-release.apk
+          git add -f web/public/sk-mobile-release.apk web/public/app-version.json
 
           if git diff --cached --quiet; then
-            echo "Website release APK is unchanged. Skipping commit."
+            echo "Website release APK and app-version.json are unchanged. Skipping commit."
             exit 0
           fi
 
-          git commit -m "chore(apk): update website release APK"
+          git commit -m "chore(apk): update website release APK (v${APP_VERSION_NAME})"
           if ! git push origin HEAD:main; then
             git fetch origin main
             git rebase --autostash origin/main

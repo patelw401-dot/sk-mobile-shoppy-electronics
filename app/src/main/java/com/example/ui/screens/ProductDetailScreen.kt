@@ -72,80 +72,6 @@ import com.example.ui.theme.LightTextSecondary
 import com.example.ui.theme.ShopPrimaryBlue
 import com.example.ui.theme.ShopSuccessGreen
 
-fun getCategoryAwareDefaultSpecs(categorySlug: String?, brand: String): Map<String, String> {
-    val cat = (categorySlug ?: "").lowercase().replace("_", "-")
-    return when {
-        cat.contains("charger") -> mapOf(
-            "Charging Power" to "65W Max Power Delivery (GaN III)",
-            "Input" to "100-240V ~ 50/60Hz 1.5A Universal",
-            "Output Ports" to "1x Type-C (65W) + 1x USB-A (18W)",
-            "Fast Protocols" to "Supports VOOC, Warp, QC 4.0, PD 3.0 & PPS",
-            "Compatibility" to "Universal for Android, iPhone, Laptops & Tablets",
-            "Safety Cut-off" to "Over-voltage, Over-heating & Short-circuit Protection"
-        )
-        cat.contains("cable") || cat.contains("wire") -> mapOf(
-            "Length" to "1.5 Meters (Extra Long)",
-            "Connector Type" to "Type-C to Type-C / Fast Sync",
-            "Charging Speed" to "100W (20V/5A) Power Delivery",
-            "Data Transfer" to "480 Mbps High Speed Sync",
-            "Build Material" to "Double Ballistic Nylon Braided",
-            "Bend Lifespan" to "30,000+ Bends Lab Tested"
-        )
-        cat.contains("audio") || cat.contains("headphone") || cat.contains("earphone") || cat.contains("neckband") -> mapOf(
-            "Type" to "Wireless In-Ear Neckband / Bluetooth Headset",
-            "Driver Size" to "12.4mm Deep Bass Dynamic Drivers",
-            "Connectivity" to "Bluetooth v5.3 (10m Range)",
-            "Battery Life" to "Up to 30 Hours Playtime",
-            "Fast Charge" to "10 mins charge = 20 hours music",
-            "Microphone" to "Dual Mic AI Noise Cancellation",
-            "Water Resistance" to "IP55 Sweat & Splash Proof"
-        )
-        cat.contains("speaker") -> mapOf(
-            "Output Power" to "16W RMS High-Fidelity Audio",
-            "Playtime" to "12 Hours Continuous Music",
-            "Battery Capacity" to "2600 mAh Built-in Rechargeable",
-            "Bluetooth Version" to "Bluetooth 5.3 + AUX Support",
-            "Waterproof Rating" to "IPX7 Waterproof Protection"
-        )
-        cat.contains("power-bank") || cat.contains("powerbank") || cat.contains("battery") -> mapOf(
-            "Battery Capacity" to "20,000 mAh Li-Polymer",
-            "Output Power" to "22.5W Fast Charging (QC + PD)",
-            "Input Ports" to "Type-C + Micro-USB Dual Input",
-            "Output Ports" to "2x USB-A + 1x Type-C Fast Output",
-            "Protection" to "12-Layer Advanced Smart Circuit Chip"
-        )
-        cat.contains("cover") || cat.contains("case") -> mapOf(
-            "Material" to "Military-Grade TPU + Acrylic Hybrid",
-            "Finish" to "Matte Frosted Anti-Fingerprint Grip",
-            "Shock Protection" to "Air-Cushion Impact Absorbing Corners",
-            "Raised Edges" to "1.5mm Screen Lip & 2.0mm Camera Ring",
-            "Wireless Charging" to "100% Compatible with Qi & MagSafe Chargers"
-        )
-        cat.contains("screen") || cat.contains("guard") || cat.contains("protector") || cat.contains("glass") -> mapOf(
-            "Hardness" to "9H Hardness Shatterproof Tempered Glass",
-            "Glass Type" to "0.33mm 2.5D Curved Edge-to-Edge",
-            "Coating" to "Oleophobic Anti-Fingerprint Coating",
-            "Clarity" to "99.9% Ultra HD Transparency & True Touch",
-            "Installation" to "Bubble-Free Auto-Adhesive Alignment"
-        )
-        cat.contains("old") || cat.contains("pre-owned") -> mapOf(
-            "Condition Grade" to "SK Certified Grade A+ (Like New)",
-            "Quality Check" to "32-Point Rigorous Hardware Diagnosis",
-            "Battery Health" to "Tested ≥ 90% Original Capacity",
-            "Included In Box" to "Device + Fast Charging Cable + Store Warranty Slip",
-            "IMEI Verification" to "100% Clean Verified IMEI with GST Billing"
-        )
-        else -> mapOf(
-            "Display" to "6.7\" FHD+ 120Hz Fluid AMOLED",
-            "Processor" to "High-Efficiency Multi-Core Chipset",
-            "Camera" to "Ultra-Clear High-Resolution Sensor with OIS",
-            "Battery & Charging" to "5000+ mAh with Rapid Super Fast Charge",
-            "Operating System" to "Latest Android with Official Updates",
-            "Connectivity" to "5G Dual SIM, Wi-Fi 6, Bluetooth 5.3"
-        )
-    }
-}
-
 @Composable
 fun ProductDetailScreen(
     product: Product,
@@ -159,6 +85,9 @@ fun ProductDetailScreen(
 ) {
     var selectedImageIndex by remember { mutableIntStateOf(0) }
     val galleryAngles = listOf("Front View", "Back View", "Side Angle", "Package Box")
+    val validSpecifications = remember(product.specifications) {
+        product.specifications.filter { (key, value) -> key.isNotBlank() && value.isNotBlank() }
+    }
 
     Column(
         modifier = modifier
@@ -607,53 +536,49 @@ fun ProductDetailScreen(
                 }
             }
 
-            // Specifications Table
-            item {
-                Spacer(modifier = Modifier.height(14.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Technical Specifications",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = LightTextPrimary
-                        )
+            // Specifications Table (shown only when real specifications exist from Firestore)
+            if (validSpecifications.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Technical Specifications",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LightTextPrimary
+                            )
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
 
-                        val displaySpecs = if (product.specifications.isNotEmpty()) {
-                            product.specifications
-                        } else {
-                            getCategoryAwareDefaultSpecs(product.categorySlug, product.brand)
-                        }
-
-                        displaySpecs.entries.forEachIndexed { index, (key, value) ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(if (index % 2 == 0) Color(0xFFF8FAFC) else Color.White)
-                                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = key,
-                                    fontSize = 12.sp,
-                                    color = LightTextSecondary,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = value,
-                                    fontSize = 12.sp,
-                                    color = LightTextPrimary,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.weight(1.3f)
-                                )
+                            validSpecifications.entries.forEachIndexed { index, (key, value) ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(if (index % 2 == 0) Color(0xFFF8FAFC) else Color.White)
+                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = key,
+                                        fontSize = 12.sp,
+                                        color = LightTextSecondary,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Text(
+                                        text = value,
+                                        fontSize = 12.sp,
+                                        color = LightTextPrimary,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.weight(1.3f)
+                                    )
+                                }
                             }
                         }
                     }
@@ -667,34 +592,36 @@ fun ProductDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Security,
-                                    contentDescription = "Warranty",
-                                    tint = Color(0xFFD97706),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
+                    if (product.hasWarranty) {
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Security,
+                                        contentDescription = "Warranty",
+                                        tint = Color(0xFFD97706),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Warranty",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF92400E)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "Warranty",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = Color(0xFF92400E)
+                                    text = product.warrantyDuration.ifBlank { product.warranty },
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF78350F),
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = product.warranty,
-                                fontSize = 11.sp,
-                                color = Color(0xFF78350F),
-                                fontWeight = FontWeight.Medium
-                            )
                         }
                     }
 

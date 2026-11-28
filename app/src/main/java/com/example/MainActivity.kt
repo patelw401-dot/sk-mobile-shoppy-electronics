@@ -27,6 +27,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.admin.ui.AdminDashboardLayout
 import com.example.admin.ui.AdminLoginScreen
@@ -38,6 +39,9 @@ import com.example.ui.components.AppBottomNavBar
 import com.example.ui.components.AppHeader
 import com.example.ui.components.MobileMenuDrawerSheet
 import com.example.ui.components.ProfileSheet
+import com.example.ui.components.UpdateAvailableDialog
+import com.example.update.AppUpdateChecker
+import com.example.update.AppUpdateInfo
 import com.example.ui.screens.CartScreen
 import com.example.ui.screens.CheckoutScreen
 import com.example.ui.screens.ContactScreen
@@ -113,6 +117,17 @@ private fun SKMobileMainContent(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    var hasCheckedUpdate by rememberSaveable { mutableStateOf(false) }
+    var updateDismissed by rememberSaveable { mutableStateOf(false) }
+    var availableUpdate by remember { mutableStateOf<AppUpdateInfo?>(null) }
+
+    LaunchedEffect(Unit) {
+        if (!hasCheckedUpdate) {
+            hasCheckedUpdate = true
+            availableUpdate = AppUpdateChecker.checkForUpdate(context)
+        }
+    }
 
     LaunchedEffect(shopUiState.toastMessage) {
         shopUiState.toastMessage?.let {
@@ -550,6 +565,23 @@ private fun SKMobileMainContent(
                 shopViewModel.navigateTo(AppScreen.ADMIN_LOGIN)
             },
             onDismiss = { shopViewModel.setLoginSheetVisible(false) }
+        )
+    }
+
+    val pendingUpdate = availableUpdate
+    if (pendingUpdate != null && !updateDismissed) {
+        UpdateAvailableDialog(
+            updateInfo = pendingUpdate,
+            onUpdateNow = {
+                updateDismissed = true
+                val opened = AppUpdateChecker.openApkDownload(context, pendingUpdate.apkUrl)
+                if (!opened) {
+                    shopViewModel.showToast("Unable to open download link. Please visit ${AppUpdateChecker.getConfiguredBaseUrl(context)}")
+                }
+            },
+            onLater = {
+                updateDismissed = true
+            }
         )
     }
 }

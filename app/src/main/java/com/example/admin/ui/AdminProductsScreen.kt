@@ -847,11 +847,7 @@ fun ProductFormDialog(
                     val parsedStock = (stockQuantity.toIntOrNull() ?: 15).coerceAtLeast(0)
                     val effectiveInStock = inStock && parsedStock > 0
 
-                    val resolvedSpecs = if (!initialProduct?.specifications.isNullOrEmpty()) {
-                        initialProduct!!.specifications
-                    } else {
-                        com.example.ui.screens.getCategoryAwareDefaultSpecs(selectedCategorySlug, brand)
-                    }
+                    val resolvedSpecs = initialProduct?.specifications ?: emptyMap()
 
                     val finalImageUrl = imageUrl.trim()
                     val imagesList = if (finalImageUrl.isNotBlank()) {

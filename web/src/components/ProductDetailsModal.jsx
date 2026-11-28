@@ -22,107 +22,6 @@ import {
 } from 'lucide-react';
 import { DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 
-// Fallback category-aware specifications when a product does not have specs populated
-export function getCategoryAwareDefaultSpecs(category, brand = 'SK Mobile') {
-  const cat = (category || '').toLowerCase().replace(/_/g, '-');
-  
-  if (cat.includes('charger')) {
-    return {
-      'Charging Power': '65W Max Power Delivery (GaN)',
-      'Input': '100-240V ~ 50/60Hz 1.5A Universal',
-      'Output Ports': '1x Type-C (PD 3.0) + 1x USB-A (QC 4.0)',
-      'Fast Charging': 'Supports VOOC, Warp, QC, PD 3.0 & PPS',
-      'Compatibility': 'Universal for Android, iPhone, Laptops & Tablets',
-      'Safety Protection': 'Over-voltage, Over-heating & Short-circuit Auto Cut-off'
-    };
-  }
-
-  if (cat.includes('cable') || cat.includes('wire')) {
-    return {
-      'Length': '1.5 Meters (Extra Long & Tangle-Free)',
-      'Connector Type': 'Type-C to Type-C / Fast Sync',
-      'Charging Speed': 'Up to 100W (20V/5A) Power Delivery',
-      'Data Transfer Speed': '480 Mbps High Speed Sync',
-      'Build Material': 'Double Ballistic Nylon Braided + Zinc Alloy',
-      'Bend Lifespan': '30,000+ Bends Lab Tested'
-    };
-  }
-
-  if (cat.includes('audio') || cat.includes('headphone') || cat.includes('earphone') || cat.includes('neckband') || cat.includes('buds')) {
-    return {
-      'Type': 'Wireless In-Ear / Bluetooth Headset',
-      'Driver Size': '12.4mm Deep Bass Dynamic Drivers',
-      'Connectivity': 'Bluetooth v5.3 (10m Range)',
-      'Battery Life': 'Up to 30 Hours Playtime',
-      'Fast Charge': '10 mins charge = 20 hours playback',
-      'Microphone': 'Dual Mic AI Environmental Noise Cancellation',
-      'Water Resistance': 'IP55 Sweat & Splash Proof'
-    };
-  }
-
-  if (cat.includes('speaker') || cat.includes('bluetooth-speaker')) {
-    return {
-      'Output Power': '16W RMS High-Fidelity Stereo Audio',
-      'Playtime': '12 Hours Continuous Music Playback',
-      'Battery Capacity': '2600 mAh Built-in Rechargeable',
-      'Bluetooth Version': 'Bluetooth 5.3 + AUX Support',
-      'Waterproof Rating': 'IPX7 Waterproof Protection',
-      'Features': 'TWS Dual Speaker Pairing & Built-in Mic'
-    };
-  }
-
-  if (cat.includes('power-bank') || cat.includes('powerbank') || cat.includes('battery')) {
-    return {
-      'Battery Capacity': '20,000 mAh Li-Polymer',
-      'Output Power': '22.5W Fast Charging (PD + QC)',
-      'Input Ports': 'Type-C + Micro-USB Dual Input',
-      'Output Ports': '2x USB-A + 1x Type-C Fast Output',
-      'Fast Protocols': 'Quick Charge 3.0, Power Delivery 3.0',
-      'Protection': '12-Layer Advanced Smart Circuit Chip'
-    };
-  }
-
-  if (cat.includes('cover') || cat.includes('case')) {
-    return {
-      'Material': 'Military-Grade TPU + Anti-Yellowing Acrylic Back',
-      'Finish': 'Matte Frosted Anti-Fingerprint Grip',
-      'Shock Protection': 'Air-Cushion Impact Absorbing Corners (8ft Drop Tested)',
-      'Raised Edges': '1.5mm Screen Lip & 2.0mm Camera Ring Shield',
-      'Wireless Charging': '100% Compatible with Qi & MagSafe Chargers'
-    };
-  }
-
-  if (cat.includes('screen') || cat.includes('guard') || cat.includes('protector') || cat.includes('glass')) {
-    return {
-      'Hardness': '9H Hardness Shatterproof Tempered Glass',
-      'Glass Type': '0.33mm Ultra-Thin 2.5D Curved Edge-to-Edge',
-      'Coating': 'Hydrophobic & Oleophobic Anti-Fingerprint Coating',
-      'Clarity': '99.9% Ultra HD Transparency & True Touch Response',
-      'Installation': 'Bubble-Free Auto-Adhesive Alignment'
-    };
-  }
-
-  if (cat.includes('old') || cat.includes('pre-owned') || cat.includes('refurbished')) {
-    return {
-      'Condition Grade': 'SK Certified Grade A+ (Like New, 100% Tested)',
-      'Quality Check': '32-Point Rigorous Hardware & Sensor Inspection',
-      'Battery Health': 'Tested ≥ 90% Original Capacity',
-      'Included In Box': 'Device + Fast Charging Cable + Store Warranty Slip',
-      'IMEI Verification': '100% Clean Verified IMEI with GST Billing'
-    };
-  }
-
-  // Default for smartphones or general gadgets
-  return {
-    'Display': '6.7" Fluid AMOLED / 120Hz Refresh Rate',
-    'Processor': 'High-Efficiency Multi-Core Chipset',
-    'Camera': 'Ultra-Clear High-Resolution Sensor with OIS',
-    'Battery & Charging': '5000+ mAh with Rapid Super Fast Charge',
-    'Operating System': 'Latest Android with Official Updates',
-    'Connectivity': '5G Dual SIM, VoLTE, Wi-Fi 6, Bluetooth 5.3'
-  };
-}
-
 // Sample verified customer reviews
 const SAMPLE_REVIEWS = [
   {
@@ -181,14 +80,20 @@ export default function ProductDetailsModal({
 
   const isOutOfStock = product.inStock === false || (product.stock !== undefined && product.stock <= 0);
 
-  // Specifications resolution: use product's custom specs, or fall back to category-aware template
+  // Specifications resolution: strictly use real non-empty specs from Firestore
   const rawSpecs = product.specs || product.specifications;
-  const resolvedSpecs = useMemo(() => {
-    if (rawSpecs && typeof rawSpecs === 'object' && !Array.isArray(rawSpecs) && Object.keys(rawSpecs).length > 0) {
-      return rawSpecs;
+  const specEntries = useMemo(() => {
+    if (!rawSpecs || typeof rawSpecs !== 'object' || Array.isArray(rawSpecs)) {
+      return [];
     }
-    return getCategoryAwareDefaultSpecs(product.category || product.categorySlug, product.brand);
-  }, [rawSpecs, product.category, product.categorySlug, product.brand]);
+    return Object.entries(rawSpecs).filter(([key, value]) => {
+      const k = String(key ?? '').trim();
+      const v = value !== null && value !== undefined
+        ? (typeof value === 'object' ? JSON.stringify(value) : String(value)).trim()
+        : '';
+      return k.length > 0 && v.length > 0;
+    });
+  }, [rawSpecs]);
 
   // Gallery angles/views
   const galleryViews = [
@@ -556,55 +461,59 @@ export default function ProductDetailsModal({
             </div>
           </div>
 
-          {/* 8. Product Specifications (Category-Aware Dynamic Specs) */}
-          <div className="p-5 rounded-2xl bg-[#141414] border border-[#242424] space-y-3">
-            <div className="flex items-center justify-between border-b border-[#242424] pb-3">
-              <div className="flex items-center gap-2">
-                <Sliders size={18} className="text-[#D4AF37]" />
-                <h3 className="text-sm sm:text-base font-bold text-white">
-                  Technical Specifications
-                </h3>
-              </div>
-              <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
-                Category: {product.category || 'General'}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              {Object.entries(resolvedSpecs && typeof resolvedSpecs === 'object' ? resolvedSpecs : {}).map(([key, value]) => (
-                <div 
-                  key={key} 
-                  className="flex items-center justify-between p-2.5 rounded-lg bg-[#181818] border border-[#222222] hover:border-[#333333] transition"
-                >
-                  <span className="text-gray-400 font-medium">{key}</span>
-                  <span className="text-gray-200 font-bold text-right max-w-[60%] truncate">
-                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                  </span>
+          {/* 8. Product Specifications (shown only when real entries exist from Firestore) */}
+          {specEntries.length > 0 && (
+            <div className="p-5 rounded-2xl bg-[#141414] border border-[#242424] space-y-3">
+              <div className="flex items-center justify-between border-b border-[#242424] pb-3">
+                <div className="flex items-center gap-2">
+                  <Sliders size={18} className="text-[#D4AF37]" />
+                  <h3 className="text-sm sm:text-base font-bold text-white">
+                    Technical Specifications
+                  </h3>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 9 & 10. Warranty & Return Policy Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            
-            {/* 9. Warranty Section */}
-            <div className="p-4 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 space-y-2">
-              <div className="flex items-center gap-2 text-[#D4AF37] font-bold text-sm">
-                <ShieldCheck size={18} />
-                <span>
-                  {product.hasWarranty && product.warrantyDuration
-                    ? `${product.warrantyDuration} Store / Brand Warranty`
-                    : (typeof product.warranty === 'string' && product.warranty.trim()
-                        ? product.warranty 
-                        : '1 Year Store & Brand Warranty')}
+                <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
+                  Category: {product.category || 'General'}
                 </span>
               </div>
-              <p className="text-xs text-gray-300 leading-relaxed">
-                {product.warrantyDescription || 
-                 `100% genuine guaranteed with repair and replacement assistance at ${info.shopName}, ${info.fullAddress}.`}
-              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {specEntries.map(([key, value]) => (
+                  <div 
+                    key={key} 
+                    className="flex items-center justify-between p-2.5 rounded-lg bg-[#181818] border border-[#222222] hover:border-[#333333] transition"
+                  >
+                    <span className="text-gray-400 font-medium">{key}</span>
+                    <span className="text-gray-200 font-bold text-right max-w-[60%] truncate">
+                      {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* 9 & 10. Warranty & Return Policy Grid */}
+          <div className={`grid grid-cols-1 ${product.hasWarranty ? 'sm:grid-cols-2' : ''} gap-4`}>
+            
+            {/* 9. Warranty Section */}
+            {product.hasWarranty && (
+              <div className="p-4 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 space-y-2">
+                <div className="flex items-center gap-2 text-[#D4AF37] font-bold text-sm">
+                  <ShieldCheck size={18} />
+                  <span>
+                    {product.warrantyDuration
+                      ? `${product.warrantyDuration} Store / Brand Warranty`
+                      : (typeof product.warranty === 'string' && product.warranty.trim()
+                          ? product.warranty 
+                          : '1 Year Store & Brand Warranty')}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  {product.warrantyDescription || 
+                   `100% genuine guaranteed with repair and replacement assistance at ${info.shopName}, ${info.fullAddress}.`}
+                </p>
+              </div>
+            )}
 
             {/* 10. Return / Refund Policy */}
             <div className="p-4 rounded-xl bg-[#141414] border border-[#262626] space-y-2">

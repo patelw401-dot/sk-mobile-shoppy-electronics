@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { APP_DOWNLOAD_CONFIG } from '../data/storeData';
 import { DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
 import { 
@@ -31,6 +31,23 @@ function AndroidIcon({ className = "w-5 h-5", size = 20 }) {
 export default function AppDownloadSection({ onShowToast, shopInfo = DEFAULT_SHOP_INFO }) {
   const info = formatShopInfo(shopInfo);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [latestVersionLabel, setLatestVersionLabel] = useState(APP_DOWNLOAD_CONFIG.version);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/app-version.json', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (active && data?.versionName) {
+          const clean = String(data.versionName).replace(/^v/i, '').trim();
+          if (clean) setLatestVersionLabel(`v${clean}`);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleDownloadClick = () => {
     onShowToast?.("Starting SK Mobile Android APK download...", "success");
@@ -67,7 +84,7 @@ export default function AppDownloadSection({ onShowToast, shopInfo = DEFAULT_SHO
             <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-gray-300">
               <span className="px-2.5 py-1 rounded-lg bg-[#1C1C1C] border border-[#2E2E2E] font-mono text-[#D4AF37] font-semibold flex items-center gap-1.5">
                 <FileCheck size={13} />
-                {APP_DOWNLOAD_CONFIG.version}
+                {latestVersionLabel}
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-[#1C1C1C] border border-[#2E2E2E] font-medium flex items-center gap-1.5">
                 <AndroidIcon className="w-3 h-3 text-emerald-400" size={12} />
