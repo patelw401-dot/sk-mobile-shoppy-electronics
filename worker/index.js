@@ -27,7 +27,7 @@ export default {
     if(raw.length>65536)return reply({error:"Request too large"},413);
     const input=JSON.parse(raw);
     const db=await firestore(env);
-    const result=await (url.pathname==="/orders"?createOrder:cancelOrder)(db,claims.sub,input);
+    const result=await (url.pathname==="/orders"?createOrder:cancelOrder)(db,claims.sub,input,claims);
     return reply({data:result});
    }catch{return reply({error:"Order operation failed"},400);}
   }
