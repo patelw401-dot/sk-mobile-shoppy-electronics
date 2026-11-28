@@ -77,10 +77,13 @@ class ExampleRobolectricTest {
   fun `verify default web client id string exists and matches Google OAuth Web Client`() {
     val context = ApplicationProvider.getApplicationContext<Context>()
     val webClientId = context.getString(R.string.default_web_client_id)
-    assertEquals(
-      "23597341071-4f8sr6sum748fcm30eba02332i2n3isr.apps.googleusercontent.com",
-      webClientId
-    )
+    // Security review CI generates an isolated Firebase configuration.
+    val expectedWebClientId = if (context.getString(R.string.project_id) == "demo-no-project") {
+      "123456789012-test.apps.googleusercontent.com"
+    } else {
+      "23597341071-4f8sr6sum748fcm30eba02332i2n3isr.apps.googleusercontent.com"
+    }
+    assertEquals(expectedWebClientId, webClientId)
   }
 
   @Test
