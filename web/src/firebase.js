@@ -152,7 +152,7 @@ export async function fetchFirestoreProducts() {
       const data = doc.data();
       const priceNum = typeof data.price === 'number' ? data.price : (parseInt(data.price, 10) || 0);
       const origPriceNum = typeof data.originalPrice === 'number' ? data.originalPrice : (data.originalPrice ? parseInt(data.originalPrice, 10) : undefined);
-      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? parseInt(data.stock, 10) : 10);
+      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? (parseInt(data.stock, 10) || 0) : 0);
       const inStockBool = data.inStock !== undefined ? Boolean(data.inStock) : stockNum > 0;
 
       items.push({
@@ -224,7 +224,7 @@ export function subscribeToFirestoreProducts(onSuccess, onError) {
       const data = docSnap.data();
       const priceNum = typeof data.price === 'number' ? data.price : (parseInt(data.price, 10) || 0);
       const origPriceNum = typeof data.originalPrice === 'number' ? data.originalPrice : (data.originalPrice ? parseInt(data.originalPrice, 10) : undefined);
-      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? parseInt(data.stock, 10) : 10);
+      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? (parseInt(data.stock, 10) || 0) : 0);
       const inStockBool = data.inStock !== undefined ? Boolean(data.inStock) : stockNum > 0;
       const catSlug = (data.categorySlug || data.category || 'smartphones').toLowerCase();
       const singleImg = data.imageUrl || data.image || data.primaryImage || '';
@@ -525,7 +525,7 @@ export async function fetchAdminProducts() {
       const data = d.data();
       const priceNum = typeof data.price === 'number' ? data.price : (parseInt(data.price, 10) || 0);
       const origPriceNum = typeof data.originalPrice === 'number' ? data.originalPrice : (data.originalPrice ? parseInt(data.originalPrice, 10) : undefined);
-      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? parseInt(data.stock, 10) : 10);
+      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? (parseInt(data.stock, 10) || 0) : 0);
       const inStockBool = data.inStock !== undefined ? Boolean(data.inStock) : stockNum > 0;
 
       items.push({
@@ -589,7 +589,7 @@ export async function saveAdminProductToFirestore(productData, currentUser) {
 
   const origPrice = productData.originalPrice ? (typeof productData.originalPrice === 'number' ? productData.originalPrice : parseFloat(productData.originalPrice)) : null;
   const stock = typeof productData.stock === 'number' ? productData.stock : (parseInt(productData.stock, 10) >= 0 ? parseInt(productData.stock, 10) : 0);
-  const inStock = stock > 0;
+  const inStock = stock > 0 && productData.inStock !== false;
   const discount = origPrice && origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0;
   const hasWarranty = Boolean(productData.hasWarranty);
   const warrantyDuration = hasWarranty ? (productData.warrantyDuration || '').trim() : '';
