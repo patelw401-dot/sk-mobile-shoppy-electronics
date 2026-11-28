@@ -867,7 +867,7 @@ export async function fetchAdminOrders() {
  */
 export async function updateAdminOrderStatus(orderId, newStatus, adminEmail, adminNote = '') {
   if (newStatus === 'Cancelled') {
-    await httpsCallable(orderFunctions, 'cancelStoreOrder')({ orderId, reason: adminNote });
+    await callCustomerOrder('cancelStoreOrder', { orderId, reason: adminNote });
     return true;
   }
   const orderRef = doc(db, 'orders', orderId);
