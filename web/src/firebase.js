@@ -9,6 +9,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile,
   signOut 
 } from 'firebase/auth';
@@ -48,8 +49,9 @@ export const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
 export function subscribeToAuthChanges(callback) {
   let subscribed = true;
   const unsubscribe = onIdTokenChanged(auth, async user => {
-    if (user) await refreshAdminAccess(user);
-    if (subscribed && auth.currentUser === user) callback(user);
+    const allowed = user && (user.emailVerified || !user.providerData.some(p => p.providerId === 'password') || user.providerData.some(p => p.providerId === 'phone'));
+    if (allowed) await refreshAdminAccess(user);
+    if (subscribed && auth.currentUser === user) callback(allowed ? user : null);
   });
   return () => {
     subscribed = false;
@@ -71,8 +73,23 @@ export async function signInWithGooglePopup() {
 /**
  * Sign in using Email & Password
  */
+async function requireVerifiedEmail(user) {
+  try {
+    await user.reload();
+    if (!user.emailVerified) {
+      await sendEmailVerification(user);
+      throw new Error('Verification email sent. Open the link in your inbox or spam folder, then sign in again.');
+    }
+    await user.getIdToken(true);
+  } catch (error) {
+    await signOut(auth);
+    throw error;
+  }
+}
+
 export async function signInWithEmail(email, password) {
   const result = await signInWithEmailAndPassword(auth, (email || '').trim(), password);
+  await requireVerifiedEmail(result.user);
   await refreshAdminAccess(result.user);
   return result;
 }
@@ -90,6 +107,7 @@ export async function signUpWithEmail(name, email, password) {
       console.warn('Could not set displayName after signup:', err);
     }
   }
+  await requireVerifiedEmail(cred.user);
   return cred;
 }
 
