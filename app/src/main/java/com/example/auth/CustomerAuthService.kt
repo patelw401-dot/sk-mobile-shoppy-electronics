@@ -305,11 +305,19 @@ object CustomerAuthService {
         }
     }
 
+    private val verificationSentAt = mutableMapOf<String, Long>()
+
     private suspend fun requireVerifiedEmail(auth: FirebaseAuth, user: FirebaseUser) {
         try {
             user.reload().await()
             if (!user.isEmailVerified) {
+                val now = android.os.SystemClock.elapsedRealtime()
+                val last = verificationSentAt[user.uid]
+                if (last != null && now - last < 60_000L) {
+                    throw IllegalStateException("Check your inbox or wait 60 seconds before requesting another verification email.")
+                }
                 user.sendEmailVerification().await()
+                verificationSentAt[user.uid] = now
                 throw IllegalStateException("Verification email sent. Open the link in your inbox or spam folder, then sign in again.")
             }
             user.getIdToken(true).await()
