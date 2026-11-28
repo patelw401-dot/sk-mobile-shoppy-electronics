@@ -960,13 +960,13 @@ fun ProfileSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Recent Orders (${uiState.pastOrders.size})",
+                    text = "Recent Orders (${uiState.ownedCustomerOrders.size})",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextMain
                 )
 
-                if (uiState.pastOrders.isNotEmpty()) {
+                if (uiState.ownedCustomerOrders.isNotEmpty()) {
                     Text(
                         text = "View All & Track →",
                         fontSize = 12.sp,
@@ -984,14 +984,14 @@ fun ProfileSheet(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (uiState.pastOrders.isEmpty()) {
+            if (uiState.ownedCustomerOrders.isEmpty()) {
                 Text(
                     text = "No previous orders yet. Browse our store for great discounts!",
                     fontSize = 12.sp,
                     color = TextSecondary
                 )
             } else {
-                uiState.pastOrders.take(3).forEach { order ->
+                uiState.ownedCustomerOrders.take(3).forEach { order ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()

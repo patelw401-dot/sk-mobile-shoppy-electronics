@@ -15,6 +15,7 @@ import com.example.model.RepairBooking
 import com.example.model.RepairService
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
+import com.example.model.isOwnedByFirebaseUid
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -113,10 +114,7 @@ class LocalDataService(
 
     override fun observeCustomerOrders(customerId: String): Flow<List<ShopOrder>> {
         return _ordersFlow.map { allOrders ->
-            if (customerId.isBlank()) allOrders else allOrders.filter {
-                it.customerUid.equals(customerId, ignoreCase = true) ||
-                it.customerId.equals(customerId, ignoreCase = true)
-            }
+            allOrders.filter { it.isOwnedByFirebaseUid(customerId) }
         }
     }
 
@@ -125,10 +123,7 @@ class LocalDataService(
     }
 
     override suspend fun getCustomerOrders(customerId: String): List<ShopOrder> = mutex.withLock {
-        if (customerId.isBlank()) _ordersFlow.value else _ordersFlow.value.filter {
-            it.customerUid.equals(customerId, ignoreCase = true) ||
-            it.customerId.equals(customerId, ignoreCase = true)
-        }
+        _ordersFlow.value.filter { it.isOwnedByFirebaseUid(customerId) }
     }
 
     override suspend fun getOrderById(id: String): ShopOrder? = mutex.withLock {
@@ -216,8 +211,7 @@ class LocalDataService(
             ?: return Result.failure(NoSuchElementException("Order with id '$id' not found"))
 
         // Authorization check: only order owner or admin can cancel
-        val isOwner = order.customerUid.equals(customerId, ignoreCase = true) ||
-                      order.customerId.equals(customerId, ignoreCase = true)
+        val isOwner = order.isOwnedByFirebaseUid(customerId)
         if (!isOwner && customerId != "ADMIN") {
             return Result.failure(IllegalStateException("Unauthorized: You can only cancel your own orders."))
         }

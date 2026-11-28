@@ -22,10 +22,13 @@ import com.example.model.RepairBooking
 import com.example.model.RepairService
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
+import com.example.model.isOwnedByFirebaseUid
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.MetadataChanges
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -76,7 +79,7 @@ class FirestoreDataService(
 
     // In-memory state flows for real-time reactivity
     private val _productsFlow = MutableStateFlow<List<Product>>(localStorage.loadProducts().ifEmpty { MockData.products })
-    private val _ordersFlow = MutableStateFlow<List<ShopOrder>>(localStorage.loadOrders())
+    private val adminOrders = AdminOrderCache()
     private val _repairsFlow = MutableStateFlow<List<RepairBooking>>(localStorage.loadRepairBookings())
     private val _oldPhonesFlow = MutableStateFlow<List<SellRequest>>(localStorage.loadSellRequests())
     private val _reelsFlow = MutableStateFlow<List<ReelItem>>(localStorage.loadReels().ifEmpty { MockData.defaultReels })
@@ -96,6 +99,8 @@ class FirestoreDataService(
     private var isSeeding = false
 
     init {
+        // Remove the legacy persisted admin order cache. Admin snapshots now stay in memory.
+        localStorage.clearOrders()
         // Products, Reels, Categories, Repair Pricing, and Shop Info have public read rules, so safe to listen without auth
         setupProductsListener()
         setupReelsListener()
@@ -106,26 +111,22 @@ class FirestoreDataService(
         // Auth-gated snapshot listeners for admin collections (orders, repairs, oldPhones)
         try {
             val auth = FirebaseConfig.getAuth()
-            auth.addAuthStateListener { fbAuth ->
+            auth.addIdTokenListener { fbAuth ->
                 val user = fbAuth.currentUser
+                val session = adminOrders.reset()
+                detachAdminListeners()
                 if (user != null) {
-                    serviceScope.launch {
+                    serviceScope.launch(Dispatchers.Main.immediate) {
                         val isAuthorized = AdminAuthService.verifyAdminAuthorization(user)
+                        if (!adminOrders.isCurrent(session) || fbAuth.currentUser?.uid != user.uid) return@launch
                         if (isAuthorized) {
-                            // Authenticated as verified admin: attach admin listeners & seed products/categories if empty
-                            setupOrdersListener()
+                            setupOrdersListener(user.uid, session)
                             setupRepairsListener()
                             setupOldPhonesListener()
                             checkAndSeedProductsIfAdmin()
                             checkAndSeedCategoriesIfAdmin()
-                        } else {
-                            // Normal customer: detach admin listeners to prevent PERMISSION_DENIED
-                            detachAdminListeners()
                         }
                     }
-                } else {
-                    // Unauthenticated: detach admin listeners to prevent PERMISSION_DENIED
-                    detachAdminListeners()
                 }
             }
         } catch (e: Exception) {
@@ -587,23 +588,21 @@ class FirestoreDataService(
     // -------------------------------------------------------------
     // ORDERS
     // -------------------------------------------------------------
-    private fun setupOrdersListener() {
-        if (FirebaseConfig.getAuth().currentUser == null) return
-        ordersListener?.remove()
+    private fun setupOrdersListener(adminUid: String, session: Long) {
         ordersListener = firestore.collection(COLLECTION_ORDERS)
-            .addSnapshotListener { snapshot, error ->
+            .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, error ->
+                if (!adminOrders.isCurrent(session) || FirebaseConfig.getAuth().currentUser?.uid != adminUid) {
+                    return@addSnapshotListener
+                }
                 if (error != null) {
                     Log.w(TAG, "Orders listener error", error)
-                    if (_ordersFlow.value.isEmpty()) {
-                        _ordersFlow.value = localStorage.loadOrders()
-                    }
+                    adminOrders.replace(session, emptyList())
                     return@addSnapshotListener
                 }
 
-                if (snapshot != null) {
-                    val orderList = snapshot.documents.mapNotNull { parseShopOrder(it) }
-                    _ordersFlow.value = orderList
-                    localStorage.saveOrders(orderList)
+                // An SDK cache snapshot can contain orders fetched by a previous admin.
+                if (snapshot != null && !snapshot.metadata.isFromCache) {
+                    adminOrders.replace(session, snapshot.documents.mapNotNull { parseShopOrder(it) })
                 }
             }
     }
@@ -616,14 +615,16 @@ class FirestoreDataService(
             val address = doc.getString("address") ?: ""
             val city = doc.getString("city") ?: ""
             val state = doc.getString("state") ?: ""
-            val pinCode = doc.getString("pinCode") ?: ""
+            val pinCode = firstOrderText(doc.get("pinCode"), doc.get("pincode"))
+            val createdAt = orderTimestampMillis(doc.get("createdAt")) ?: orderTimestampMillis(doc.get("timestamp"))
             val subtotal = doc.getLong("subtotal")?.toInt() ?: 0
             val deliveryFee = doc.getLong("deliveryCharge")?.toInt() ?: 0
             val totalAmount = doc.getLong("total")?.toInt() ?: (subtotal + deliveryFee)
-            val deliveryOption = doc.getString("deliveryMethod") ?: "Standard Delivery"
+            val deliveryOption = firstOrderText(doc.get("deliveryMethod"), doc.get("deliveryType"))
+                .ifBlank { "Standard Delivery" }
             val paymentMethod = doc.getString("paymentMethod") ?: "Cash on Delivery"
             val status = doc.getString("orderStatus") ?: "Pending"
-            val orderDate = doc.getString("orderDate") ?: "Today"
+            val orderDate = formatOrderDate(doc.getString("orderDate"), createdAt)
 
             // Reconstruct cart items if available
             val rawItems = doc.get("items") as? List<Map<String, Any>>
@@ -668,7 +669,7 @@ class FirestoreDataService(
             val idempKey = doc.getString("idempotencyKey").orEmpty()
             val custUid = doc.getString("customerId").orEmpty()
             val tStatus = doc.getString("paymentStatus").orEmpty()
-            val lastUpdated = doc.getLong("updatedAt") ?: doc.getLong("createdAt") ?: System.currentTimeMillis()
+            val lastUpdated = orderTimestampMillis(doc.get("updatedAt")) ?: createdAt ?: System.currentTimeMillis()
             val cancellationReason = doc.getString("cancellationReason")
             val trackingNumber = doc.getString("trackingNumber")
             val estimatedDeliveryDate = doc.getString("estimatedDeliveryDate")
@@ -680,7 +681,7 @@ class FirestoreDataService(
                 listOf(
                     OrderStatusHistoryEntry(
                         status = if (status.isNotBlank()) status else "Order Placed",
-                        timestamp = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                        timestamp = createdAt ?: System.currentTimeMillis(),
                         note = "Order placed successfully",
                         updatedBy = "Customer"
                     )
@@ -723,55 +724,48 @@ class FirestoreDataService(
         }
     }
 
-    override fun observeOrders(): Flow<List<ShopOrder>> = _ordersFlow.asStateFlow()
+    override fun observeOrders(): Flow<List<ShopOrder>> = adminOrders.orders
 
     override fun observeCustomerOrders(customerId: String): Flow<List<ShopOrder>> = callbackFlow {
-        if (customerId.isBlank()) {
+        if (customerId.isBlank() || FirebaseConfig.getAuth().currentUser?.uid != customerId) {
             trySend(emptyList())
-            awaitClose { }
+            close()
             return@callbackFlow
         }
 
         val listener = firestore.collection(COLLECTION_ORDERS)
             .whereEqualTo("customerId", customerId)
             .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Log.w(TAG, "observeCustomerOrders error: ${error.message}", error)
-                    val localOrders = localStorage.loadOrders().filter {
-                        it.customerUid.equals(customerId, ignoreCase = true) ||
-                        it.customerId.equals(customerId, ignoreCase = true)
-                    }
-                    trySend(localOrders)
+                if (FirebaseConfig.getAuth().currentUser?.uid != customerId) {
+                    close()
                     return@addSnapshotListener
                 }
-                val orders = snapshot?.documents?.mapNotNull { parseShopOrder(it) } ?: emptyList()
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                val orders = snapshot?.documents.orEmpty()
+                    .mapNotNull { parseShopOrder(it) }
+                    .filter { it.isOwnedByFirebaseUid(customerId) }
                 trySend(orders)
             }
 
         awaitClose { listener.remove() }
     }
 
-    override suspend fun getOrders(): List<ShopOrder> = _ordersFlow.value
+    override suspend fun getOrders(): List<ShopOrder> = adminOrders.orders.value
 
     override suspend fun getCustomerOrders(customerId: String): List<ShopOrder> {
-        if (customerId.isBlank()) return emptyList()
-        return try {
-            val snapshot = firestore.collection(COLLECTION_ORDERS)
-                .whereEqualTo("customerId", customerId)
-                .get()
-                .await()
-            val orders = snapshot.documents.mapNotNull { parseShopOrder(it) }
-            orders
-        } catch (e: Exception) {
-            Log.w(TAG, "getCustomerOrders failed from Firestore, falling back to local storage", e)
-            localStorage.loadOrders().filter {
-                it.customerUid.equals(customerId, ignoreCase = true) ||
-                it.customerId.equals(customerId, ignoreCase = true)
-            }
-        }
+        if (customerId.isBlank() || FirebaseConfig.getAuth().currentUser?.uid != customerId) return emptyList()
+        val snapshot = firestore.collection(COLLECTION_ORDERS)
+            .whereEqualTo("customerId", customerId)
+            .get().await()
+        if (FirebaseConfig.getAuth().currentUser?.uid != customerId) return emptyList()
+        return snapshot.documents.mapNotNull { parseShopOrder(it) }
+            .filter { it.isOwnedByFirebaseUid(customerId) }
     }
 
-    override suspend fun getOrderById(id: String): ShopOrder? = _ordersFlow.value.find { it.id == id }
+    override suspend fun getOrderById(id: String): ShopOrder? = adminOrders.orders.value.find { it.id == id }
 
     override suspend fun createOrder(order: ShopOrder): Result<ShopOrder> {
         return try {
@@ -869,6 +863,7 @@ class FirestoreDataService(
             updatedBy = updatedBy
         )
 
+        val previousOrder = adminOrders.orders.value.find { it.id == id }
         return try {
             val docRef = firestore.collection(COLLECTION_ORDERS).document(id)
             docRef.update(
@@ -879,11 +874,10 @@ class FirestoreDataService(
                 )
             ).await()
 
-            val existing = _ordersFlow.value.find { it.id == id }
-            val updated = existing?.copy(
+            val updated = previousOrder?.copy(
                 status = status,
                 lastUpdated = System.currentTimeMillis(),
-                statusHistory = existing.statusHistory + newEntry
+                statusHistory = previousOrder.statusHistory + newEntry
             ) ?: ShopOrder(
                 orderId = id,
                 items = emptyList(),
@@ -902,10 +896,6 @@ class FirestoreDataService(
                 lastUpdated = System.currentTimeMillis()
             )
 
-            val list = _ordersFlow.value.map { if (it.id == id) updated else it }
-            _ordersFlow.value = list
-            localStorage.saveOrders(list)
-
             val custId = updated.customerUid.ifBlank { updated.customerId }
             if (custId.isNotBlank()) {
                 val notif = AppNotification.createOrderNotification(updated.orderId, custId, status, updated.orderDate)
@@ -913,80 +903,54 @@ class FirestoreDataService(
             }
             Result.success(updated)
         } catch (e: Exception) {
-            Log.e(TAG, "updateOrderStatusWithHistory failed in Firestore, updating locally", e)
-            val existing = _ordersFlow.value.find { it.id == id }
-            if (existing != null) {
-                val updated = existing.copy(
-                    status = status,
-                    lastUpdated = System.currentTimeMillis(),
-                    statusHistory = existing.statusHistory + newEntry
-                )
-                val list = _ordersFlow.value.map { if (it.id == id) updated else it }
-                _ordersFlow.value = list
-                localStorage.saveOrders(list)
-                val custId = updated.customerUid.ifBlank { updated.customerId }
-                if (custId.isNotBlank()) {
-                    val notif = AppNotification.createOrderNotification(updated.orderId, custId, status, updated.orderDate)
-                    serviceScope.launch { createNotification(notif) }
-                }
-                Result.success(updated)
-            } else {
-                Result.failure(e)
-            }
+            Log.e(TAG, "updateOrderStatusWithHistory failed in Firestore", e)
+            Result.failure(e)
         }
     }
 
     override suspend fun cancelOrder(id: String, reason: String, customerId: String): Result<ShopOrder> {
-        val existing = _ordersFlow.value.find { it.id == id }
-        if (existing != null) {
-            val isOwner = existing.customerUid.equals(customerId, ignoreCase = true) ||
-                          existing.customerId.equals(customerId, ignoreCase = true)
-            if (!isOwner && customerId != "ADMIN") {
-                return Result.failure(IllegalStateException("Unauthorized: You can only cancel your own orders."))
+        if (customerId.isBlank() || FirebaseConfig.getAuth().currentUser?.uid != customerId) {
+            return Result.failure(IllegalStateException("Sign in to cancel your order."))
+        }
+
+        return try {
+            val docRef = firestore.collection(COLLECTION_ORDERS).document(id)
+            val existing = parseShopOrder(docRef.get(Source.SERVER).await())
+                ?: return Result.failure(NoSuchElementException("Order $id not found"))
+            if (!existing.isOwnedByFirebaseUid(customerId) ||
+                FirebaseConfig.getAuth().currentUser?.uid != customerId
+            ) {
+                return Result.failure(IllegalStateException("You can only cancel your own orders."))
             }
             if (existing.isDelivered) {
                 return Result.failure(IllegalStateException("Delivered orders cannot be cancelled."))
             }
-        }
 
-        val newEntry = OrderStatusHistoryEntry(
-            status = "Cancelled",
-            timestamp = System.currentTimeMillis(),
-            note = if (reason.isNotBlank()) "Cancelled by customer: $reason" else "Cancelled by customer",
-            updatedBy = if (customerId == "ADMIN") "Admin" else "Customer"
-        )
-
-        return try {
-            val docRef = firestore.collection(COLLECTION_ORDERS).document(id)
+            val newEntry = OrderStatusHistoryEntry(
+                status = "Cancelled",
+                timestamp = System.currentTimeMillis(),
+                note = if (reason.isNotBlank()) "Cancelled by customer: $reason" else "Cancelled by customer",
+                updatedBy = "Customer"
+            )
             docRef.update(
                 mapOf(
                     "orderStatus" to "Cancelled",
                     "cancellationReason" to reason,
-                    "updatedAt" to System.currentTimeMillis(),
+                    "updatedAt" to newEntry.timestamp,
                     "statusHistory" to FieldValue.arrayUnion(newEntry.toMap())
                 )
             ).await()
 
-            val updated = existing?.copy(
+            val updated = existing.copy(
                 status = "Cancelled",
                 cancellationReason = reason,
-                lastUpdated = System.currentTimeMillis(),
+                lastUpdated = newEntry.timestamp,
                 statusHistory = existing.statusHistory + newEntry
             )
-
-            if (updated != null) {
-                val list = _ordersFlow.value.map { if (it.id == id) updated else it }
-                _ordersFlow.value = list
-                localStorage.saveOrders(list)
-                val custId = updated.customerUid.ifBlank { updated.customerId }
-                if (custId.isNotBlank()) {
-                    val notif = AppNotification.createOrderNotification(updated.orderId, custId, "Cancelled", updated.orderDate)
-                    serviceScope.launch { createNotification(notif) }
-                }
-                Result.success(updated)
-            } else {
-                Result.failure(NoSuchElementException("Order $id not found"))
+            serviceScope.launch {
+                createNotification(AppNotification.createOrderNotification(id, customerId, "Cancelled", updated.orderDate))
             }
+            Result.success(updated)
         } catch (e: Exception) {
             Log.e(TAG, "cancelOrder failed in Firestore", e)
             Result.failure(e)

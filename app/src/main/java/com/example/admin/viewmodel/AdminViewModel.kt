@@ -97,13 +97,7 @@ class AdminViewModel(
                 CategoryRecord("CAT-7", "Bluetooth", "bluetooth", ProductCategory.BLUETOOTH, true, 3),
                 CategoryRecord("CAT-8", "Accessories", "accessories", ProductCategory.ACCESSORIES, true, 3)
             ),
-            reviews = MockData.customerReviews.map { AdminReviewRecord(it, isApproved = true) },
-            payments = listOf(
-                PaymentRecord("PAY-1001", "SKM-ORD-1001", "Sachin Patil", 24999, "UPI", "Paid", "Today, 11:32 AM"),
-                PaymentRecord("PAY-1002", "SKM-ORD-1002", "Ganesh Kulkarni", 1998, "Cash on Delivery", "Pending", "Today, 09:15 AM"),
-                PaymentRecord("PAY-1003", "SKM-ORD-1003", "Pooja Shinde", 28499, "Online Payment", "Paid", "Yesterday, 04:46 PM"),
-                PaymentRecord("PAY-1004", "SKM-REP-1001", "Ramesh Kumar", 2499, "UPI", "Paid", "Today, 02:10 PM")
-            )
+            reviews = MockData.customerReviews.map { AdminReviewRecord(it, isApproved = true) }
         )
     )
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
@@ -137,23 +131,19 @@ class AdminViewModel(
         // Collect orders and derive payment transaction records dynamically
         viewModelScope.launch {
             dataService.observeOrders().collect { orders ->
-                val dynamicPayments = if (orders.isNotEmpty()) {
-                    orders.mapIndexed { index, order ->
-                        PaymentRecord(
-                            paymentId = if (order.paymentGatewayRef.isNotBlank()) order.paymentGatewayRef else "PAY-${1000 + index}",
-                            orderId = order.orderId,
-                            customerName = order.customerName,
-                            amount = order.totalAmount,
-                            method = order.paymentMethod,
-                            status = order.paymentStatus,
-                            date = order.orderDate,
-                            settlementStatus = order.bankSettlementStatus,
-                            transactionRef = order.paymentGatewayRef,
-                            idempotencyKey = order.idempotencyKey
-                        )
-                    }
-                } else {
-                    _uiState.value.payments
+                val dynamicPayments = orders.mapIndexed { index, order ->
+                    PaymentRecord(
+                        paymentId = if (order.paymentGatewayRef.isNotBlank()) order.paymentGatewayRef else "PAY-${1000 + index}",
+                        orderId = order.orderId,
+                        customerName = order.customerName,
+                        amount = order.totalAmount,
+                        method = order.paymentMethod,
+                        status = order.paymentStatus,
+                        date = order.orderDate,
+                        settlementStatus = order.bankSettlementStatus,
+                        transactionRef = order.paymentGatewayRef,
+                        idempotencyKey = order.idempotencyKey
+                    )
                 }
                 _uiState.update { it.copy(orders = orders, payments = dynamicPayments) }
             }
@@ -428,6 +418,8 @@ class AdminViewModel(
                 isAuthenticated = false,
                 currentTab = AdminTab.DASHBOARD,
                 adminEmail = null,
+                orders = emptyList(),
+                payments = emptyList(),
                 toastMessage = "You have logged out of the Admin Portal."
             )
         }

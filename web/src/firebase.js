@@ -1,3 +1,4 @@
+import { fulfillmentStatusUpdate, normalizeOrderFields, orderCreatedAtMillis } from './orderFields.js';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { 
@@ -799,9 +800,11 @@ export async function createCustomerOrderInFirestore(orderData, currentUser) {
     customerName,
     phone,
     address,
+    pinCode: pincode || '413517',
     pincode: pincode || '413517',
     city: (orderData.city || 'Udgir').trim(),
     state: (orderData.state || 'Maharashtra').trim(),
+    deliveryMethod: orderData.deliveryType || 'Store Pickup (Udgir Showroom)',
     deliveryType: orderData.deliveryType || 'Store Pickup (Udgir Showroom)',
     paymentMethod: orderData.paymentMethod || 'Cash on Delivery (COD)',
     paymentStatus: 'Pending',
@@ -833,13 +836,9 @@ export async function fetchCustomerOrders(currentUser) {
     const snap = await getDocs(q);
     const list = [];
     snap.forEach(d => {
-      list.push({ id: d.id, ...d.data() });
+      list.push(normalizeOrderFields({ ...d.data(), id: d.id }));
     });
-    return list.sort((a, b) => {
-      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
-      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
-      return timeB - timeA;
-    });
+    return list.sort((a, b) => (orderCreatedAtMillis(b) ?? 0) - (orderCreatedAtMillis(a) ?? 0));
   } catch (err) {
     console.error("fetchCustomerOrders error:", err);
     return [];
@@ -871,13 +870,9 @@ export async function fetchAdminOrders() {
     const snap = await getDocs(ordersRef);
     const list = [];
     snap.forEach(d => {
-      list.push({ id: d.id, ...d.data() });
+      list.push(normalizeOrderFields({ ...d.data(), id: d.id }));
     });
-    return list.sort((a, b) => {
-      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
-      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
-      return timeB - timeA;
-    });
+    return list.sort((a, b) => (orderCreatedAtMillis(b) ?? 0) - (orderCreatedAtMillis(a) ?? 0));
   } catch (err) {
     console.error("fetchAdminOrders error:", err);
     throw err;
@@ -890,18 +885,7 @@ export async function fetchAdminOrders() {
  */
 export async function updateAdminOrderStatus(orderId, newStatus, adminEmail, adminNote = '') {
   const orderRef = doc(db, 'orders', orderId);
-  const updates = {
-    orderStatus: newStatus,
-    status: newStatus,
-    lastUpdatedBy: adminEmail || 'Store Admin',
-    updatedAt: serverTimestamp()
-  };
-  if (adminNote) {
-    updates.adminNote = adminNote;
-  }
-  if (newStatus === 'Delivered') {
-    updates.paymentStatus = 'Paid';
-  }
+  const updates = fulfillmentStatusUpdate(newStatus, adminEmail, serverTimestamp(), adminNote);
   await updateDoc(orderRef, updates);
   return true;
 }

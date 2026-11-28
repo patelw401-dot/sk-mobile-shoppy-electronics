@@ -22,6 +22,7 @@ import com.example.model.RepairBooking
 import com.example.model.RepairService
 import com.example.model.SellRequest
 import com.example.model.ShopOrder
+import com.example.model.isOwnedByFirebaseUid
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
@@ -29,6 +30,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -83,7 +85,6 @@ data class ShopUiState(
     val preselectedRepairBrand: String = "Apple",
     val activeRepairBookings: List<RepairBooking> = emptyList(),
     val activeSellRequests: List<SellRequest> = emptyList(),
-    val pastOrders: List<ShopOrder> = emptyList(),
     val customerOrders: List<ShopOrder> = emptyList(),
     val selectedOrder: ShopOrder? = null,
     val isOrdersLoading: Boolean = false,
@@ -123,6 +124,15 @@ data class ShopUiState(
     val currentReelIndex: Int = 0,
     val isReelMuted: Boolean = false
 ) {
+    val ownedCustomerOrders: List<ShopOrder>
+        get() = customerOrders.filter { it.isOwnedByFirebaseUid(customerUid) }
+
+    val ownedConfirmedOrder: ShopOrder?
+        get() = lastConfirmedOrder?.takeIf { it.isOwnedByFirebaseUid(customerUid) }
+
+    val ownedSelectedOrder: ShopOrder?
+        get() = selectedOrder?.takeIf { it.isOwnedByFirebaseUid(customerUid) }
+
     val unreadNotificationCount: Int
         get() = notifications.count { !it.isRead }
 
@@ -202,25 +212,28 @@ class ShopViewModel(
     fun observeCustomerOrders(uid: String?) {
         customerOrdersJob?.cancel()
         if (uid.isNullOrBlank()) {
-            _uiState.update { it.copy(customerOrders = emptyList()) }
+            _uiState.update { it.copy(customerOrders = emptyList(), isOrdersLoading = false) }
             return
         }
         customerOrdersJob = viewModelScope.launch {
             _uiState.update { it.copy(isOrdersLoading = true, ordersErrorMessage = null) }
             try {
                 dataService.observeCustomerOrders(uid).collect { orders ->
-                    _uiState.update { current ->
-                        current.copy(
-                            customerOrders = orders,
-                            pastOrders = orders,
-                            isOrdersLoading = false,
-                            ordersErrorMessage = null
-                        )
+                    if (_uiState.value.customerUid != uid) return@collect
+                    val ownedOrders = orders.filter { it.isOwnedByFirebaseUid(uid) }
+                    _uiState.update {
+                        it.copy(customerOrders = ownedOrders, isOrdersLoading = false, ordersErrorMessage = null)
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.w("ShopViewModel", "Error observing customer orders: ${e.message}", e)
-                _uiState.update { it.copy(isOrdersLoading = false, ordersErrorMessage = e.message) }
+                if (_uiState.value.customerUid == uid) {
+                    _uiState.update {
+                        it.copy(customerOrders = emptyList(), isOrdersLoading = false, ordersErrorMessage = e.message)
+                    }
+                }
             }
         }
     }
@@ -264,34 +277,6 @@ class ShopViewModel(
         viewModelScope.launch {
             dataService.observeSettings().collect { info ->
                 _uiState.update { it.copy(shopInfo = info) }
-            }
-        }
-
-        // Collect orders & detect customer order status updates
-        viewModelScope.launch {
-            dataService.observeOrders().collect { orders ->
-                _uiState.update { it.copy(pastOrders = orders) }
-
-                val currentUid = _uiState.value.customerUid
-                if (!currentUid.isNullOrBlank()) {
-                    for (order in orders) {
-                        val orderCust = order.customerUid.ifBlank { order.customerId }
-                        if (orderCust == currentUid && order.status.isNotBlank()) {
-                            val transitionKey = "ORD_${order.orderId}_${order.status.uppercase()}"
-                            if (notifiedTransitions.add(transitionKey)) {
-                                val notif = AppNotification.createOrderNotification(
-                                    orderId = order.orderId,
-                                    customerId = currentUid,
-                                    status = order.status,
-                                    orderDate = order.orderDate
-                                )
-                                viewModelScope.launch {
-                                    dataService.createNotification(notif)
-                                }
-                            }
-                        }
-                    }
-                }
             }
         }
 
@@ -359,6 +344,9 @@ class ShopViewModel(
                         current.copy(
                             isCustomerAuthenticated = true,
                             customerUid = user.uid,
+                            customerOrders = if (current.customerUid == user.uid) current.customerOrders else emptyList(),
+                            selectedOrder = current.selectedOrder?.takeIf { it.isOwnedByFirebaseUid(user.uid) },
+                            lastConfirmedOrder = current.lastConfirmedOrder?.takeIf { it.isOwnedByFirebaseUid(user.uid) },
                             customerEmail = user.email,
                             customerPhone = user.phoneNumber,
                             customerPhotoUrl = user.photoUrl?.toString(),
@@ -386,6 +374,7 @@ class ShopViewModel(
                             notifications = emptyList(),
                             customerOrders = emptyList(),
                             selectedOrder = null,
+                            lastConfirmedOrder = null,
                             customerAuthError = null
                         )
                     }
@@ -832,7 +821,6 @@ class ShopViewModel(
                 _uiState.update { current ->
                     current.copy(
                         isSubmittingOrder = false,
-                        pastOrders = listOf(saved) + current.pastOrders.filterNot { it.orderId == saved.orderId },
                         customerOrders = listOf(saved) + current.customerOrders.filterNot { it.orderId == saved.orderId },
                         lastConfirmedOrder = saved,
                         selectedOrder = saved,
@@ -1238,7 +1226,6 @@ class ShopViewModel(
                 userPhone = "",
                 userAddress = "",
                 cartItems = emptyList(),
-                pastOrders = emptyList(),
                 customerOrders = emptyList(),
                 selectedOrder = null,
                 activeRepairBookings = emptyList(),
@@ -1358,67 +1345,50 @@ class ShopViewModel(
     // --- CUSTOMER ORDER TRACKING ---
 
     fun selectOrderForDetail(order: ShopOrder) {
+        if (!order.isOwnedByFirebaseUid(_uiState.value.customerUid)) return
         _uiState.update { it.copy(selectedOrder = order) }
         navigateTo(AppScreen.ORDER_DETAIL)
     }
 
     fun navigateToOrderTracking(orderId: String) {
-        val found = _uiState.value.customerOrders.find { it.orderId == orderId }
-            ?: _uiState.value.pastOrders.find { it.orderId == orderId }
+        val state = _uiState.value
+        val found = state.ownedCustomerOrders.find { it.orderId == orderId }
+            ?: state.ownedConfirmedOrder?.takeIf { it.orderId == orderId }
         if (found != null) {
             selectOrderForDetail(found)
         } else {
-            viewModelScope.launch {
-                val order = dataService.getOrderById(orderId)
-                if (order != null) {
-                    selectOrderForDetail(order)
-                } else {
-                    showToast("Order #$orderId not found")
-                }
-            }
+            showToast("Order #$orderId not found")
         }
     }
 
     fun refreshCustomerOrders() {
-        val uid = _uiState.value.customerUid
+        val uid = _uiState.value.customerUid ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isOrdersLoading = true, ordersErrorMessage = null) }
             try {
-                val orders = if (!uid.isNullOrBlank()) {
-                    dataService.getCustomerOrders(uid)
-                } else {
-                    val currentPhone = _uiState.value.userPhone
-                    val currentName = _uiState.value.userName
-                    dataService.getOrders().filter {
-                        (currentPhone.isNotBlank() && it.mobileNumber == currentPhone) ||
-                        (currentName.isNotBlank() && it.customerName.equals(currentName, ignoreCase = true))
-                    }
-                }
+                val orders = dataService.getCustomerOrders(uid).filter { it.isOwnedByFirebaseUid(uid) }
+                if (_uiState.value.customerUid != uid) return@launch
                 _uiState.update {
-                    it.copy(
-                        customerOrders = orders,
-                        pastOrders = orders,
-                        isOrdersLoading = false,
-                        ordersErrorMessage = null
-                    )
+                    it.copy(customerOrders = orders, isOrdersLoading = false, ordersErrorMessage = null)
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
+                if (_uiState.value.customerUid != uid) return@launch
                 Log.w("ShopViewModel", "refreshCustomerOrders error", e)
                 _uiState.update {
-                    it.copy(
-                        isOrdersLoading = false,
-                        ordersErrorMessage = e.message ?: "Failed to refresh orders"
-                    )
+                    it.copy(isOrdersLoading = false, ordersErrorMessage = e.message ?: "Failed to refresh orders")
                 }
             }
         }
     }
 
     fun cancelCustomerOrder(orderId: String, reason: String) {
-        val uid = _uiState.value.customerUid ?: "CUSTOMER"
+        val uid = _uiState.value.customerUid ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isOrdersLoading = true) }
             val result = dataService.cancelOrder(orderId, reason, uid)
+            if (_uiState.value.customerUid != uid) return@launch
             result.fold(
                 onSuccess = { cancelledOrder ->
                     showToast("Order #${cancelledOrder.orderId} cancelled.")
@@ -1427,7 +1397,6 @@ class ShopViewModel(
                         val currentSelected = if (current.selectedOrder?.orderId == orderId) cancelledOrder else current.selectedOrder
                         current.copy(
                             customerOrders = updatedList,
-                            pastOrders = updatedList,
                             selectedOrder = currentSelected,
                             isOrdersLoading = false
                         )

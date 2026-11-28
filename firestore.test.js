@@ -264,6 +264,32 @@ test("Admin user can read and manage orders, repair bookings, and catalog", asyn
   );
 });
 
+test("Web fulfillment updates preserve pending and already-paid payment states", async () => {
+  const { fulfillmentStatusUpdate } = await import("./web/src/orderFields.js");
+  const adminDb = testEnv.authenticatedContext(ADMIN_UID).firestore();
+  const order = adminDb.collection("orders").doc("order_alice");
+
+  for (const paymentStatus of ["Pending", "Paid"]) {
+    await assertSucceeds(order.update({ orderStatus: "Order Confirmed", paymentStatus }));
+    await assertSucceeds(order.update(fulfillmentStatusUpdate("Delivered", "admin@skmobile.com", Date.now())));
+    const updated = (await order.get()).data();
+    if (updated.orderStatus !== "Delivered" || updated.paymentStatus !== paymentStatus) {
+      throw new Error("Delivery must change fulfillment status and preserve payment status");
+    }
+  }
+});
+
+test("Account switch cannot read the previous admin's order by ID or wrong-case UID", async () => {
+  const adminDb = testEnv.authenticatedContext(ADMIN_UID).firestore();
+  const customerDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const wrongCaseDb = testEnv.authenticatedContext(ALICE_UID.toUpperCase()).firestore();
+
+  await assertSucceeds(adminDb.collection("orders").doc("order_alice").get());
+  await assertFails(customerDb.collection("orders").doc("order_alice").get());
+  await assertFails(wrongCaseDb.collection("orders").doc("order_alice").get());
+  await assertFails(customerDb.collection("orders").where("customerId", "==", ALICE_UID).get());
+});
+
 test("Google-Only Auth: Authorized Gmail allowlist grants admin; normal customer Google login denied admin", async () => {
   // Authorized Gmail allowlist user: patelw401@gmail.com
   const authorizedGoogleAdminDb = testEnv.authenticatedContext("patel_uid", { email: "patelw401@gmail.com", email_verified: true }).firestore();

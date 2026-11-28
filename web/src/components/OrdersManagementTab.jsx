@@ -4,6 +4,7 @@ import {
   updateAdminOrderStatus, 
   isUserAdmin 
 } from '../firebase';
+import { formatOrderDate } from '../orderFields.js';
 import { 
   Package, 
   Search, 
@@ -251,9 +252,7 @@ export default function OrdersManagementTab({ currentUser, onShowToast, products
       ) : (
         <div className="space-y-4">
           {filteredOrders.map((ord) => {
-            const formattedDate = ord.createdAt?.toDate 
-              ? ord.createdAt.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-              : 'Recent Order';
+            const formattedDate = formatOrderDate(ord);
 
             return (
               <div 
