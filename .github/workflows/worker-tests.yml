@@ -13,3 +13,5 @@ jobs:
         with:
           node-version: '22'
       - run: npm test --prefix worker
+  full-project:
+    uses: ./.github/workflows/verify.yml
