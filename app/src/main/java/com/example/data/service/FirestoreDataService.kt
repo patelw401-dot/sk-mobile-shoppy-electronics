@@ -1,5 +1,7 @@
 package com.example.data.service
 
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import android.content.Context
 import android.util.Log
 import com.example.admin.auth.AdminAuthService
@@ -780,6 +782,29 @@ class FirestoreDataService(
     override suspend fun getOrderById(id: String): ShopOrder? = _ordersFlow.value.find { it.id == id }
 
     private val orderFunctions by lazy { com.google.firebase.functions.FirebaseFunctions.getInstance() }
+    private val stagingHttp by lazy { okhttp3.OkHttpClient.Builder().followRedirects(false).followSslRedirects(false).build() }
+
+    private suspend fun callCustomerOrder(name: String, payload: Map<String, Any?>): Any? {
+        val endpoint = com.example.BuildConfig.STAGING_ORDER_API
+        if (endpoint.isBlank()) return orderFunctions.getHttpsCallable(name).call(payload).await().data
+        val uri = java.net.URI(endpoint)
+        require(uri.scheme == "https" && uri.host != null && uri.userInfo == null && uri.query == null && uri.fragment == null)
+        val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: error("Sign in first.")
+        val token = user.getIdToken(false).await().token ?: error("Authentication unavailable.")
+        return kotlinx.coroutines.withContext(Dispatchers.IO) {
+            val path = if (name == "createStoreOrder") "/orders" else "/orders/cancel"
+            val url = java.net.URI("https", null, uri.host, uri.port, path, null, null).toString()
+            val moshi = com.squareup.moshi.Moshi.Builder().build()
+            val adapter = moshi.adapter(Any::class.java)
+            val body = adapter.toJson(payload).toRequestBody("application/json".toMediaType())
+            val request = okhttp3.Request.Builder().url(url).header("Authorization", "Bearer " + token).post(body).build()
+            stagingHttp.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) error("Order service unavailable or request rejected.")
+                val parsed = adapter.fromJson(response.body?.string() ?: error("Missing response")) as? Map<*, *>
+                parsed?.get("data") ?: error("Missing confirmation")
+            }
+        }
+    }
 
     override suspend fun createOrder(order: ShopOrder): Result<ShopOrder> {
         return try {
@@ -792,7 +817,7 @@ class FirestoreDataService(
                 "state" to order.state, "pinCode" to order.pinCode, "deliveryMethod" to order.deliveryOption,
                 "paymentMethod" to order.paymentMethod, "items" to items
             )
-            val response = orderFunctions.getHttpsCallable("createStoreOrder").call(payload).await().data as? Map<*, *>
+            val response = callCustomerOrder("createStoreOrder", payload) as? Map<*, *>
                 ?: error("Order confirmation is missing.")
             val total = (response["total"] as? Number)?.toInt() ?: error("Order total is missing.")
             val lines = response["items"] as? List<*> ?: error("Order items are missing.")
@@ -883,8 +908,7 @@ class FirestoreDataService(
 
     override suspend fun cancelOrder(id: String, reason: String, customerId: String): Result<ShopOrder> {
         return try {
-            orderFunctions.getHttpsCallable("cancelStoreOrder")
-                .call(mapOf("orderId" to id, "reason" to reason)).await()
+            callCustomerOrder("cancelStoreOrder", mapOf("orderId" to id, "reason" to reason))
             val doc = firestore.collection(COLLECTION_ORDERS).document(id)
                 .get(com.google.firebase.firestore.Source.SERVER).await()
             Result.success(parseShopOrder(doc) ?: error("Order confirmation is unavailable."))
