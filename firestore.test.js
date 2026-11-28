@@ -431,3 +431,24 @@ test("Shop info settings/shop_info allows public read and admin-only write", asy
 });
 
 
+
+
+test("Customer cannot create an order already marked Paid", async () => {
+  const db = testEnv.authenticatedContext(ALICE_UID).firestore();
+  await assertFails(db.collection("orders").doc("forged_paid").set({
+    customerId: ALICE_UID, customerName: "Alice", phone: "9823109313",
+    address: "Udgir", items: [{ id: "prod_1", quantity: 1 }], total: 79999,
+    orderStatus: "Order Placed", paymentStatus: "Paid"
+  }));
+});
+
+test("Customer cannot change notification ownership or message", async () => {
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await context.firestore().collection("notifications").doc("n1").set({customerId: ALICE_UID, message: "Original", isRead: false});
+  });
+  const db = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const doc = db.collection("notifications").doc("n1");
+  await assertFails(doc.update({customerId: BOB_UID}));
+  await assertFails(doc.update({message: "Changed"}));
+  await assertSucceeds(doc.update({isRead: true}));
+});
