@@ -779,10 +779,24 @@ export async function seedDefaultProductsToFirestore(currentUser, initialItems =
 }
 
 const orderFunctions = getFunctions(app);
+async function callCustomerOrder(name, payload) {
+  const endpoint = import.meta.env.VITE_STAGING_ORDER_API;
+  if (!endpoint) return httpsCallable(orderFunctions, name)(payload);
+  const url = new URL(endpoint);
+  if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) throw new Error('Invalid staging API URL');
+  const user = auth.currentUser;
+  if (!user) throw new Error('Sign in first.');
+  const response = await fetch(url.origin + (name === 'createStoreOrder' ? '/orders' : '/orders/cancel'), {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + await user.getIdToken() },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) throw new Error('Order service unavailable or request rejected.');
+  return response.json();
+}
 
 export async function createCustomerOrderInFirestore(orderData, currentUser) {
   if (!currentUser?.uid) throw new Error('Sign in to place an order.');
-  const { data: order } = await httpsCallable(orderFunctions, 'createStoreOrder')({
+  const { data: order } = await callCustomerOrder('createStoreOrder', {
     ...orderData,
     deliveryMethod: orderData.deliveryType,
     pinCode: orderData.pincode,
@@ -821,7 +835,7 @@ export async function cancelCustomerOrder(orderId, currentUser, reason = 'Cancel
   if (!currentUser || !currentUser.uid) {
     throw new Error('Authentication required.');
   }
-  await httpsCallable(orderFunctions, 'cancelStoreOrder')({ orderId, reason });
+  await callCustomerOrder('cancelStoreOrder', { orderId, reason });
   return true;
 }
 
