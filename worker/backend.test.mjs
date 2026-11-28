@@ -30,3 +30,15 @@ test('server price and stock, idempotent order and cancellation',async()=>{
  await cancelOrder(db,'u',{orderId:'o'});assert.equal(db.data.get('products/p').stock,5);
 });
 test('insufficient stock rejected without mutation',async()=>{const db=fakeDb();await assert.rejects(createOrder(db,'u',{...input,items:[{id:'p',quantity:6}]}));assert.equal(db.data.get('products/p').stock,5);assert.equal(db.data.has('orders/o'),false)});
+
+test('verified active registry admin can cancel, unverified cannot',async()=>{
+ const db=fakeDb();await createOrder(db,'u',input);db.data.set('admins/a',{active:true,role:'admin'});
+ await assert.rejects(cancelOrder(db,'a',{orderId:'o'},{email_verified:false}));
+ await cancelOrder(db,'a',{orderId:'o'},{email_verified:true});assert.equal(db.data.get('products/p').stock,5);assert.equal(db.data.get('orders/o').statusHistory.at(-1).updatedBy,'Admin');
+});
+test('CORS allows configured origin only',async()=>{
+ const env={STAGING_WEB_ORIGIN:'https://test.example'};
+ const req=origin=>new Request('https://api.example/orders',{method:'OPTIONS',headers:{Origin:origin}});
+ assert.equal((await worker.fetch(req('https://evil.example'),env)).status,403);
+ const r=await worker.fetch(req('https://test.example'),env);assert.equal(r.status,204);assert.equal(r.headers.get('Access-Control-Allow-Origin'),'https://test.example');
+});
