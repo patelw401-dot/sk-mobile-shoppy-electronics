@@ -450,7 +450,7 @@ class ShopViewModel(
     }
 
     fun filterByCategory(category: ProductCategory) {
-        val slug = category.name.lowercase().replace("_", "-")
+        val slug = category.slug
         _uiState.update { state ->
             if (category == ProductCategory.REPAIR_SERVICES) {
                 state.copy(currentScreen = AppScreen.REPAIR_BOOKING, screenStack = state.screenStack + AppScreen.REPAIR_BOOKING, isMobileMenuOpen = false)
@@ -494,7 +494,17 @@ class ShopViewModel(
     }
 
     fun updateSearchQuery(query: String) {
-        _uiState.update { it.copy(searchQuery = query) }
+        _uiState.update { state ->
+            if (query.isNotBlank()) {
+                state.copy(
+                    searchQuery = query,
+                    selectedCategory = ProductCategory.ALL,
+                    selectedCategorySlug = "all"
+                )
+            } else {
+                state.copy(searchQuery = query)
+            }
+        }
     }
 
     fun submitSearch() {
@@ -502,8 +512,8 @@ class ShopViewModel(
             val isOnProducts = state.currentScreen == AppScreen.PRODUCTS
             val newStack = if (isOnProducts) state.screenStack else state.screenStack + AppScreen.PRODUCTS
             state.copy(
-                selectedCategory = if (isOnProducts) state.selectedCategory else ProductCategory.ALL,
-                selectedCategorySlug = if (isOnProducts) state.selectedCategorySlug else "all",
+                selectedCategory = ProductCategory.ALL,
+                selectedCategorySlug = "all",
                 currentScreen = AppScreen.PRODUCTS,
                 screenStack = newStack,
                 isMobileMenuOpen = false

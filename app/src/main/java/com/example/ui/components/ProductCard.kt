@@ -89,7 +89,7 @@ fun ProductCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(10.dp)
         ) {
             // Top Image / Visual Representation
             ProductVisualBox(
@@ -261,12 +261,12 @@ fun ProductCard(
             // Action Buttons: Add to Cart and Buy Now
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 OutlinedButton(
                     onClick = onAddToCart,
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(1.3f)
                         .height(36.dp)
                         .testTag("add_to_cart_btn_${product.id}"),
                     shape = RoundedCornerShape(8.dp),
@@ -278,9 +278,10 @@ fun ProductCard(
                 ) {
                     Text(
                         text = "Add to Cart",
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        maxLines = 1
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
 
@@ -299,10 +300,11 @@ fun ProductCard(
                 ) {
                     Text(
                         text = "Buy Now",
-                        fontSize = 11.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
-                        maxLines = 1
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }

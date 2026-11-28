@@ -286,9 +286,11 @@ fun AppHeader(
 
             // Sticky Search Bar with stable key & synchronous local text state to prevent IME focus loss
             var localSearchQuery by remember { mutableStateOf(searchQuery) }
+            var lastDispatchedQuery by remember { mutableStateOf(searchQuery) }
             LaunchedEffect(searchQuery) {
-                if (searchQuery != localSearchQuery) {
+                if (searchQuery != lastDispatchedQuery && searchQuery != localSearchQuery) {
                     localSearchQuery = searchQuery
+                    lastDispatchedQuery = searchQuery
                 }
             }
 
@@ -297,6 +299,7 @@ fun AppHeader(
                     value = localSearchQuery,
                     onValueChange = { newValue ->
                         localSearchQuery = newValue
+                        lastDispatchedQuery = newValue
                         onSearchChange(newValue)
                     },
                     modifier = Modifier
@@ -327,6 +330,7 @@ fun AppHeader(
                                 IconButton(
                                     onClick = {
                                         localSearchQuery = ""
+                                        lastDispatchedQuery = ""
                                         onSearchChange("")
                                     },
                                     modifier = Modifier.size(32.dp)

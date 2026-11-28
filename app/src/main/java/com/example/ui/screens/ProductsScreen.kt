@@ -88,11 +88,14 @@ fun ProductsScreen(
 ) {
     var showSortMenu by remember { mutableStateOf(false) }
 
-    val sortedProducts = remember(products, selectedCategory, selectedCategorySlug, searchQuery, sortOption) {
-        val filteredByCategory = if (selectedCategorySlug == "all" || selectedCategory == ProductCategory.ALL) {
+    val normalizedSelectedSlug = selectedCategorySlug.trim().lowercase()
+    val isAllCategorySelected = normalizedSelectedSlug.isBlank() || normalizedSelectedSlug == "all"
+
+    val sortedProducts = remember(products, selectedCategory, normalizedSelectedSlug, isAllCategorySelected, searchQuery, sortOption) {
+        val filteredByCategory = if (isAllCategorySelected) {
             products
         } else {
-            products.filter { it.categoryMatches(selectedCategorySlug) || it.category == selectedCategory }
+            products.filter { it.categoryMatches(normalizedSelectedSlug) }
         }
 
         val filteredBySearch = if (searchQuery.isBlank()) {
@@ -130,10 +133,23 @@ fun ProductsScreen(
         ProductCategory.ACCESSORIES
     )
 
-    val currentTitle = if (selectedCategorySlug == "all" || selectedCategory == ProductCategory.ALL) {
+    val currentTitle = if (isAllCategorySelected) {
         "All Products"
     } else {
-        activeCategories.find { it.slug.equals(selectedCategorySlug, true) }?.name ?: selectedCategory.displayName
+        activeCategories.find { it.slug.equals(normalizedSelectedSlug, true) }?.name ?: selectedCategory.displayName
+    }
+
+    val selectedChipId = remember(activeCategories, normalizedSelectedSlug, selectedCategory, isAllCategorySelected) {
+        if (isAllCategorySelected || activeCategories.isEmpty()) {
+            null
+        } else {
+            activeCategories.firstOrNull {
+                it.slug.trim().equals(normalizedSelectedSlug, ignoreCase = true) ||
+                    it.id.trim().equals(normalizedSelectedSlug, ignoreCase = true)
+            }?.id ?: activeCategories.firstOrNull {
+                it.slug.trim().equals(selectedCategory.slug, ignoreCase = true)
+            }?.id
+        }
     }
 
     Column(
@@ -271,8 +287,8 @@ fun ProductsScreen(
                 ) {
                     if (activeCategories.isNotEmpty()) {
                         // "All" Chip
-                        item {
-                            val isAllSelected = selectedCategorySlug == "all" && selectedCategory == ProductCategory.ALL
+                        item(key = "chip_all") {
+                            val isAllSelected = selectedChipId == null
                             FilterChip(
                                 selected = isAllSelected,
                                 onClick = { onCategorySelect(ProductCategory.ALL) },
@@ -299,9 +315,9 @@ fun ProductsScreen(
                             )
                         }
 
-                        // Each active Category Chip
+                        // Each active Category Chip (strictly single-select)
                         items(activeCategories, key = { it.id }) { cat ->
-                            val isSelected = cat.slug.equals(selectedCategorySlug, ignoreCase = true) || cat.category == selectedCategory
+                            val isSelected = selectedChipId == cat.id
                             FilterChip(
                                 selected = isSelected,
                                 onClick = {
@@ -335,7 +351,11 @@ fun ProductsScreen(
                         }
                     } else {
                         items(defaultCategories, key = { it.name }) { category ->
-                            val isSelected = category == selectedCategory
+                            val isSelected = if (isAllCategorySelected) {
+                                category == ProductCategory.ALL
+                            } else {
+                                category == selectedCategory
+                            }
                             FilterChip(
                                 selected = isSelected,
                                 onClick = { onCategorySelect(category) },
