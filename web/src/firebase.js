@@ -1,13 +1,15 @@
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, onSnapshot, runTransaction } from 'firebase/firestore';
 import { 
   getAuth, 
-  onAuthStateChanged, 
+  onIdTokenChanged,
   signInWithPopup, 
   GoogleAuthProvider, 
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile,
   signOut 
 } from 'firebase/auth';
@@ -45,7 +47,16 @@ export const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
  * Listen to Firebase Auth state changes
  */
 export function subscribeToAuthChanges(callback) {
-  return onAuthStateChanged(auth, callback);
+  let subscribed = true;
+  const unsubscribe = onIdTokenChanged(auth, async user => {
+    const allowed = user && (user.emailVerified || !user.providerData.some(p => p.providerId === 'password') || user.providerData.some(p => p.providerId === 'phone'));
+    if (allowed) await refreshAdminAccess(user);
+    if (subscribed && auth.currentUser === user) callback(allowed ? user : null);
+  });
+  return () => {
+    subscribed = false;
+    unsubscribe();
+  };
 }
 
 /**
@@ -54,14 +65,40 @@ export function subscribeToAuthChanges(callback) {
 export async function signInWithGooglePopup() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  return await signInWithPopup(auth, provider);
+  const result = await signInWithPopup(auth, provider);
+  await refreshAdminAccess(result.user);
+  return result;
 }
 
 /**
  * Sign in using Email & Password
  */
+const verificationSentAt = new Map();
+
+async function requireVerifiedEmail(user) {
+  try {
+    await user.reload();
+    if (!user.emailVerified) {
+      const now = Date.now();
+      if (now - (verificationSentAt.get(user.uid) || 0) < 60000) {
+        throw new Error('Check your inbox or wait 60 seconds before requesting another verification email.');
+      }
+      await sendEmailVerification(user);
+      verificationSentAt.set(user.uid, now);
+      throw new Error('Verification email sent. Open the link in your inbox or spam folder, then sign in again.');
+    }
+    await user.getIdToken(true);
+  } catch (error) {
+    await signOut(auth);
+    throw error;
+  }
+}
+
 export async function signInWithEmail(email, password) {
-  return await signInWithEmailAndPassword(auth, (email || '').trim(), password);
+  const result = await signInWithEmailAndPassword(auth, (email || '').trim(), password);
+  await requireVerifiedEmail(result.user);
+  await refreshAdminAccess(result.user);
+  return result;
 }
 
 /**
@@ -77,6 +114,7 @@ export async function signUpWithEmail(name, email, password) {
       console.warn('Could not set displayName after signup:', err);
     }
   }
+  await requireVerifiedEmail(cred.user);
   return cred;
 }
 
@@ -404,7 +442,7 @@ export async function saveOldPhoneRequestToFirestore(requestData, currentUser) {
 
 /**
  * Store Admin Authorization Allowlist
- * Matches firestore.rules isAdmin() definition exactly.
+ * Used to recognize verified email-based administrators in the storefront.
  */
 export const AUTHORIZED_ADMIN_EMAILS = [
   'skmobileshoppyandelectronics@gmail.com',
@@ -416,11 +454,33 @@ export const AUTHORIZED_ADMIN_EMAILS = [
 /**
  * Check if a Firebase user is an authorized store administrator.
  */
+const adminUsers = new WeakSet();
+
+async function refreshAdminAccess(user) {
+  adminUsers.delete(user);
+  try {
+    const { claims } = await user.getIdTokenResult();
+    if (claims.admin === true) {
+      adminUsers.add(user);
+      return;
+    }
+    const ids = user.emailVerified && user.email ? [user.uid, user.email] : [user.uid];
+    for (const id of ids) {
+      const record = (await getDoc(doc(db, 'admins', id))).data();
+      if (record && record.active !== false &&
+          (record.isAdmin ?? ['admin', 'superadmin'].includes(record.role)) === true) {
+        adminUsers.add(user);
+        return;
+      }
+    }
+  } catch (error) {
+    console.warn('Could not check administrator access:', error);
+  }
+}
+
 export function isUserAdmin(user) {
-  if (!user || !user.email) return false;
-  return AUTHORIZED_ADMIN_EMAILS.some(
-    adminEmail => adminEmail.toLowerCase() === user.email.toLowerCase()
-  );
+  return Boolean(user && (adminUsers.has(user) ||
+    (user.emailVerified && AUTHORIZED_ADMIN_EMAILS.includes(user.email))));
 }
 
 /**
@@ -435,8 +495,8 @@ export async function fetchAdminRepairBookings() {
       bookings.push({ id: d.id, ...d.data() });
     });
     return bookings.sort((a, b) => {
-      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
-      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || a.timestamp || 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || b.timestamp || 0);
       return timeB - timeA;
     });
   } catch (err) {
@@ -457,8 +517,8 @@ export async function fetchAdminOldPhoneRequests() {
       requests.push({ id: d.id, ...d.data() });
     });
     return requests.sort((a, b) => {
-      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
-      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || a.timestamp || 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || b.timestamp || 0);
       return timeB - timeA;
     });
   } catch (err) {
@@ -718,108 +778,17 @@ export async function seedDefaultProductsToFirestore(currentUser, initialItems =
   return { success: true, seededCount: results.length };
 }
 
-/**
- * -------------------------------------------------------------
- * E-COMMERCE ORDERS - FIRESTORE ORDERS COLLECTION
- * -------------------------------------------------------------
- * Rules:
- * match /orders/{orderId} {
- *   allow read: if isAdmin() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
- *   allow create: if isAdmin() || (
- *     isAuthenticated() &&
- *     request.resource.data.customerId == request.auth.uid &&
- *     request.resource.data.customerName is string && request.resource.data.customerName.size() > 0 &&
- *     request.resource.data.phone is string && request.resource.data.phone.size() >= 10 &&
- *     request.resource.data.address is string && request.resource.data.address.size() > 0 &&
- *     request.resource.data.items is list && request.resource.data.items.size() > 0 &&
- *     request.resource.data.total is int && request.resource.data.total >= 0 &&
- *     request.resource.data.orderStatus in ['Pending', 'Order Confirmed', 'Processing', 'Order Placed'] &&
- *     request.resource.data.paymentStatus in ['Pending', 'Paid']
- *   );
- * }
- */
+const orderFunctions = getFunctions(app);
 
-/**
- * Create a new customer order in Firestore 'orders' collection.
- */
 export async function createCustomerOrderInFirestore(orderData, currentUser) {
-  if (!currentUser || !currentUser.uid) {
-    throw new Error('Authentication required: Please sign in with your customer account to place an order.');
-  }
-
-  const customerName = (orderData.customerName || currentUser.displayName || '').trim();
-  const phone = (orderData.phone || orderData.mobileNumber || '').trim();
-  const address = (orderData.address || '').trim();
-  const pincode = (orderData.pincode || orderData.pinCode || '').trim();
-  const items = Array.isArray(orderData.items) ? orderData.items : [];
-
-  if (!customerName) {
-    throw new Error('Customer full name is required.');
-  }
-  if (!phone || phone.replace(/\D/g, '').length < 10) {
-    throw new Error('Please provide a valid 10-digit mobile number.');
-  }
-  if (!address) {
-    throw new Error('Delivery address or store pickup location note is required.');
-  }
-  if (items.length === 0) {
-    throw new Error('Your cart is empty. Please add items before placing an order.');
-  }
-
-  // Calculate integer total
-  const calculatedTotal = items.reduce((sum, item) => {
-    const p = typeof item.price === 'number' ? item.price : (parseFloat(item.price) || 0);
-    const q = typeof item.quantity === 'number' ? item.quantity : (parseInt(item.quantity, 10) || 1);
-    return sum + (p * q);
-  }, 0);
-
-  const finalTotal = Math.round(Number(orderData.total !== undefined ? orderData.total : calculatedTotal));
-
-  // Generate unique order ID
-  const orderDocId = orderData.orderId || `SKM-ORD-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
-  const orderRef = doc(db, 'orders', orderDocId);
-
-  // Clean items list
-  const sanitizedItems = items.map(item => ({
-    id: item.id || '',
-    name: item.name || 'Product',
-    brand: item.brand || '',
-    category: item.category || 'smartphones',
-    price: Math.round(Number(item.price) || 0),
-    quantity: parseInt(item.quantity, 10) || 1,
-    imageUrl: item.imageUrl || item.primaryImage || item.image || (Array.isArray(item.images) && item.images[0]) || '',
-    subtotal: Math.round((Number(item.price) || 0) * (parseInt(item.quantity, 10) || 1))
-  }));
-
-  const payload = {
-    id: orderDocId,
-    orderId: orderDocId,
-    customerId: currentUser.uid,
-    customerEmail: currentUser.email || '',
-    customerName,
-    phone,
-    address,
-    pincode: pincode || '413517',
-    city: (orderData.city || 'Udgir').trim(),
-    state: (orderData.state || 'Maharashtra').trim(),
-    deliveryType: orderData.deliveryType || 'Store Pickup (Udgir Showroom)',
-    paymentMethod: orderData.paymentMethod || 'Cash on Delivery (COD)',
-    paymentStatus: 'Pending',
-    orderStatus: 'Pending',
-    items: sanitizedItems,
-    total: finalTotal,
-    notes: (orderData.notes || '').trim(),
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  };
-
-  await setDoc(orderRef, payload);
-
-  return {
-    success: true,
-    orderId: orderDocId,
-    order: payload
-  };
+  if (!currentUser?.uid) throw new Error('Sign in to place an order.');
+  const { data: order } = await httpsCallable(orderFunctions, 'createStoreOrder')({
+    ...orderData,
+    deliveryMethod: orderData.deliveryType,
+    pinCode: orderData.pincode,
+    items: orderData.items.map(({ id, quantity, selectedColor }) => ({ id, quantity, color: selectedColor || '' }))
+  });
+  return { success: true, orderId: order.id, order };
 }
 
 /**
@@ -836,13 +805,12 @@ export async function fetchCustomerOrders(currentUser) {
       list.push({ id: d.id, ...d.data() });
     });
     return list.sort((a, b) => {
-      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
-      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || a.timestamp || 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || b.timestamp || 0);
       return timeB - timeA;
     });
   } catch (err) {
-    console.error("fetchCustomerOrders error:", err);
-    return [];
+    throw err;
   }
 }
 
@@ -853,12 +821,7 @@ export async function cancelCustomerOrder(orderId, currentUser, reason = 'Cancel
   if (!currentUser || !currentUser.uid) {
     throw new Error('Authentication required.');
   }
-  const orderRef = doc(db, 'orders', orderId);
-  await updateDoc(orderRef, {
-    orderStatus: 'Cancelled',
-    cancellationReason: reason,
-    updatedAt: serverTimestamp()
-  });
+  await httpsCallable(orderFunctions, 'cancelStoreOrder')({ orderId, reason });
   return true;
 }
 
@@ -874,8 +837,8 @@ export async function fetchAdminOrders() {
       list.push({ id: d.id, ...d.data() });
     });
     return list.sort((a, b) => {
-      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
-      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || a.timestamp || 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || b.timestamp || 0);
       return timeB - timeA;
     });
   } catch (err) {
@@ -889,6 +852,10 @@ export async function fetchAdminOrders() {
  * Permitted statuses: Pending, Confirmed, Processing, Shipped, Delivered, Cancelled
  */
 export async function updateAdminOrderStatus(orderId, newStatus, adminEmail, adminNote = '') {
+  if (newStatus === 'Cancelled') {
+    await httpsCallable(orderFunctions, 'cancelStoreOrder')({ orderId, reason: adminNote });
+    return true;
+  }
   const orderRef = doc(db, 'orders', orderId);
   const updates = {
     orderStatus: newStatus,
@@ -899,11 +866,28 @@ export async function updateAdminOrderStatus(orderId, newStatus, adminEmail, adm
   if (adminNote) {
     updates.adminNote = adminNote;
   }
-  if (newStatus === 'Delivered') {
-    updates.paymentStatus = 'Paid';
-  }
   await updateDoc(orderRef, updates);
   return true;
+}
+
+export async function recordOrderPayment(orderId, user) {
+  if (!isUserAdmin(user)) throw new Error('Unauthorized action.');
+  const orderRef = doc(db, 'orders', orderId);
+  await runTransaction(db, async transaction => {
+    const snapshot = await transaction.get(orderRef);
+    if (!snapshot.exists()) throw new Error('Order does not exist.');
+    const order = snapshot.data();
+    if (order.paymentStatus === 'Paid') return;
+    if (order.orderStatus === 'Cancelled' || order.status === 'Cancelled') {
+      throw new Error('Payment cannot be recorded for a cancelled order.');
+    }
+    transaction.update(orderRef, {
+      paymentStatus: 'Paid',
+      paymentCollectedAt: serverTimestamp(),
+      paymentCollectedBy: user.uid,
+      updatedAt: serverTimestamp()
+    });
+  });
 }
 
 /**

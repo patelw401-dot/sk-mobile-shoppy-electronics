@@ -13,7 +13,7 @@ export const STORE_INFO = {
 };
 
 export const APP_DOWNLOAD_CONFIG = {
-  downloadUrl: "/sk-mobile-release.apk",
+  downloadUrl: "https://raw.githubusercontent.com/patelw401-dot/sk-mobile-shoppy-electronics/453fce8abd5ff4c3dfdad8040d487bd9bb849d38/web/public/sk-mobile-release.apk",
   fallbackFilename: "sk-mobile-release.apk",
   appName: "SK Mobile Shoppy and Electronics",
   version: "Latest APK",

@@ -67,6 +67,7 @@ fun CheckoutScreen(
     shopInfo: ShopSettings = ShopSettings(),
     isCustomerAuthenticated: Boolean = true,
     onSignInRequired: () -> Unit = {},
+    isSubmitting: Boolean = false,
     onPlaceOrder: (
         customerName: String,
         mobileNumber: String,
@@ -93,7 +94,6 @@ fun CheckoutScreen(
     var nameError by remember { mutableStateOf(false) }
     var phoneError by remember { mutableStateOf(false) }
     var addressError by remember { mutableStateOf(false) }
-    var isSubmitting by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -345,9 +345,6 @@ fun CheckoutScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         val paymentMethods = listOf(
-                            Triple("UPI", "Instant payment via Google Pay, PhonePe, Paytm or UPI ID", Icons.Default.QrCode2),
-                            Triple("Debit / Credit Card", "Visa, Mastercard, RuPay & Maestro cards", Icons.Default.CreditCard),
-                            Triple("Net Banking", "All major Indian banks supported (SBI, HDFC, ICICI, etc.)", Icons.Default.AccountBalance),
                             Triple("Cash on Delivery", "Pay cash or scan UPI QR upon doorstep delivery in Udgir", Icons.Default.Money)
                         )
 
@@ -523,7 +520,6 @@ fun CheckoutScreen(
                         addressError = !isAddressValid
 
                         if (isNameValid && isPhoneValid && isAddressValid) {
-                            isSubmitting = true
                             onPlaceOrder(
                                 name,
                                 phone,

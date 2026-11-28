@@ -348,7 +348,7 @@ class ShopViewModel(
         try {
             CustomerAuthService.getFirebaseAuth()?.addAuthStateListener { fbAuth ->
                 val user = fbAuth.currentUser
-                if (user != null) {
+                if (user != null && (user.isEmailVerified || user.providerData.none { it.providerId == EmailAuthProvider.PROVIDER_ID } || user.providerData.any { it.providerId == PhoneAuthProvider.PROVIDER_ID })) {
                     val isGoogle = user.providerData.any { it.providerId == GoogleAuthProvider.PROVIDER_ID }
                     val isPhone = user.providerData.any { it.providerId == PhoneAuthProvider.PROVIDER_ID }
                     val isEmail = user.providerData.any { it.providerId == EmailAuthProvider.PROVIDER_ID }
@@ -600,7 +600,6 @@ class ShopViewModel(
         }
     }
 
-    private val orderCounter = java.util.concurrent.atomic.AtomicInteger(1001)
     private val repairCounter = java.util.concurrent.atomic.AtomicInteger(1001)
     private val sellCounter = java.util.concurrent.atomic.AtomicInteger(1001)
 
@@ -770,6 +769,8 @@ class ShopViewModel(
         return request
     }
 
+    private var pendingOrderAttempt: ShopOrder? = null
+
     fun placeOrder(
         customerName: String,
         mobileNumber: String,
@@ -779,15 +780,13 @@ class ShopViewModel(
         pinCode: String,
         deliveryOption: String,
         paymentMethod: String
-    ): ShopOrder {
-        if (_uiState.value.isSubmittingOrder) {
-            _uiState.value.lastConfirmedOrder?.let { return it }
-        }
-        _uiState.update { it.copy(isSubmittingOrder = true) }
-
+    ) {
         val currentUiState = _uiState.value
-        val nextNumber = 1000 + currentUiState.pastOrders.size + orderCounter.getAndIncrement()
-        val orderId = "SKM-ORD-$nextNumber"
+        if (currentUiState.isSubmittingOrder || currentUiState.cartItems.isEmpty()) return
+        if (paymentMethod != "Cash on Delivery") return
+
+        _uiState.update { it.copy(isSubmittingOrder = true) }
+        val proposedId = "SKM-ORD-${java.util.UUID.randomUUID()}"
         val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
         val currentDate = sdf.format(Date())
         val currentUid = try {
@@ -796,14 +795,8 @@ class ShopViewModel(
             null
         } ?: currentUiState.customerUid.orEmpty()
 
-        val idempotencyKey = "IDEMP_${orderId}_${System.currentTimeMillis()}"
-        val isCod = paymentMethod.contains("Cash on Delivery", ignoreCase = true)
-        val initialPaymentStatus = if (isCod) "Pending" else "Paid"
-        val initialSettlementStatus = if (isCod) "Unsettled" else "Pending Settlement"
-        val gatewayRef = if (isCod) "COD-${orderId}" else "GATEWAY-REF-${orderId}"
-
-        val order = ShopOrder(
-            orderId = orderId,
+        val candidate = ShopOrder(
+            orderId = proposedId,
             items = currentUiState.cartItems,
             subtotal = currentUiState.cartSubtotal,
             discount = currentUiState.cartTotalSavings,
@@ -818,36 +811,53 @@ class ShopViewModel(
             deliveryOption = deliveryOption,
             paymentMethod = paymentMethod,
             orderDate = currentDate,
-            status = "Order Confirmed",
+            status = "Order Placed",
             customerUid = currentUid,
-            paymentGatewayRef = gatewayRef,
-            transactionStatus = initialPaymentStatus,
-            bankSettlementStatus = initialSettlementStatus,
-            idempotencyKey = idempotencyKey
+            paymentGatewayRef = "COD-$proposedId",
+            transactionStatus = "Pending",
+            bankSettlementStatus = "Unsettled",
+            idempotencyKey = proposedId
         )
 
-        _uiState.update { current ->
-            current.copy(
-                isSubmittingOrder = false,
-                pastOrders = listOf(order) + current.pastOrders,
-                customerOrders = listOf(order) + current.customerOrders,
-                lastConfirmedOrder = order,
-                selectedOrder = order,
-                cartItems = emptyList(),
-                currentScreen = AppScreen.ORDER_SUCCESS,
-                screenStack = current.screenStack + AppScreen.ORDER_SUCCESS,
-                toastMessage = "Order $orderId placed successfully!"
-            )
-        }
+        val previous = pendingOrderAttempt
+        val order = if (previous != null &&
+            previous.items.map { Triple(it.product.id, it.quantity, it.selectedColor) } ==
+                candidate.items.map { Triple(it.product.id, it.quantity, it.selectedColor) } &&
+            previous.customerUid == candidate.customerUid &&
+            previous.customerName == candidate.customerName && previous.mobileNumber == candidate.mobileNumber &&
+            previous.address == candidate.address && previous.city == candidate.city &&
+            previous.state == candidate.state && previous.pinCode == candidate.pinCode &&
+            previous.deliveryOption == candidate.deliveryOption
+        ) previous else candidate
+        pendingOrderAttempt = order
+        val orderId = order.orderId
+
         viewModelScope.launch {
-            try {
-                dataService.createOrder(order)
-                dataService.clearCart()
-            } catch (e: Exception) {
-                Log.w("ShopViewModel", "Order creation offline or network fallback: ${e.message}")
+            val result = dataService.createOrder(order)
+            val confirmed = result.getOrNull()
+            if (confirmed == null) {
+                _uiState.update {
+                    it.copy(isSubmittingOrder = false, toastMessage = "Could not place order. Please try again.")
+                }
+                return@launch
             }
+
+            pendingOrderAttempt = null
+            _uiState.update { current ->
+                current.copy(
+                    isSubmittingOrder = false,
+                    pastOrders = listOf(confirmed) + current.pastOrders.filterNot { it.orderId == orderId },
+                    customerOrders = listOf(confirmed) + current.customerOrders.filterNot { it.orderId == orderId },
+                    lastConfirmedOrder = confirmed,
+                    selectedOrder = confirmed,
+                    cartItems = emptyList(),
+                    currentScreen = AppScreen.ORDER_SUCCESS,
+                    screenStack = current.screenStack + AppScreen.ORDER_SUCCESS,
+                    toastMessage = "Order placed successfully!"
+                )
+            }
+            dataService.clearCart()
         }
-        return order
     }
 
     fun clearConfirmedBooking() {

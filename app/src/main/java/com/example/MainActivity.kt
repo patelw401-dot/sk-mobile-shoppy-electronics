@@ -118,14 +118,17 @@ private fun SKMobileMainContent(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
-    var hasCheckedUpdate by rememberSaveable { mutableStateOf(false) }
     var updateDismissed by rememberSaveable { mutableStateOf(false) }
     var availableUpdate by remember { mutableStateOf<AppUpdateInfo?>(null) }
 
     LaunchedEffect(Unit) {
-        if (!hasCheckedUpdate) {
-            hasCheckedUpdate = true
-            availableUpdate = AppUpdateChecker.checkForUpdate(context)
+        while (true) {
+            val latest = AppUpdateChecker.checkForUpdate(context)
+            if (latest != null && latest.versionCode != availableUpdate?.versionCode) {
+                availableUpdate = latest
+                updateDismissed = false
+            }
+            kotlinx.coroutines.delay(15 * 60 * 1000L)
         }
     }
 
@@ -348,13 +351,14 @@ private fun SKMobileMainContent(
                             subtotal = shopUiState.cartSubtotal,
                             total = shopUiState.cartTotal,
                             totalSavings = shopUiState.cartTotalSavings,
-                            deliveryFee = shopUiState.deliveryFee,
+                            deliveryFee = 0,
                             defaultName = shopUiState.userName,
                             defaultPhone = shopUiState.userPhone,
                             defaultAddress = shopUiState.userAddress,
                             shopInfo = shopUiState.shopInfo,
                             isCustomerAuthenticated = shopUiState.isCustomerAuthenticated,
                             onSignInRequired = { shopViewModel.setLoginSheetVisible(true) },
+                            isSubmitting = shopUiState.isSubmittingOrder,
                             onPlaceOrder = { name, phone, address, city, state, pin, delivery, payment ->
                                 shopViewModel.placeOrder(name, phone, address, city, state, pin, delivery, payment)
                             },

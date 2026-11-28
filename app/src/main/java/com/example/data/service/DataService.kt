@@ -92,6 +92,7 @@ interface DataService {
 
     // --- REELS ---
     fun observeReels(): Flow<List<com.example.model.ReelItem>>
+    fun observeAdminReels(): Flow<List<com.example.model.ReelItem>> = observeReels()
     suspend fun getReels(): List<com.example.model.ReelItem>
     suspend fun createReel(reel: com.example.model.ReelItem): Result<com.example.model.ReelItem>
     suspend fun updateReel(reel: com.example.model.ReelItem): Result<com.example.model.ReelItem>

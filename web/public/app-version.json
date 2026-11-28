@@ -1,6 +1,6 @@
 {
   "versionCode": 47,
   "versionName": "1.0.47",
-  "apkPath": "/sk-mobile-release.apk",
+  "apkPath": "https://raw.githubusercontent.com/patelw401-dot/sk-mobile-shoppy-electronics/453fce8abd5ff4c3dfdad8040d487bd9bb849d38/web/public/sk-mobile-release.apk",
   "releaseNotes": "New features and improvements are available."
 }
