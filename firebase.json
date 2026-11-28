@@ -1,5 +1,7 @@
 {
-  "functions": { "source": "functions" },
+  "functions": {
+    "source": "functions"
+  },
   "firestore": [
     {
       "database": "ai-studio-android-skmobile-a123a057-9048-4d09-88d8-cfb38e18df87",
@@ -20,6 +22,13 @@
       {
         "source": "**",
         "destination": "/index.html"
+      }
+    ],
+    "redirects": [
+      {
+        "source": "/sk-mobile-release.apk",
+        "destination": "https://raw.githubusercontent.com/patelw401-dot/sk-mobile-shoppy-electronics/453fce8abd5ff4c3dfdad8040d487bd9bb849d38/web/public/sk-mobile-release.apk",
+        "type": 302
       }
     ]
   },

@@ -27,4 +27,4 @@ Active registry administrators can upload Android reel videos through `createRee
 
 Legacy order and payment records remain in place. Verify historical payment records against the shop's receipts before relying on them for fulfillment.
 
-The release workflow publishes new signed APKs as versioned GitHub Release assets and updates the website version manifest after upload. The existing version 47 file supports older download links.
+The release workflow publishes new signed APKs as versioned GitHub Release assets and updates the website version manifest after upload. Legacy download links redirect to the signed version 47 APK archived at its original commit.
