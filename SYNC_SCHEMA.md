@@ -30,15 +30,11 @@ stockTracking, stockDeducted, stockShortfall?, createdAt, updatedAt`
   are still understood by both platforms.
 * Legacy field names still read by both platforms: `pincode` (→ `pinCode`), `deliveryType` (→ `deliveryMethod`).
 
-### Stock rules
-Customers cannot write `products`, so stock is reconciled by an **admin session** (website admin or APK admin):
-* `orderStatus` ≥ Confirmed and `stockDeducted != true` → subtract quantities, set `stockDeducted = true`.
-* `orderStatus` = Cancelled and `stockDeducted == true` → add quantities back, set `stockDeducted = false`.
-* Done in a Firestore **transaction** (safe against two admins / web + APK acting together); stock never goes below 0
-  (`stockShortfall = true` when clamped); products missing from the catalog are skipped.
-* Only orders with `stockTracking == true` are touched, so historic orders never change stock.
-* Triggered on every admin status change and automatically when an admin listener sees an order that needs it.
-* Firestore rules reject customer-created orders that claim `stockDeducted: true`.
+### Checkout and stock
+* `createStoreOrder` reads current catalog prices and reserves stock in the same transaction that creates the order. A retry with the same order ID and customer returns the existing order.
+* `cancelStoreOrder` verifies ownership or an administrator role and restores stock in the cancellation transaction. Repeated cancellations do not restore stock twice, and delivered orders cannot be cancelled.
+* Only orders with reserved stock change inventory on cancellation. An order for a deleted product can still be cancelled.
+* New orders begin with payment pending. Staff record collection separately from fulfillment status.
 
 ## repairBookings/{id}
 `id, customerId, customerName, phone, brand, model, problem, pickupRequired, address, preferredDate, preferredSlot,

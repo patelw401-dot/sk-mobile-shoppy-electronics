@@ -213,7 +213,7 @@ object AdminAuthService {
             val userUid = user.uid
 
             // 1. Check explicit authorized Gmail allowlist (Phase 11 Requirement 4)
-            if (!userEmail.isNullOrBlank() && AUTHORIZED_ADMIN_GMAILS.contains(userEmail)) {
+            if (user.isEmailVerified && !userEmail.isNullOrBlank() && AUTHORIZED_ADMIN_GMAILS.contains(userEmail)) {
                 Log.i(TAG, "Admin confirmed via authorized Gmail allowlist: $userEmail")
                 return true
             }
@@ -259,7 +259,7 @@ object AdminAuthService {
             }
 
             // Check document /admins/{userEmail}
-            if (!userEmail.isNullOrBlank()) {
+            if (user.isEmailVerified && !userEmail.isNullOrBlank()) {
                 try {
                     val emailDoc = firestore.collection(COLLECTION_ADMINS).document(userEmail).get().await()
                     if (emailDoc.exists()) {

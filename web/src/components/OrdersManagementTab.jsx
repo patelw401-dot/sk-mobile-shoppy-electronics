@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   fetchAdminOrders, 
-  updateAdminOrderStatus, 
+  updateAdminOrderStatus,
+  recordOrderPayment,
   isUserAdmin 
 } from '../firebase';
 import { 
@@ -98,6 +99,22 @@ export default function OrdersManagementTab({ currentUser, onShowToast, products
     } catch (err) {
       console.error('Status update failed:', err);
       onShowToast?.(err.message || 'Error updating order status.', 'error');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handlePaymentCollected = async (orderId) => {
+    if (!window.confirm('Confirm that you received payment for this order.')) return;
+    setIsUpdating(true);
+    try {
+      await recordOrderPayment(orderId, currentUser);
+      setOrders(prev => prev.map(order =>
+        order.id === orderId ? { ...order, paymentStatus: 'Paid' } : order
+      ));
+      onShowToast?.('Payment recorded.', 'success');
+    } catch (err) {
+      onShowToast?.(err.message || 'Could not record payment.', 'error');
     } finally {
       setIsUpdating(false);
     }
@@ -314,6 +331,18 @@ export default function OrdersManagementTab({ currentUser, onShowToast, products
                       <span>Payment: <strong className="text-white">{ord.paymentMethod}</strong></span>
                       <span>Status: <strong className={ord.paymentStatus === 'Paid' ? 'text-emerald-400' : 'text-amber-400'}>{ord.paymentStatus || 'Pending'}</strong></span>
                     </div>
+
+                    {isUserAdmin(currentUser) && ord.paymentStatus !== 'Paid' &&
+                      ord.orderStatus !== 'Cancelled' && ord.status !== 'Cancelled' && (
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-emerald-400 disabled:opacity-50"
+                          disabled={isUpdating}
+                          onClick={() => handlePaymentCollected(ord.id)}
+                        >
+                          Record payment received
+                        </button>
+                      )}
 
                     {ord.notes && (
                       <div className="text-[11px] text-amber-300 bg-amber-500/10 p-2 rounded border border-amber-500/20">

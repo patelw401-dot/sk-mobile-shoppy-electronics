@@ -348,13 +348,14 @@ private fun SKMobileMainContent(
                             subtotal = shopUiState.cartSubtotal,
                             total = shopUiState.cartTotal,
                             totalSavings = shopUiState.cartTotalSavings,
-                            deliveryFee = shopUiState.deliveryFee,
+                            deliveryFee = 0,
                             defaultName = shopUiState.userName,
                             defaultPhone = shopUiState.userPhone,
                             defaultAddress = shopUiState.userAddress,
                             shopInfo = shopUiState.shopInfo,
                             isCustomerAuthenticated = shopUiState.isCustomerAuthenticated,
                             onSignInRequired = { shopViewModel.setLoginSheetVisible(true) },
+                            isSubmitting = shopUiState.isSubmittingOrder,
                             onPlaceOrder = { name, phone, address, city, state, pin, delivery, payment ->
                                 shopViewModel.placeOrder(name, phone, address, city, state, pin, delivery, payment)
                             },

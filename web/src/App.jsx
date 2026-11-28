@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
@@ -18,15 +18,15 @@ import {
 import HomePage from './pages/HomePage';
 import ProductsPage from './pages/ProductsPage';
 import AccessoriesPage from './pages/AccessoriesPage';
-import RepairBookingPage from './pages/RepairBookingPage';
-import OldPhonePage from './pages/OldPhonePage';
+const RepairBookingPage = lazy(() => import('./pages/RepairBookingPage'));
+const OldPhonePage = lazy(() => import('./pages/OldPhonePage'));
 import LoginPage from './pages/LoginPage';
 import ContactPage from './pages/ContactPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
-import MyOrdersPage from './pages/MyOrdersPage';
-import AppDownloadPage from './pages/AppDownloadPage';
+const MyOrdersPage = lazy(() => import('./pages/MyOrdersPage'));
+const AppDownloadPage = lazy(() => import('./pages/AppDownloadPage'));
 
 export default function App() {
   const [activePage, setActivePage] = useState('home');
@@ -385,7 +385,9 @@ export default function App() {
 
       {/* Main Page Body */}
       <main className="flex-1">
-        {renderPage()}
+        <Suspense fallback={<p role="status" className="p-4">Loading…</p>}>
+          {renderPage()}
+        </Suspense>
       </main>
 
       {/* Footer */}

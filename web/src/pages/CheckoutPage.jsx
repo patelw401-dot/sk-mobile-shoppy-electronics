@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   createCustomerOrderInFirestore, 
   signInWithGooglePopup,
@@ -44,6 +44,7 @@ export default function CheckoutPage({
   });
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const orderAttempt = useRef(null);
   const [placedOrder, setPlacedOrder] = useState(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [errors, setErrors] = useState({});
@@ -149,7 +150,14 @@ export default function CheckoutPage({
         total: Math.round(totalAmount)
       };
 
-      const result = await createCustomerOrderInFirestore(orderPayload, currentUser);
+      const attemptKey = JSON.stringify([currentUser.uid, orderPayload]);
+      if (orderAttempt.current?.key !== attemptKey) {
+        orderAttempt.current = { key: attemptKey, id: `SKM-ORD-${crypto.randomUUID()}` };
+      }
+      const result = await createCustomerOrderInFirestore(
+        { ...orderPayload, orderId: orderAttempt.current.id }, currentUser
+      );
+      orderAttempt.current = null;
 
       setPlacedOrder(result.order);
       onClearCart?.();

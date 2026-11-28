@@ -28,6 +28,9 @@ import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.OAuthProvider
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -208,10 +211,15 @@ class AdminViewModel(
             }
         }
 
-        // Collect all reels from DataService
         viewModelScope.launch {
-            dataService.observeReels().collect { reels ->
-                _uiState.update { it.copy(reels = reels) }
+            _uiState.map { it.isAuthenticated }.distinctUntilChanged().collectLatest { authenticated ->
+                if (authenticated) {
+                    dataService.observeAdminReels().collect { reels ->
+                        _uiState.update { it.copy(reels = reels) }
+                    }
+                } else {
+                    _uiState.update { it.copy(reels = emptyList()) }
+                }
             }
         }
 

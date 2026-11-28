@@ -94,9 +94,9 @@ test("Customer cannot create order for another user", async () => {
   );
 });
 
-test("Customer can create order associated with their own Firebase UID", async () => {
+test("Customers must use server checkout to create orders", async () => {
   const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
-  await assertSucceeds(
+  await assertFails(
     aliceDb.collection("orders").doc("order_alice_new").set({
       id: "order_alice_new",
       customerId: ALICE_UID,
@@ -109,6 +109,28 @@ test("Customer can create order associated with their own Firebase UID", async (
       paymentStatus: "Pending",
     })
   );
+});
+
+test("Customer cannot create an order marked paid", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  await assertFails(aliceDb.collection("orders").doc("order_paid").set({
+    customerId: ALICE_UID,
+    customerName: "Alice",
+    phone: "9823109313",
+    address: "Udgir Market",
+    items: [{ id: "prod_1", price: 79999, quantity: 1 }],
+    total: 79999,
+    orderStatus: "Order Placed",
+    paymentStatus: "Paid",
+  }));
+});
+
+test("Unverified allowlisted email has no admin access", async () => {
+  const unverifiedDb = testEnv.authenticatedContext("unverified", {
+    email: "patelw401@gmail.com",
+    email_verified: false,
+  }).firestore();
+  await assertFails(unverifiedDb.collection("orders").doc("order_alice").get());
 });
 
 test("Customer cannot create order with unpermitted initial status or missing required fields", async () => {
@@ -252,7 +274,6 @@ test("Admin user can read and manage orders, repair bookings, and catalog", asyn
   await assertSucceeds(
     adminDb.collection("orders").doc("order_alice").update({
       orderStatus: "Delivered",
-      paymentStatus: "Paid",
     })
   );
   await assertSucceeds(
@@ -266,7 +287,7 @@ test("Admin user can read and manage orders, repair bookings, and catalog", asyn
 
 test("Google-Only Auth: Authorized Gmail allowlist grants admin; normal customer Google login denied admin", async () => {
   // Authorized Gmail allowlist user: patelw401@gmail.com
-  const authorizedGoogleAdminDb = testEnv.authenticatedContext("patel_uid", { email: "patelw401@gmail.com" }).firestore();
+  const authorizedGoogleAdminDb = testEnv.authenticatedContext("patel_uid", { email: "patelw401@gmail.com", email_verified: true }).firestore();
   await assertSucceeds(authorizedGoogleAdminDb.collection("orders").doc("order_alice").get());
   await assertSucceeds(
     authorizedGoogleAdminDb.collection("products").doc("prod_patel").set({
@@ -277,7 +298,7 @@ test("Google-Only Auth: Authorized Gmail allowlist grants admin; normal customer
   );
 
   // Authorized Store Owner account: skmobileshoppyandelectronics@gmail.com
-  const storeOwnerDb = testEnv.authenticatedContext("owner_uid", { email: "skmobileshoppyandelectronics@gmail.com" }).firestore();
+  const storeOwnerDb = testEnv.authenticatedContext("owner_uid", { email: "skmobileshoppyandelectronics@gmail.com", email_verified: true }).firestore();
   await assertSucceeds(storeOwnerDb.collection("orders").doc("order_alice").get());
   await assertSucceeds(
     storeOwnerDb.collection("products").doc("prod_owner").set({
@@ -311,9 +332,9 @@ test("Google-Only Auth: Authorized Gmail allowlist grants admin; normal customer
 // ---------------------------------------------------------------------------
 // Web <-> Android sync: stock bookkeeping, canonical order payload
 // ---------------------------------------------------------------------------
-test("Customer can place a canonical order (Order Placed, stockTracking true, stockDeducted false)", async () => {
+test("Canonical orders also require server checkout", async () => {
   const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
-  await assertSucceeds(
+  await assertFails(
     aliceDb.collection("orders").doc("order_canonical").set({
       id: "order_canonical",
       customerId: ALICE_UID,
@@ -353,7 +374,7 @@ test("Customer cannot create an order that claims stock was already deducted", a
   );
 });
 
-test("Customer cancel is allowed (with history) but cannot touch stock flags", async () => {
+test("Customers must use stock-aware cancellation", async () => {
   const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
   await assertFails(
     aliceDb.collection("orders").doc("order_alice").update({
@@ -361,7 +382,7 @@ test("Customer cancel is allowed (with history) but cannot touch stock flags", a
       stockDeducted: false,
     })
   );
-  await assertSucceeds(
+  await assertFails(
     aliceDb.collection("orders").doc("order_alice").update({
       orderStatus: "Cancelled",
       cancellationReason: "Changed my mind",
@@ -371,11 +392,11 @@ test("Customer cancel is allowed (with history) but cannot touch stock flags", a
   );
 });
 
-test("Only admin can change product stock and the order stock flags (stock transaction)", async () => {
+test("Even admins must use the backend to change order stock flags", async () => {
   const adminDb = testEnv.authenticatedContext(ADMIN_UID).firestore();
   const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
   await assertFails(aliceDb.collection("products").doc("prod_1").update({ stock: 9999 }));
-  await assertSucceeds(adminDb.runTransaction(async (tx) => {
+  await assertFails(adminDb.runTransaction(async (tx) => {
     const productRef = adminDb.collection("products").doc("prod_1");
     const orderRef = adminDb.collection("orders").doc("order_alice");
     await tx.get(productRef);

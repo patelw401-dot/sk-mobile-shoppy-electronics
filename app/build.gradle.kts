@@ -104,6 +104,7 @@ dependencies {
   implementation(libs.firebase.ai)
   // Firestore & Storage:
   implementation(libs.firebase.firestore)
+  implementation("com.google.firebase:firebase-functions")
   implementation(libs.firebase.storage)
 
   // Media3 ExoPlayer for Reels playback:

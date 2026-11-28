@@ -608,6 +608,12 @@ class FirestoreDataService(
             }
     }
 
+    private fun orderTimestamp(value: Any?): Long? = when (value) {
+        is Number -> value.toLong()
+        is com.google.firebase.Timestamp -> value.toDate().time
+        else -> null
+    }
+
     private fun parseShopOrder(doc: com.google.firebase.firestore.DocumentSnapshot): ShopOrder? {
         return try {
             val orderId = doc.getString("id") ?: doc.id
@@ -616,11 +622,11 @@ class FirestoreDataService(
             val address = doc.getString("address") ?: ""
             val city = doc.getString("city") ?: ""
             val state = doc.getString("state") ?: ""
-            val pinCode = doc.getString("pinCode") ?: ""
+            val pinCode = doc.getString("pinCode") ?: doc.getString("pincode").orEmpty()
             val subtotal = doc.getLong("subtotal")?.toInt() ?: 0
             val deliveryFee = doc.getLong("deliveryCharge")?.toInt() ?: 0
             val totalAmount = doc.getLong("total")?.toInt() ?: (subtotal + deliveryFee)
-            val deliveryOption = doc.getString("deliveryMethod") ?: "Standard Delivery"
+            val deliveryOption = doc.getString("deliveryMethod") ?: doc.getString("deliveryType") ?: "Standard Delivery"
             val paymentMethod = doc.getString("paymentMethod") ?: "Cash on Delivery"
             val status = doc.getString("orderStatus") ?: "Pending"
             val orderDate = doc.getString("orderDate") ?: "Today"
@@ -668,7 +674,7 @@ class FirestoreDataService(
             val idempKey = doc.getString("idempotencyKey").orEmpty()
             val custUid = doc.getString("customerId").orEmpty()
             val tStatus = doc.getString("paymentStatus").orEmpty()
-            val lastUpdated = doc.getLong("updatedAt") ?: doc.getLong("createdAt") ?: System.currentTimeMillis()
+            val lastUpdated = orderTimestamp(doc.get("updatedAt")) ?: orderTimestamp(doc.get("createdAt")) ?: System.currentTimeMillis()
             val cancellationReason = doc.getString("cancellationReason")
             val trackingNumber = doc.getString("trackingNumber")
             val estimatedDeliveryDate = doc.getString("estimatedDeliveryDate")
@@ -680,7 +686,7 @@ class FirestoreDataService(
                 listOf(
                     OrderStatusHistoryEntry(
                         status = if (status.isNotBlank()) status else "Order Placed",
-                        timestamp = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                        timestamp = orderTimestamp(doc.get("createdAt")) ?: System.currentTimeMillis(),
                         note = "Order placed successfully",
                         updatedBy = "Customer"
                     )
@@ -773,85 +779,37 @@ class FirestoreDataService(
 
     override suspend fun getOrderById(id: String): ShopOrder? = _ordersFlow.value.find { it.id == id }
 
+    private val orderFunctions by lazy { com.google.firebase.functions.FirebaseFunctions.getInstance() }
+
     override suspend fun createOrder(order: ShopOrder): Result<ShopOrder> {
         return try {
-            val orderRef = firestore.collection(COLLECTION_ORDERS).document(order.orderId)
-            val itemsData = order.items.map { item ->
-                mapOf(
-                    "id" to item.product.id,
-                    "name" to item.product.name,
-                    "price" to item.product.price,
-                    "quantity" to item.quantity,
-                    "color" to item.selectedColor,
-                    "imageUrl" to item.product.primaryImage
-                )
+            val items = order.items.map { item ->
+                mapOf("id" to item.product.id, "quantity" to item.quantity, "color" to item.selectedColor)
             }
-
-            val currentUid = try { FirebaseConfig.getAuth().currentUser?.uid } catch (e: Exception) { null }
-            val effectiveCustomerId = if (order.customerUid.isNotBlank()) order.customerUid else (currentUid ?: order.customerId)
-
-            val initialHistory = if (order.statusHistory.isEmpty()) {
-                listOf(
-                    OrderStatusHistoryEntry(
-                        status = order.status.ifBlank { "Order Placed" },
-                        timestamp = System.currentTimeMillis(),
-                        note = "Order placed successfully by customer",
-                        updatedBy = "Customer"
-                    )
-                )
-            } else {
-                order.statusHistory
+            val payload = mapOf(
+                "orderId" to order.orderId, "customerName" to order.customerName,
+                "phone" to order.mobileNumber, "address" to order.address, "city" to order.city,
+                "state" to order.state, "pinCode" to order.pinCode, "deliveryMethod" to order.deliveryOption,
+                "paymentMethod" to order.paymentMethod, "items" to items
+            )
+            val response = orderFunctions.getHttpsCallable("createStoreOrder").call(payload).await().data as? Map<*, *>
+                ?: error("Order confirmation is missing.")
+            val total = (response["total"] as? Number)?.toInt() ?: error("Order total is missing.")
+            val lines = response["items"] as? List<*> ?: error("Order items are missing.")
+            val prices = lines.associate { line ->
+                val item = line as? Map<*, *> ?: error("Order item is invalid.")
+                item["id"] to ((item["price"] as? Number)?.toInt() ?: error("Order item price is missing."))
             }
-
-            val data = hashMapOf(
-                "id" to order.orderId,
-                "customerId" to effectiveCustomerId,
-                "customerName" to order.customerName,
-                "phone" to order.mobileNumber,
-                "address" to order.address,
-                "city" to order.city,
-                "state" to order.state,
-                "pinCode" to order.pinCode,
-                "deliveryMethod" to order.deliveryOption,
-                "paymentMethod" to order.paymentMethod,
-                "paymentStatus" to order.paymentStatus,
-                "paymentGatewayRef" to order.paymentGatewayRef,
-                "bankSettlementStatus" to order.bankSettlementStatus,
-                "idempotencyKey" to order.idempotencyKey,
-                "orderStatus" to (if (order.status.isNotBlank()) order.status else "Order Placed"),
-                "subtotal" to order.subtotal,
-                "deliveryCharge" to order.deliveryFee,
-                "total" to order.totalAmount,
-                "orderDate" to order.orderDate,
-                "items" to itemsData,
-                "statusHistory" to initialHistory.map { it.toMap() },
-                "createdAt" to System.currentTimeMillis(),
-                "updatedAt" to System.currentTimeMillis()
-            )
-
-            orderRef.set(data).await()
-
-            val enrichedOrder = order.copy(
-                statusHistory = initialHistory,
-                lastUpdated = System.currentTimeMillis()
-            )
-
-            // Update or create customer record
-            updateCustomerStats(
-                customerName = order.customerName,
-                phone = order.mobileNumber,
-                address = order.address,
-                orderAmount = order.totalAmount,
-                isOrder = true
-            )
-
-            Result.success(enrichedOrder)
+            val confirmedItems = order.items.map { item ->
+                val price = prices[item.product.id] ?: error("Order item is missing.")
+                item.copy(product = item.product.copy(price = price))
+            }
+            Result.success(order.copy(items = confirmedItems, subtotal = total, discount = 0,
+                deliveryFee = 0, totalAmount = total))
         } catch (e: Exception) {
-            Log.e(TAG, "createOrder failed, saving locally", e)
-            val updated = listOf(order) + _ordersFlow.value
-            _ordersFlow.value = updated
-            localStorage.saveOrders(updated)
-            Result.success(order)
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.e(TAG, "createOrder failed", e)
+            Result.failure(e)
         }
     }
 
@@ -865,6 +823,7 @@ class FirestoreDataService(
         note: String,
         updatedBy: String
     ): Result<ShopOrder> {
+        if (status == "Cancelled") return cancelOrder(id, note, "ADMIN")
         val newEntry = OrderStatusHistoryEntry(
             status = status,
             timestamp = System.currentTimeMillis(),
@@ -916,101 +875,23 @@ class FirestoreDataService(
             }
             Result.success(updated)
         } catch (e: Exception) {
-            Log.e(TAG, "updateOrderStatusWithHistory failed in Firestore, updating locally", e)
-            val existing = _ordersFlow.value.find { it.id == id }
-            if (existing != null) {
-                val updated = existing.copy(
-                    status = status,
-                    lastUpdated = System.currentTimeMillis(),
-                    statusHistory = existing.statusHistory + newEntry
-                )
-                val list = _ordersFlow.value.map { if (it.id == id) updated else it }
-                _ordersFlow.value = list
-                localStorage.saveOrders(list)
-                val custId = updated.customerUid.ifBlank { updated.customerId }
-                if (custId.isNotBlank()) {
-                    val notif = AppNotification.createOrderNotification(updated.orderId, custId, status, updated.orderDate)
-                    serviceScope.launch { createNotification(notif) }
-                }
-                Result.success(updated)
-            } else {
-                Result.failure(e)
-            }
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.e(TAG, "updateOrderStatusWithHistory failed", e)
+            Result.failure(e)
         }
     }
 
     override suspend fun cancelOrder(id: String, reason: String, customerId: String): Result<ShopOrder> {
-        val existing = _ordersFlow.value.find { it.id == id }
-        if (existing != null) {
-            val isOwner = existing.customerUid.equals(customerId, ignoreCase = true) ||
-                          existing.customerId.equals(customerId, ignoreCase = true)
-            if (!isOwner && customerId != "ADMIN") {
-                return Result.failure(IllegalStateException("Unauthorized: You can only cancel your own orders."))
-            }
-            if (existing.isDelivered) {
-                return Result.failure(IllegalStateException("Delivered orders cannot be cancelled."))
-            }
-        }
-
-        val newEntry = OrderStatusHistoryEntry(
-            status = "Cancelled",
-            timestamp = System.currentTimeMillis(),
-            note = if (reason.isNotBlank()) "Cancelled by customer: $reason" else "Cancelled by customer",
-            updatedBy = if (customerId == "ADMIN") "Admin" else "Customer"
-        )
-
         return try {
-            val docRef = firestore.collection(COLLECTION_ORDERS).document(id)
-            docRef.update(
-                mapOf(
-                    "orderStatus" to "Cancelled",
-                    "cancellationReason" to reason,
-                    "updatedAt" to System.currentTimeMillis(),
-                    "statusHistory" to FieldValue.arrayUnion(newEntry.toMap())
-                )
-            ).await()
-
-            val updated = existing?.copy(
-                status = "Cancelled",
-                cancellationReason = reason,
-                lastUpdated = System.currentTimeMillis(),
-                statusHistory = existing.statusHistory + newEntry
-            )
-
-            if (updated != null) {
-                val list = _ordersFlow.value.map { if (it.id == id) updated else it }
-                _ordersFlow.value = list
-                localStorage.saveOrders(list)
-                val custId = updated.customerUid.ifBlank { updated.customerId }
-                if (custId.isNotBlank()) {
-                    val notif = AppNotification.createOrderNotification(updated.orderId, custId, "Cancelled", updated.orderDate)
-                    serviceScope.launch { createNotification(notif) }
-                }
-                Result.success(updated)
-            } else {
-                Result.failure(NoSuchElementException("Order $id not found"))
-            }
+            orderFunctions.getHttpsCallable("cancelStoreOrder")
+                .call(mapOf("orderId" to id, "reason" to reason)).await()
+            val doc = firestore.collection(COLLECTION_ORDERS).document(id)
+                .get(com.google.firebase.firestore.Source.SERVER).await()
+            Result.success(parseShopOrder(doc) ?: error("Order confirmation is unavailable."))
         } catch (e: Exception) {
-            Log.e(TAG, "cancelOrder failed in Firestore, updating locally", e)
-            if (existing != null) {
-                val updated = existing.copy(
-                    status = "Cancelled",
-                    cancellationReason = reason,
-                    lastUpdated = System.currentTimeMillis(),
-                    statusHistory = existing.statusHistory + newEntry
-                )
-                val list = _ordersFlow.value.map { if (it.id == id) updated else it }
-                _ordersFlow.value = list
-                localStorage.saveOrders(list)
-                val custId = updated.customerUid.ifBlank { updated.customerId }
-                if (custId.isNotBlank()) {
-                    val notif = AppNotification.createOrderNotification(updated.orderId, custId, "Cancelled", updated.orderDate)
-                    serviceScope.launch { createNotification(notif) }
-                }
-                Result.success(updated)
-            } else {
-                Result.failure(e)
-            }
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.e(TAG, "cancelOrder failed", e)
+            Result.failure(e)
         }
     }
 
@@ -1954,91 +1835,51 @@ class FirestoreDataService(
     // -------------------------------------------------------------
     // REELS
     // -------------------------------------------------------------
+    private fun parseReel(doc: DocumentSnapshot): ReelItem? = runCatching {
+        ReelItem(
+            id = doc.getString("id") ?: doc.id,
+            title = doc.getString("title") ?: "",
+            caption = doc.getString("caption") ?: "",
+            videoUrl = doc.getString("videoUrl") ?: "",
+            thumbnailUrl = doc.getString("thumbnailUrl") ?: "",
+            productId = doc.getString("productId").takeIf { !it.isNullOrBlank() },
+            productName = doc.getString("productName").takeIf { !it.isNullOrBlank() },
+            productPrice = doc.getLong("productPrice")?.toInt()?.takeIf { it >= 0 },
+            productImage = doc.getString("productImage").takeIf { !it.isNullOrBlank() },
+            likesCount = doc.getLong("likesCount")?.toInt() ?: 0,
+            sharesCount = doc.getLong("sharesCount")?.toInt() ?: 0,
+            viewsCount = doc.getLong("viewsCount")?.toInt() ?: 0,
+            isPublished = doc.getBoolean("isPublished") ?: true,
+            uploadedAt = doc.getLong("uploadedAt") ?: System.currentTimeMillis(),
+            uploadedBy = doc.getString("uploadedBy") ?: "skmobileshoppyandelectronics@gmail.com",
+            durationSeconds = doc.getLong("durationSeconds")?.toInt() ?: 15
+        )
+    }.getOrNull()
+
     private fun setupReelsListener() {
-        try {
-            reelsListener?.remove()
-            reelsListener = firestore.collection(COLLECTION_REELS)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        Log.w(TAG, "Reels listener error: ${error.message}")
-                        return@addSnapshotListener
-                    }
-                    if (snapshot != null) {
-                        val reels = snapshot.documents.mapNotNull { doc ->
-                            try {
-                                ReelItem(
-                                    id = doc.getString("id") ?: doc.id,
-                                    title = doc.getString("title") ?: "",
-                                    caption = doc.getString("caption") ?: "",
-                                    videoUrl = doc.getString("videoUrl") ?: "",
-                                    thumbnailUrl = doc.getString("thumbnailUrl") ?: "",
-                                    productId = doc.getString("productId").takeIf { !it.isNullOrBlank() },
-                                    productName = doc.getString("productName").takeIf { !it.isNullOrBlank() },
-                                    productPrice = doc.getLong("productPrice")?.toInt()?.takeIf { it >= 0 },
-                                    productImage = doc.getString("productImage").takeIf { !it.isNullOrBlank() },
-                                    likesCount = doc.getLong("likesCount")?.toInt() ?: 0,
-                                    sharesCount = doc.getLong("sharesCount")?.toInt() ?: 0,
-                                    viewsCount = doc.getLong("viewsCount")?.toInt() ?: 0,
-                                    isPublished = doc.getBoolean("isPublished") ?: true,
-                                    uploadedAt = doc.getLong("uploadedAt") ?: System.currentTimeMillis(),
-                                    uploadedBy = doc.getString("uploadedBy") ?: "skmobileshoppyandelectronics@gmail.com",
-                                    durationSeconds = doc.getLong("durationSeconds")?.toInt() ?: 15
-                                )
-                            } catch (e: Exception) {
-                                null
-                            }
-                        }
-                        if (reels.isNotEmpty()) {
-                            _reelsFlow.value = reels
-                            localStorage.saveReels(reels)
-                        } else {
-                            val local = localStorage.loadReels()
-                            _reelsFlow.value = local
-                        }
-                    }
+        reelsListener?.remove()
+        reelsListener = firestore.collection(COLLECTION_REELS)
+            .whereEqualTo("isPublished", true)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) Log.w(TAG, "Reels listener failed", error)
+                if (snapshot != null) {
+                    _reelsFlow.value = snapshot.documents.mapNotNull(::parseReel)
+                    localStorage.saveReels(_reelsFlow.value)
                 }
-        } catch (e: Exception) {
-            Log.w(TAG, "setupReelsListener failed: ${e.message}")
-        }
+            }
     }
 
     override fun observeReels(): Flow<List<ReelItem>> = _reelsFlow.asStateFlow()
 
-    override suspend fun getReels(): List<ReelItem> {
-        return try {
-            val snapshot = firestore.collection(COLLECTION_REELS).get().await()
-            val list = snapshot.documents.mapNotNull { doc ->
-                ReelItem(
-                    id = doc.getString("id") ?: doc.id,
-                    title = doc.getString("title") ?: "",
-                    caption = doc.getString("caption") ?: "",
-                    videoUrl = doc.getString("videoUrl") ?: "",
-                    thumbnailUrl = doc.getString("thumbnailUrl") ?: "",
-                    productId = doc.getString("productId").takeIf { !it.isNullOrBlank() },
-                    productName = doc.getString("productName").takeIf { !it.isNullOrBlank() },
-                    productPrice = doc.getLong("productPrice")?.toInt()?.takeIf { it >= 0 },
-                    productImage = doc.getString("productImage").takeIf { !it.isNullOrBlank() },
-                    likesCount = doc.getLong("likesCount")?.toInt() ?: 0,
-                    sharesCount = doc.getLong("sharesCount")?.toInt() ?: 0,
-                    viewsCount = doc.getLong("viewsCount")?.toInt() ?: 0,
-                    isPublished = doc.getBoolean("isPublished") ?: true,
-                    uploadedAt = doc.getLong("uploadedAt") ?: System.currentTimeMillis(),
-                    uploadedBy = doc.getString("uploadedBy") ?: "skmobileshoppyandelectronics@gmail.com",
-                    durationSeconds = doc.getLong("durationSeconds")?.toInt() ?: 15
-                )
-            }
-            if (list.isNotEmpty()) {
-                _reelsFlow.value = list
-                localStorage.saveReels(list)
-                list
-            } else {
-                localStorage.loadReels()
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "getReels fallback to local storage: ${e.message}")
-            localStorage.loadReels()
+    override fun observeAdminReels(): Flow<List<ReelItem>> = callbackFlow {
+        val registration = firestore.collection(COLLECTION_REELS).addSnapshotListener { snapshot, error ->
+            if (error != null) Log.w(TAG, "Admin reels listener failed", error)
+            if (snapshot != null) trySend(snapshot.documents.mapNotNull(::parseReel))
         }
+        awaitClose { registration.remove() }
     }
+
+    override suspend fun getReels(): List<ReelItem> = _reelsFlow.value
 
     override suspend fun createReel(reel: ReelItem): Result<ReelItem> {
         val current = _reelsFlow.value.toMutableList()
@@ -2137,7 +1978,7 @@ class FirestoreDataService(
 
             try {
                 firestore.collection(COLLECTION_REELS).document(id)
-                    .update("likesCount", newCount)
+                    .update("likesCount", FieldValue.increment(if (increment) 1L else -1L)).await()
             } catch (e: Exception) {
                 // Ignore remote like failure
             }
@@ -2157,7 +1998,7 @@ class FirestoreDataService(
 
             try {
                 firestore.collection(COLLECTION_REELS).document(id)
-                    .update("sharesCount", newCount)
+                    .update("sharesCount", FieldValue.increment(1L)).await()
             } catch (e: Exception) {
                 // Ignore remote share failure
             }
