@@ -15,6 +15,16 @@ export default {
   }
   const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers});
   if(request.method==="GET" && url.pathname==="/health")return reply({status:"development",ready:false});
+  if(request.method==="GET" && url.pathname==="/firebase-check"){
+   const secret=env.STAGING_DIAGNOSTIC_TOKEN;
+   if(!secret || secret.length<32 || request.headers.get("Authorization")!=="Bearer "+secret)return reply({error:"Unauthorized"},401);
+   if(env.FIREBASE_PROJECT_ID!=="sk-mobile-staging" || env.STAGING_FIREBASE_PROJECT_ID!==env.FIREBASE_PROJECT_ID || env.FIRESTORE_DATABASE!=="(default)")return reply({error:"Staging configuration required"},503);
+   try {
+    const db=await firestore(env);
+    await db.transaction(async get=>{await get("diagnostics","connection-check");return {writes:[],result:true};});
+    return reply({firebaseConnected:true,firestoreReadable:true});
+   }catch{return reply({firebaseConnected:false},503);}
+  }
   const orderRoute=request.method==="POST" && ["/orders","/orders/cancel"].includes(url.pathname);
   if(orderRoute && env.ENABLE_STAGING_ORDERS!=="true")return reply({error:"Backend not enabled"},503);
   if(orderRoute || (request.method==="GET" && url.pathname==="/auth-check")){
