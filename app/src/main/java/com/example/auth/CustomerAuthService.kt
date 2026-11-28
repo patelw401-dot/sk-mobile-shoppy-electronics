@@ -305,6 +305,20 @@ object CustomerAuthService {
         }
     }
 
+    private suspend fun requireVerifiedEmail(auth: FirebaseAuth, user: FirebaseUser) {
+        try {
+            user.reload().await()
+            if (!user.isEmailVerified) {
+                user.sendEmailVerification().await()
+                throw IllegalStateException("Verification email sent. Open the link in your inbox or spam folder, then sign in again.")
+            }
+            user.getIdToken(true).await()
+        } catch (e: Exception) {
+            auth.signOut()
+            throw e
+        }
+    }
+
     /**
      * Sign in customer with Email & Password.
      */
@@ -313,6 +327,7 @@ object CustomerAuthService {
         return try {
             val authResult = auth.signInWithEmailAndPassword(email.trim(), password).await()
             val user = authResult.user ?: return Result.failure(Exception("User is null after sign-in"))
+            requireVerifiedEmail(auth, user)
             syncCustomerProfileToFirestore(user)
             Result.success(user)
         } catch (e: CancellationException) {
@@ -343,6 +358,7 @@ object CustomerAuthService {
                 }
             }
             val finalUser = auth.currentUser ?: user
+            requireVerifiedEmail(auth, finalUser)
             syncCustomerProfileToFirestore(finalUser)
             Result.success(finalUser)
         } catch (e: CancellationException) {
