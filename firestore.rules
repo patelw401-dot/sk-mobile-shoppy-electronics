@@ -4,7 +4,9 @@ service cloud.firestore {
 
     // Helper functions
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null &&
+        (request.auth.token.get('firebase', {}).get('sign_in_provider', '') != 'password' ||
+          request.auth.token.get('email_verified', false) == true);
     }
 
     function activeAdminRecord(id) {
