@@ -20,6 +20,9 @@ android {
     val envVersionName = System.getenv("APP_VERSION_NAME")?.trim()?.takeIf { it.isNotEmpty() } ?: "1.0.0"
     versionCode = envVersionCode
     versionName = envVersionName
+    val stagingApi = System.getenv("STAGING_ORDER_API")?.trim().orEmpty()
+    require(stagingApi.matches(Regex("[A-Za-z0-9:/._-]*")))
+    buildConfigField("String", "STAGING_ORDER_API", "\"" + stagingApi + "\"")
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
