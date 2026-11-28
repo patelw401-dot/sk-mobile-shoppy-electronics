@@ -5,6 +5,14 @@ export default {
  async fetch(request,env) {
   const url=new URL(request.url);
   const headers={"Content-Type":"application/json","Cache-Control":"no-store","X-Content-Type-Options":"nosniff"};
+  const origin=request.headers.get("Origin");
+  const allowed=env.STAGING_WEB_ORIGIN;
+  if(origin && origin!==allowed)return new Response(null,{status:403});
+  if(origin){headers["Access-Control-Allow-Origin"]=origin;headers["Vary"]="Origin";}
+  if(request.method==="OPTIONS"){
+   if(!origin || !["/orders","/orders/cancel","/auth-check"].includes(url.pathname))return new Response(null,{status:403});
+   return new Response(null,{status:204,headers:{...headers,"Access-Control-Allow-Methods":"GET, POST, OPTIONS","Access-Control-Allow-Headers":"Authorization, Content-Type","Access-Control-Max-Age":"600"}});
+  }
   const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers});
   if(request.method==="GET" && url.pathname==="/health")return reply({status:"development",ready:false});
   const orderRoute=request.method==="POST" && ["/orders","/orders/cancel"].includes(url.pathname);
