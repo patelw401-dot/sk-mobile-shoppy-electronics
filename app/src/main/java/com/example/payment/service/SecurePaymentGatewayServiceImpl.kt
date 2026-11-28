@@ -47,16 +47,7 @@ class SecurePaymentGatewayServiceImpl : PaymentGatewayService {
             PaymentMethodType.UPI,
             PaymentMethodType.CARD,
             PaymentMethodType.NET_BANKING -> {
-                // In production, this calls the trusted backend server endpoint (e.g., Cloud Function /api/createOrder)
-                // The backend generates the order on Razorpay/Cashfree/PhonePe with the secret key and returns the public gateway order ID.
-                PaymentGatewayOrderSession(
-                    gatewayOrderId = "GATEWAY_ORDER_${request.orderId}_${System.currentTimeMillis() % 10000}",
-                    provider = "PROVIDER_INDEPENDENT_GATEWAY",
-                    amountPaise = request.amountPaise,
-                    clientKeyId = "client_publishable_placeholder",
-                    idempotencyKey = request.idempotencyKey,
-                    status = PaymentStatus.PENDING
-                )
+                return Result.failure(SecurityException("Online payments are not configured. Please use Cash on Delivery."))
             }
         }
 
@@ -84,25 +75,8 @@ class SecurePaymentGatewayServiceImpl : PaymentGatewayService {
             return Result.success(result)
         }
 
-        // For online gateways: require trusted backend HMAC verification.
-        // If gatewaySignature is empty or invalid, the verification fails securely.
-        if (request.gatewaySignature.isBlank() || request.gatewayPaymentId.isBlank()) {
-            return Result.failure(
-                SecurityException("Payment verification failed: Missing cryptographic gateway signature.")
-            )
-        }
-
-        // Server-side check confirmation simulation
-        val result = PaymentVerificationResult(
-            isVerified = true,
-            orderId = request.orderId,
-            paymentStatus = PaymentStatus.SUCCESSFUL,
-            bankSettlementStatus = BankSettlementStatus.PENDING_SETTLEMENT,
-            message = "Transaction verified by backend signature check.",
-            transactionRef = request.gatewayPaymentId
-        )
-        verifiedPayments[request.idempotencyKey] = result
-        return Result.success(result)
+        // Fail closed until a trusted backend performs real gateway verification.
+        return Result.failure(SecurityException("Online payment verification is unavailable until the payment backend is configured."))
     }
 
     override suspend fun fetchPaymentStatus(orderId: String): Result<PaymentVerificationResult> {

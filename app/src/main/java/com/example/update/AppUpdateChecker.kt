@@ -49,6 +49,15 @@ object AppUpdateChecker {
         }
     }
 
+    private fun trustedApkUrl(context: Context, url: String): Boolean {
+        val candidate = Uri.parse(url)
+        val trusted = Uri.parse(getConfiguredBaseUrl(context))
+        return candidate.scheme.equals("https", true) &&
+            candidate.host?.equals(trusted.host, true) == true &&
+            candidate.port == trusted.port && candidate.userInfo == null &&
+            candidate.path == DEFAULT_APK_PATH
+    }
+
     suspend fun checkForUpdate(context: Context): AppUpdateInfo? = withContext(Dispatchers.IO) {
         try {
             val baseUrl = getConfiguredBaseUrl(context)
@@ -88,7 +97,7 @@ object AppUpdateChecker {
                     else -> "$baseUrl/$rawApkPath"
                 }
 
-                if (!resolvedApkUrl.startsWith("https://", ignoreCase = true)) {
+                if (!trustedApkUrl(context, resolvedApkUrl)) {
                     return@withContext null
                 }
 
@@ -108,7 +117,7 @@ object AppUpdateChecker {
     }
 
     fun openApkDownload(context: Context, apkUrl: String): Boolean {
-        if (!apkUrl.startsWith("https://", ignoreCase = true)) return false
+        if (!trustedApkUrl(context, apkUrl)) return false
         return try {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl)).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

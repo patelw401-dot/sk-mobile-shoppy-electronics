@@ -264,9 +264,35 @@ test("Admin user can read and manage orders, repair bookings, and catalog", asyn
   );
 });
 
+test("Web fulfillment updates preserve pending and already-paid payment states", async () => {
+  const { fulfillmentStatusUpdate } = await import("./web/src/orderFields.js");
+  const adminDb = testEnv.authenticatedContext(ADMIN_UID).firestore();
+  const order = adminDb.collection("orders").doc("order_alice");
+
+  for (const paymentStatus of ["Pending", "Paid"]) {
+    await assertSucceeds(order.update({ orderStatus: "Order Confirmed", paymentStatus }));
+    await assertSucceeds(order.update(fulfillmentStatusUpdate("Delivered", "admin@skmobile.com", Date.now())));
+    const updated = (await order.get()).data();
+    if (updated.orderStatus !== "Delivered" || updated.paymentStatus !== paymentStatus) {
+      throw new Error("Delivery must change fulfillment status and preserve payment status");
+    }
+  }
+});
+
+test("Account switch cannot read the previous admin's order by ID or wrong-case UID", async () => {
+  const adminDb = testEnv.authenticatedContext(ADMIN_UID).firestore();
+  const customerDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const wrongCaseDb = testEnv.authenticatedContext(ALICE_UID.toUpperCase()).firestore();
+
+  await assertSucceeds(adminDb.collection("orders").doc("order_alice").get());
+  await assertFails(customerDb.collection("orders").doc("order_alice").get());
+  await assertFails(wrongCaseDb.collection("orders").doc("order_alice").get());
+  await assertFails(customerDb.collection("orders").where("customerId", "==", ALICE_UID).get());
+});
+
 test("Google-Only Auth: Authorized Gmail allowlist grants admin; normal customer Google login denied admin", async () => {
   // Authorized Gmail allowlist user: patelw401@gmail.com
-  const authorizedGoogleAdminDb = testEnv.authenticatedContext("patel_uid", { email: "patelw401@gmail.com" }).firestore();
+  const authorizedGoogleAdminDb = testEnv.authenticatedContext("patel_uid", { email: "patelw401@gmail.com", email_verified: true }).firestore();
   await assertSucceeds(authorizedGoogleAdminDb.collection("orders").doc("order_alice").get());
   await assertSucceeds(
     authorizedGoogleAdminDb.collection("products").doc("prod_patel").set({
@@ -277,7 +303,7 @@ test("Google-Only Auth: Authorized Gmail allowlist grants admin; normal customer
   );
 
   // Authorized Store Owner account: skmobileshoppyandelectronics@gmail.com
-  const storeOwnerDb = testEnv.authenticatedContext("owner_uid", { email: "skmobileshoppyandelectronics@gmail.com" }).firestore();
+  const storeOwnerDb = testEnv.authenticatedContext("owner_uid", { email: "skmobileshoppyandelectronics@gmail.com", email_verified: true }).firestore();
   await assertSucceeds(storeOwnerDb.collection("orders").doc("order_alice").get());
   await assertSucceeds(
     storeOwnerDb.collection("products").doc("prod_owner").set({
@@ -431,3 +457,43 @@ test("Shop info settings/shop_info allows public read and admin-only write", asy
 });
 
 
+
+
+test("Customer cannot create an order already marked Paid", async () => {
+  const db = testEnv.authenticatedContext(ALICE_UID).firestore();
+  await assertFails(db.collection("orders").doc("forged_paid").set({
+    customerId: ALICE_UID, customerName: "Alice", phone: "9823109313",
+    address: "Udgir", items: [{ id: "prod_1", quantity: 1 }], total: 79999,
+    orderStatus: "Order Placed", paymentStatus: "Paid"
+  }));
+});
+
+test("Customer cannot change notification ownership or message", async () => {
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await context.firestore().collection("notifications").doc("n1").set({customerId: ALICE_UID, message: "Original", isRead: false});
+  });
+  const db = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const doc = db.collection("notifications").doc("n1");
+  await assertFails(doc.update({customerId: BOB_UID}));
+  await assertFails(doc.update({message: "Changed"}));
+  await assertSucceeds(doc.update({isRead: true}));
+});
+
+
+test("Unverified allowlisted email cannot write products", async () => {
+  const db = testEnv.authenticatedContext("unverified", {email: "admin@skmobile.com", email_verified: false}).firestore();
+  await assertFails(db.collection("products").doc("forged").set({name: "Fake"}));
+});
+test("Inactive admin registry record cannot write products", async () => {
+  await testEnv.withSecurityRulesDisabled(async c => { await c.firestore().collection("admins").doc("inactive").set({isAdmin:true,active:false}); });
+  const db = testEnv.authenticatedContext("inactive").firestore();
+  await assertFails(db.collection("products").doc("forged").set({name:"Fake"}));
+});
+test("Reel counters allow single increments but reject arbitrary changes", async () => {
+  await testEnv.withSecurityRulesDisabled(async c => { await c.firestore().collection("reels").doc("r1").set({likesCount:0,sharesCount:0,viewsCount:0}); });
+  const doc = testEnv.authenticatedContext(ALICE_UID).firestore().collection("reels").doc("r1");
+  await assertSucceeds(doc.update({likesCount:1}));
+  await assertFails(doc.update({likesCount:1000}));
+  await assertFails(doc.update({sharesCount:-1}));
+  await assertSucceeds(doc.update({likesCount:0}));
+});

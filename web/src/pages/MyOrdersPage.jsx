@@ -6,6 +6,7 @@ import {
   DEFAULT_SHOP_INFO,
   formatShopInfo
 } from '../firebase';
+import { formatOrderDate } from '../orderFields.js';
 import { 
   Package, 
   Clock, 
@@ -198,9 +199,7 @@ export default function MyOrdersPage({ currentUser, setActivePage, onShowToast, 
       ) : (
         <div className="space-y-6">
           {orders.map((ord) => {
-            const formattedDate = ord.createdAt?.toDate 
-              ? ord.createdAt.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-              : 'Recent Order';
+            const formattedDate = formatOrderDate(ord);
 
             const canCancel = (ord.orderStatus === 'Pending' || ord.orderStatus === 'Order Placed');
 

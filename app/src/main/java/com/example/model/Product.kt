@@ -267,13 +267,7 @@ data class ShopOrder(
     val customerId: String get() = if (customerUid.isNotBlank()) customerUid else "CUST-${customerName.hashCode().let { if (it < 0) -it else it }}"
     val phone: String get() = mobileNumber
     val deliveryMethod: String get() = deliveryOption
-    val paymentStatus: String get() = if (transactionStatus.isNotBlank()) {
-        transactionStatus
-    } else if (paymentMethod == "Cash on Delivery" && status != "Delivered") {
-        "Pending"
-    } else {
-        "Paid"
-    }
+    val paymentStatus: String get() = transactionStatus.ifBlank { "Pending" }
     val orderStatus: String get() = status
     val deliveryCharge: Int get() = deliveryFee
     val total: Int get() = totalAmount

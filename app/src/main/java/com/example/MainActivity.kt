@@ -364,7 +364,7 @@ private fun SKMobileMainContent(
 
                     AppScreen.ORDER_SUCCESS -> {
                         OrderSuccessScreen(
-                            order = shopUiState.lastConfirmedOrder,
+                            order = shopUiState.ownedConfirmedOrder,
                             onContinueShopping = {
                                 shopViewModel.clearConfirmedOrder()
                                 shopViewModel.navigateTo(AppScreen.HOME)
@@ -377,7 +377,7 @@ private fun SKMobileMainContent(
 
                     AppScreen.MY_ORDERS -> {
                         MyOrdersScreen(
-                            orders = if (shopUiState.customerOrders.isNotEmpty()) shopUiState.customerOrders else shopUiState.pastOrders,
+                            orders = shopUiState.ownedCustomerOrders,
                             isLoading = shopUiState.isOrdersLoading,
                             errorMessage = shopUiState.ordersErrorMessage,
                             onSelectOrder = { order -> shopViewModel.selectOrderForDetail(order) },
@@ -390,7 +390,7 @@ private fun SKMobileMainContent(
 
                     AppScreen.ORDER_DETAIL -> {
                         OrderDetailScreen(
-                            order = shopUiState.selectedOrder ?: shopUiState.lastConfirmedOrder,
+                            order = shopUiState.ownedSelectedOrder,
                             shopInfo = shopUiState.shopInfo,
                             products = shopUiState.products,
                             onCancelOrder = { orderId, reason ->

@@ -126,6 +126,12 @@ class LocalStorageManager(private val context: Context? = null) {
     }
 
     @Synchronized
+    fun clearOrders() {
+        cachedOrders = null
+        prefs?.edit()?.remove(KEY_ORDERS)?.apply()
+    }
+
+    @Synchronized
     fun saveOrders(orders: List<ShopOrder>): Boolean {
         cachedOrders = orders.toMutableList()
         return try {

@@ -268,7 +268,8 @@ fun ReelPlayerPage(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     var isPlaying by remember { mutableStateOf(false) }
-    var isBuffering by remember { mutableStateOf(true) }
+    var isBuffering by remember(reel.id, reel.videoUrl) { mutableStateOf(true) }
+    var playbackFailed by remember(reel.id, reel.videoUrl) { mutableStateOf(false) }
     var showPlayPauseIcon by remember { mutableStateOf(false) }
     var isManuallyPaused by remember { mutableStateOf(false) }
     var isCaptionExpanded by remember { mutableStateOf(false) }
@@ -277,7 +278,7 @@ fun ReelPlayerPage(
     var durationMs by remember { mutableLongStateOf(0L) }
 
     // Memory & Data Optimized ExoPlayer instance
-    val exoPlayer = remember(context, reel.id) {
+    val exoPlayer = remember(context, reel.id, reel.videoUrl) {
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 /* minBufferMs = */ 1500,
@@ -304,6 +305,11 @@ fun ReelPlayerPage(
     // Release player when scrolled away/disposed
     DisposableEffect(exoPlayer) {
         val listener = object : Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                playbackFailed = true
+                isBuffering = false
+            }
+
             override fun onPlaybackStateChanged(playbackState: Int) {
                 isBuffering = playbackState == Player.STATE_BUFFERING
                 if (playbackState == Player.STATE_READY) {
@@ -325,7 +331,7 @@ fun ReelPlayerPage(
     }
 
     // Observe App Lifecycle to pause/resume playback cleanly
-    DisposableEffect(lifecycleOwner, exoPlayer) {
+    DisposableEffect(lifecycleOwner, exoPlayer, isCurrentPage, isManuallyPaused) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> {
@@ -447,7 +453,17 @@ fun ReelPlayerPage(
         )
 
         // Center Buffering Spinner
-        if (isBuffering) {
+        if (playbackFailed) {
+            androidx.compose.material3.Button(
+                onClick = {
+                    playbackFailed = false
+                    isBuffering = true
+                    exoPlayer.prepare()
+                    if (isCurrentPage) exoPlayer.play()
+                },
+                modifier = Modifier.align(Alignment.Center)
+            ) { Text("Retry video") }
+        } else if (isBuffering) {
             CircularProgressIndicator(
                 color = GoldPrimary,
                 modifier = Modifier

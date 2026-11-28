@@ -125,7 +125,7 @@ export default function App() {
 
   const handleAddToCart = (product, qty = 1) => {
     if (!product) return;
-    if (product.inStock === false || (product.stock !== undefined && product.stock <= 0)) {
+    if (product.inStock === false || !Number.isFinite(Number(product.stock)) || Number(product.stock) < 1) {
       showToast(`${product.name} is currently out of stock.`, 'error');
       return;
     }
@@ -136,7 +136,8 @@ export default function App() {
         const updated = [...prev];
         updated[existingIndex] = {
           ...updated[existingIndex],
-          quantity: (updated[existingIndex].quantity || 1) + qty
+          quantity: Math.min(Number(product.stock), (updated[existingIndex].quantity || 1) + Math.max(1, Math.floor(Number(qty) || 1))),
+          stock: product.stock
         };
         return updated;
       }
@@ -150,7 +151,7 @@ export default function App() {
           price: product.price,
           originalPrice: product.originalPrice,
           imageUrl: product.imageUrl || product.primaryImage || product.image || (Array.isArray(product.images) && product.images[0]) || '',
-          quantity: qty,
+          quantity: Math.min(Number(product.stock), Math.max(1, Math.floor(Number(qty) || 1))),
           stock: product.stock,
           inStock: product.inStock
         }
@@ -164,7 +165,7 @@ export default function App() {
       return prev
         .map((item) => {
           if (item.id === productId) {
-            const newQty = (item.quantity || 1) + delta;
+            const newQty = delta > 0 ? Math.min(Math.max(0, Number(item.stock) || 0), (item.quantity || 1) + delta) : (item.quantity || 1) + delta;
             return newQty > 0 ? { ...item, quantity: newQty } : null;
           }
           return item;
@@ -184,7 +185,7 @@ export default function App() {
 
   const handleBuyNow = (product, qty = 1) => {
     if (!product) return;
-    if (product.inStock === false || (product.stock !== undefined && product.stock <= 0)) {
+    if (product.inStock === false || !Number.isFinite(Number(product.stock)) || Number(product.stock) < 1) {
       showToast(`${product.name} is currently out of stock.`, 'error');
       return;
     }
@@ -205,7 +206,7 @@ export default function App() {
           price: product.price,
           originalPrice: product.originalPrice,
           imageUrl: product.imageUrl || product.primaryImage || product.image || (Array.isArray(product.images) && product.images[0]) || '',
-          quantity: qty || 1,
+          quantity: Math.min(Number(product.stock), Math.max(1, Math.floor(Number(qty) || 1))),
           stock: product.stock,
           inStock: product.inStock
         }

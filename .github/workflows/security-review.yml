@@ -1,0 +1,66 @@
+name: Security review
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: ['security/hardening-review']
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts
+        working-directory: web
+      - run: node --test test/orderFields.test.js
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+  firestore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm install --no-save --package-lock=false firebase-tools @firebase/rules-unit-testing firebase
+      - run: |
+          node -e 'require("fs").writeFileSync("firebase.test.json", JSON.stringify({firestore:{rules:"firestore.rules"},emulators:{firestore:{host:"127.0.0.1",port:8085},ui:{enabled:false}}}))'
+          npx firebase emulators:exec --config firebase.test.json --project demo-no-project --only firestore "node --test firestore.test.js"
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platforms;android-36 build-tools;36.0.0
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+      - name: Prepare isolated test Firebase configuration
+        run: |
+          if [ ! -f app/google-services.json ]; then
+            python3 - <<'PY'
+          import json
+          with open("app/google-services.json","w") as f:
+              json.dump({"project_info":{"project_number":"123456789012","project_id":"demo-no-project"},"client":[{"client_info":{"mobilesdk_app_id":"1:123456789012:android:1234567890abcdef","android_client_info":{"package_name":"com.aistudio.skmobile.udgirs"}},"api_key":[{"current_key":"test-only-not-a-real-key"}],"oauth_client":[{"client_id":"123456789012-test.apps.googleusercontent.com","client_type":3}]}],"configuration_version":"1"},f)
+          PY
+          fi
+      - name: Generate temporary CI debug keystore
+        run: |
+          if [ ! -f debug.keystore ]; then
+            keytool -genkeypair -keystore debug.keystore -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+      - run: gradle :app:assembleDebug :app:testDebugUnitTest --no-daemon

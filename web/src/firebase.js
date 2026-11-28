@@ -1,3 +1,4 @@
+import { fulfillmentStatusUpdate, normalizeOrderFields, orderCreatedAtMillis } from './orderFields.js';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { 
@@ -152,7 +153,7 @@ export async function fetchFirestoreProducts() {
       const data = doc.data();
       const priceNum = typeof data.price === 'number' ? data.price : (parseInt(data.price, 10) || 0);
       const origPriceNum = typeof data.originalPrice === 'number' ? data.originalPrice : (data.originalPrice ? parseInt(data.originalPrice, 10) : undefined);
-      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? parseInt(data.stock, 10) : 10);
+      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? (parseInt(data.stock, 10) || 0) : 0);
       const inStockBool = data.inStock !== undefined ? Boolean(data.inStock) : stockNum > 0;
 
       items.push({
@@ -224,7 +225,7 @@ export function subscribeToFirestoreProducts(onSuccess, onError) {
       const data = docSnap.data();
       const priceNum = typeof data.price === 'number' ? data.price : (parseInt(data.price, 10) || 0);
       const origPriceNum = typeof data.originalPrice === 'number' ? data.originalPrice : (data.originalPrice ? parseInt(data.originalPrice, 10) : undefined);
-      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? parseInt(data.stock, 10) : 10);
+      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? (parseInt(data.stock, 10) || 0) : 0);
       const inStockBool = data.inStock !== undefined ? Boolean(data.inStock) : stockNum > 0;
       const catSlug = (data.categorySlug || data.category || 'smartphones').toLowerCase();
       const singleImg = data.imageUrl || data.image || data.primaryImage || '';
@@ -417,7 +418,7 @@ export const AUTHORIZED_ADMIN_EMAILS = [
  * Check if a Firebase user is an authorized store administrator.
  */
 export function isUserAdmin(user) {
-  if (!user || !user.email) return false;
+  if (!user || !user.email || user.emailVerified !== true) return false;
   return AUTHORIZED_ADMIN_EMAILS.some(
     adminEmail => adminEmail.toLowerCase() === user.email.toLowerCase()
   );
@@ -525,7 +526,7 @@ export async function fetchAdminProducts() {
       const data = d.data();
       const priceNum = typeof data.price === 'number' ? data.price : (parseInt(data.price, 10) || 0);
       const origPriceNum = typeof data.originalPrice === 'number' ? data.originalPrice : (data.originalPrice ? parseInt(data.originalPrice, 10) : undefined);
-      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? parseInt(data.stock, 10) : 10);
+      const stockNum = typeof data.stock === 'number' ? data.stock : (data.stock !== undefined ? (parseInt(data.stock, 10) || 0) : 0);
       const inStockBool = data.inStock !== undefined ? Boolean(data.inStock) : stockNum > 0;
 
       items.push({
@@ -589,7 +590,7 @@ export async function saveAdminProductToFirestore(productData, currentUser) {
 
   const origPrice = productData.originalPrice ? (typeof productData.originalPrice === 'number' ? productData.originalPrice : parseFloat(productData.originalPrice)) : null;
   const stock = typeof productData.stock === 'number' ? productData.stock : (parseInt(productData.stock, 10) >= 0 ? parseInt(productData.stock, 10) : 0);
-  const inStock = stock > 0;
+  const inStock = stock > 0 && productData.inStock !== false;
   const discount = origPrice && origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0;
   const hasWarranty = Boolean(productData.hasWarranty);
   const warrantyDuration = hasWarranty ? (productData.warrantyDuration || '').trim() : '';
@@ -734,7 +735,7 @@ export async function seedDefaultProductsToFirestore(currentUser, initialItems =
  *     request.resource.data.items is list && request.resource.data.items.size() > 0 &&
  *     request.resource.data.total is int && request.resource.data.total >= 0 &&
  *     request.resource.data.orderStatus in ['Pending', 'Order Confirmed', 'Processing', 'Order Placed'] &&
- *     request.resource.data.paymentStatus in ['Pending', 'Paid']
+ *     request.resource.data.paymentStatus == 'Pending'
  *   );
  * }
  */
@@ -799,9 +800,11 @@ export async function createCustomerOrderInFirestore(orderData, currentUser) {
     customerName,
     phone,
     address,
+    pinCode: pincode || '413517',
     pincode: pincode || '413517',
     city: (orderData.city || 'Udgir').trim(),
     state: (orderData.state || 'Maharashtra').trim(),
+    deliveryMethod: orderData.deliveryType || 'Store Pickup (Udgir Showroom)',
     deliveryType: orderData.deliveryType || 'Store Pickup (Udgir Showroom)',
     paymentMethod: orderData.paymentMethod || 'Cash on Delivery (COD)',
     paymentStatus: 'Pending',
@@ -833,13 +836,9 @@ export async function fetchCustomerOrders(currentUser) {
     const snap = await getDocs(q);
     const list = [];
     snap.forEach(d => {
-      list.push({ id: d.id, ...d.data() });
+      list.push(normalizeOrderFields({ ...d.data(), id: d.id }));
     });
-    return list.sort((a, b) => {
-      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
-      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
-      return timeB - timeA;
-    });
+    return list.sort((a, b) => (orderCreatedAtMillis(b) ?? 0) - (orderCreatedAtMillis(a) ?? 0));
   } catch (err) {
     console.error("fetchCustomerOrders error:", err);
     return [];
@@ -871,13 +870,9 @@ export async function fetchAdminOrders() {
     const snap = await getDocs(ordersRef);
     const list = [];
     snap.forEach(d => {
-      list.push({ id: d.id, ...d.data() });
+      list.push(normalizeOrderFields({ ...d.data(), id: d.id }));
     });
-    return list.sort((a, b) => {
-      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
-      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
-      return timeB - timeA;
-    });
+    return list.sort((a, b) => (orderCreatedAtMillis(b) ?? 0) - (orderCreatedAtMillis(a) ?? 0));
   } catch (err) {
     console.error("fetchAdminOrders error:", err);
     throw err;
@@ -890,18 +885,7 @@ export async function fetchAdminOrders() {
  */
 export async function updateAdminOrderStatus(orderId, newStatus, adminEmail, adminNote = '') {
   const orderRef = doc(db, 'orders', orderId);
-  const updates = {
-    orderStatus: newStatus,
-    status: newStatus,
-    lastUpdatedBy: adminEmail || 'Store Admin',
-    updatedAt: serverTimestamp()
-  };
-  if (adminNote) {
-    updates.adminNote = adminNote;
-  }
-  if (newStatus === 'Delivered') {
-    updates.paymentStatus = 'Paid';
-  }
+  const updates = fulfillmentStatusUpdate(newStatus, adminEmail, serverTimestamp(), adminNote);
   await updateDoc(orderRef, updates);
   return true;
 }
