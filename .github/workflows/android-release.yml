@@ -147,6 +147,7 @@ jobs:
         run: rm -f "${{ github.workspace }}/my-upload-key.jks" "${{ github.workspace }}/debug.keystore"
 
   publish:
+    if: github.ref == 'refs/heads/main'
     needs: build-release
     runs-on: ubuntu-latest
     permissions:
