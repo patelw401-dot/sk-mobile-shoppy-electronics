@@ -102,6 +102,12 @@ exports.createStoreOrder = onCall(async request => {
   });
 });
 
+function activeAdminRecord(snapshot) {
+  const record = snapshot.data();
+  return record != null && record.active !== false &&
+    (record.isAdmin ?? ['admin', 'superadmin'].includes(record.role)) === true;
+}
+
 exports.cancelStoreOrder = onCall(async request => {
   const { uid, token } = authenticated(request);
   const ref = db.collection('orders').doc(documentId(request.data?.orderId));
@@ -115,9 +121,9 @@ exports.cancelStoreOrder = onCall(async request => {
       const admin = await transaction.get(db.collection('admins').doc(uid));
       const allowed = ['skmobileshoppyandelectronics@gmail.com', 'patelw401@gmail.com',
         'admin@skmobile.com', 'admin.skmobile@gmail.com'];
-      isAdmin = admin.exists || (token.email_verified === true && allowed.includes(token.email));
+      isAdmin = activeAdminRecord(admin) || (token.email_verified === true && allowed.includes(token.email));
       if (!isAdmin && token.email_verified === true && token.email) {
-        isAdmin = (await transaction.get(db.collection('admins').doc(token.email))).exists;
+        isAdmin = activeAdminRecord(await transaction.get(db.collection('admins').doc(token.email)));
       }
     }
     if (order.customerId !== uid && !isAdmin) throw new HttpsError('permission-denied', 'Order unavailable.');

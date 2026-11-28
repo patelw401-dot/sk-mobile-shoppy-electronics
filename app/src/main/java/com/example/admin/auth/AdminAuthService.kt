@@ -202,7 +202,7 @@ object AdminAuthService {
      *
      * Authenticated customers must NEVER automatically receive admin privileges.
      * Admin access is strictly determined by verified server-side credentials:
-     * 1. Firebase Authentication custom claims ("admin" == true or "role" == "admin")
+     * 1. Firebase Authentication custom claims ("admin" == true)
      * 2. Server-side Cloud Firestore /admins collection document matching UID or Email
      *
      * No client-side self-promotion or automatic email-string grant is permitted.
@@ -222,7 +222,7 @@ object AdminAuthService {
             try {
                 val tokenResult = user.getIdToken(false).await()
                 val claims = tokenResult.claims
-                if (claims["admin"] == true || claims["role"] == "admin" || claims["role"] == "superadmin") {
+                if (claims["admin"] == true) {
                     Log.i(TAG, "Admin confirmed via Firebase ID Token custom claim for UID: $userUid")
                     return true
                 }

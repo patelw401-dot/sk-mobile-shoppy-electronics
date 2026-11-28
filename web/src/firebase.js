@@ -3,7 +3,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, getDoc, doc, setDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, onSnapshot, runTransaction } from 'firebase/firestore';
 import { 
   getAuth, 
-  onAuthStateChanged, 
+  onIdTokenChanged,
   signInWithPopup, 
   GoogleAuthProvider, 
   signInWithEmailAndPassword,
@@ -46,7 +46,15 @@ export const FIREBASE_PROJECT_ID = firebaseConfig.projectId;
  * Listen to Firebase Auth state changes
  */
 export function subscribeToAuthChanges(callback) {
-  return onAuthStateChanged(auth, callback);
+  let subscribed = true;
+  const unsubscribe = onIdTokenChanged(auth, async user => {
+    if (user) await refreshAdminAccess(user);
+    if (subscribed && auth.currentUser === user) callback(user);
+  });
+  return () => {
+    subscribed = false;
+    unsubscribe();
+  };
 }
 
 /**
@@ -55,14 +63,18 @@ export function subscribeToAuthChanges(callback) {
 export async function signInWithGooglePopup() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  return await signInWithPopup(auth, provider);
+  const result = await signInWithPopup(auth, provider);
+  await refreshAdminAccess(result.user);
+  return result;
 }
 
 /**
  * Sign in using Email & Password
  */
 export async function signInWithEmail(email, password) {
-  return await signInWithEmailAndPassword(auth, (email || '').trim(), password);
+  const result = await signInWithEmailAndPassword(auth, (email || '').trim(), password);
+  await refreshAdminAccess(result.user);
+  return result;
 }
 
 /**
@@ -417,11 +429,33 @@ export const AUTHORIZED_ADMIN_EMAILS = [
 /**
  * Check if a Firebase user is an authorized store administrator.
  */
+const adminUsers = new WeakSet();
+
+async function refreshAdminAccess(user) {
+  adminUsers.delete(user);
+  try {
+    const { claims } = await user.getIdTokenResult();
+    if (claims.admin === true) {
+      adminUsers.add(user);
+      return;
+    }
+    const ids = user.emailVerified && user.email ? [user.uid, user.email] : [user.uid];
+    for (const id of ids) {
+      const record = (await getDoc(doc(db, 'admins', id))).data();
+      if (record && record.active !== false &&
+          (record.isAdmin ?? ['admin', 'superadmin'].includes(record.role)) === true) {
+        adminUsers.add(user);
+        return;
+      }
+    }
+  } catch (error) {
+    console.warn('Could not check administrator access:', error);
+  }
+}
+
 export function isUserAdmin(user) {
-  if (!user?.emailVerified || !user.email) return false;
-  return AUTHORIZED_ADMIN_EMAILS.some(
-    adminEmail => adminEmail.toLowerCase() === user.email.toLowerCase()
-  );
+  return Boolean(user && (adminUsers.has(user) ||
+    (user.emailVerified && AUTHORIZED_ADMIN_EMAILS.includes(user.email))));
 }
 
 /**

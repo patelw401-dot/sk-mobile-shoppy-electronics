@@ -23,6 +23,8 @@ Deploy `createStoreOrder` and `cancelStoreOrder` to the Firebase environment bef
 
 Deploy the updated Firestore and Storage rules as part of the coordinated checkout cutover. Older Android APKs and older storefront builds write orders directly and cannot place or cancel orders after the rules are switched. Use a staging Firebase project to exercise the checkout, then coordinate the production cutover and client update. Avoid rolling back only the rules after stock-reserved orders exist, because older client cancellation does not restore stock.
 
+Assign the Firebase Auth `admin: true` custom claim to administrators who need both catalog management and Storage uploads. Verified owner emails retain access. Legacy active registry entries still grant Firestore administration, and those accounts need the custom claim for media uploads. Refresh the user's ID token after granting a claim.
+
 Legacy order and payment records remain in place. Verify historical payment records against the shop's receipts before relying on them for fulfillment.
 
 The signed APK and version metadata currently publish through the website release workflow. Moving the APK to another distribution origin requires coordinating the web download and Android update paths.

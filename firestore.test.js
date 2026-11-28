@@ -452,3 +452,33 @@ test("Shop info settings/shop_info allows public read and admin-only write", asy
 });
 
 
+
+test("Inactive admin records grant no administrator privileges", async () => {
+  await testEnv.withSecurityRulesDisabled(async context => {
+    await context.firestore().collection("admins").doc("disabled_admin").set({
+      isAdmin: true, active: false,
+    });
+  });
+  const disabled = testEnv.authenticatedContext("disabled_admin").firestore();
+  await assertFails(disabled.collection("orders").doc("order_alice").get());
+});
+
+test("Only published reels and approved reviews are public", async () => {
+  await testEnv.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    await Promise.all([
+      db.collection("reels").doc("public").set({ isPublished: true, likesCount: 0 }),
+      db.collection("reels").doc("draft").set({ isPublished: false }),
+      db.collection("reviews").doc("approved").set({ isApproved: true }),
+      db.collection("reviews").doc("pending").set({ isApproved: false }),
+    ]);
+  });
+  const publicDb = testEnv.unauthenticatedContext().firestore();
+  const customerDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  await assertSucceeds(publicDb.collection("reels").where("isPublished", "==", true).get());
+  await assertFails(publicDb.collection("reels").doc("draft").get());
+  await assertSucceeds(publicDb.collection("reviews").where("isApproved", "==", true).get());
+  await assertFails(publicDb.collection("reviews").doc("pending").get());
+  await assertFails(customerDb.collection("reels").doc("public").update({ likesCount: 50 }));
+  await assertSucceeds(customerDb.collection("reels").doc("public").update({ likesCount: 1 }));
+});
