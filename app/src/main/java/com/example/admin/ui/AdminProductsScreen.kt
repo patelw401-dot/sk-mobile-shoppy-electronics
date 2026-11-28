@@ -906,7 +906,7 @@ fun ProductFormDialog(
                 onClick = {
                     val pPrice = (priceText.toIntOrNull() ?: 999).coerceAtLeast(1)
                     val oPrice = (origPriceText.toIntOrNull() ?: (pPrice + 400)).coerceAtLeast(pPrice)
-                    val parsedStock = (stockQuantity.toIntOrNull() ?: 15).coerceAtLeast(0)
+                    val parsedStock = (stockQuantity.toIntOrNull() ?: 0).coerceAtLeast(0)
                     val effectiveInStock = inStock && parsedStock > 0
 
                     val resolvedSpecs = initialProduct?.specifications ?: emptyMap()
