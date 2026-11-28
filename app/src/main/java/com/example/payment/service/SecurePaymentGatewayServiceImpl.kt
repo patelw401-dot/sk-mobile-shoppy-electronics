@@ -47,16 +47,7 @@ class SecurePaymentGatewayServiceImpl : PaymentGatewayService {
             PaymentMethodType.UPI,
             PaymentMethodType.CARD,
             PaymentMethodType.NET_BANKING -> {
-                // In production, this calls the trusted backend server endpoint (e.g., Cloud Function /api/createOrder)
-                // The backend generates the order on Razorpay/Cashfree/PhonePe with the secret key and returns the public gateway order ID.
-                PaymentGatewayOrderSession(
-                    gatewayOrderId = "GATEWAY_ORDER_${request.orderId}_${System.currentTimeMillis() % 10000}",
-                    provider = "PROVIDER_INDEPENDENT_GATEWAY",
-                    amountPaise = request.amountPaise,
-                    clientKeyId = "client_publishable_placeholder",
-                    idempotencyKey = request.idempotencyKey,
-                    status = PaymentStatus.PENDING
-                )
+                return Result.failure(SecurityException("Online payments are not configured. Please use Cash on Delivery."))
             }
         }
 
