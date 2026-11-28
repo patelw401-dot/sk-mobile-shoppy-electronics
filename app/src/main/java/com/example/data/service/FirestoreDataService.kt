@@ -847,11 +847,8 @@ class FirestoreDataService(
 
             Result.success(enrichedOrder)
         } catch (e: Exception) {
-            Log.e(TAG, "createOrder failed, saving locally", e)
-            val updated = listOf(order) + _ordersFlow.value
-            _ordersFlow.value = updated
-            localStorage.saveOrders(updated)
-            Result.success(order)
+            Log.e(TAG, "createOrder failed", e)
+            Result.failure(e)
         }
     }
 
@@ -991,26 +988,8 @@ class FirestoreDataService(
                 Result.failure(NoSuchElementException("Order $id not found"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "cancelOrder failed in Firestore, updating locally", e)
-            if (existing != null) {
-                val updated = existing.copy(
-                    status = "Cancelled",
-                    cancellationReason = reason,
-                    lastUpdated = System.currentTimeMillis(),
-                    statusHistory = existing.statusHistory + newEntry
-                )
-                val list = _ordersFlow.value.map { if (it.id == id) updated else it }
-                _ordersFlow.value = list
-                localStorage.saveOrders(list)
-                val custId = updated.customerUid.ifBlank { updated.customerId }
-                if (custId.isNotBlank()) {
-                    val notif = AppNotification.createOrderNotification(updated.orderId, custId, "Cancelled", updated.orderDate)
-                    serviceScope.launch { createNotification(notif) }
-                }
-                Result.success(updated)
-            } else {
-                Result.failure(e)
-            }
+            Log.e(TAG, "cancelOrder failed in Firestore", e)
+            Result.failure(e)
         }
     }
 
