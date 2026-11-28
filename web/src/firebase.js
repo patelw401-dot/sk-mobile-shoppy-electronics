@@ -73,11 +73,18 @@ export async function signInWithGooglePopup() {
 /**
  * Sign in using Email & Password
  */
+const verificationSentAt = new Map();
+
 async function requireVerifiedEmail(user) {
   try {
     await user.reload();
     if (!user.emailVerified) {
+      const now = Date.now();
+      if (now - (verificationSentAt.get(user.uid) || 0) < 60000) {
+        throw new Error('Check your inbox or wait 60 seconds before requesting another verification email.');
+      }
       await sendEmailVerification(user);
+      verificationSentAt.set(user.uid, now);
       throw new Error('Verification email sent. Open the link in your inbox or spam folder, then sign in again.');
     }
     await user.getIdToken(true);
