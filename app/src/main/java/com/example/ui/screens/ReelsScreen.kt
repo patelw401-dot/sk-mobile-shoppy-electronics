@@ -277,7 +277,7 @@ fun ReelPlayerPage(
     var durationMs by remember { mutableLongStateOf(0L) }
 
     // Memory & Data Optimized ExoPlayer instance
-    val exoPlayer = remember(context, reel.id) {
+    val exoPlayer = remember(context, reel.id, reel.videoUrl) {
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 /* minBufferMs = */ 1500,
@@ -325,7 +325,7 @@ fun ReelPlayerPage(
     }
 
     // Observe App Lifecycle to pause/resume playback cleanly
-    DisposableEffect(lifecycleOwner, exoPlayer) {
+    DisposableEffect(lifecycleOwner, exoPlayer, isCurrentPage, isManuallyPaused) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> {
