@@ -17,6 +17,9 @@ function documentId(value) {
 
 function authenticated(request) {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Sign in first.');
+  if (request.auth.token?.firebase?.sign_in_provider === 'password' && request.auth.token.email_verified !== true) {
+    throw new HttpsError('permission-denied', 'Verify your email before continuing.');
+  }
   return request.auth;
 }
 
