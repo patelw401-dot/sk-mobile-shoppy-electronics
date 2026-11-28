@@ -40,3 +40,22 @@ test('catalog pricing, last-unit stock, idempotent order creation and cancellati
     await Promise.all([product.delete(), ...orderIds.map(id => db.collection('orders').doc(id).delete())]);
   }
 });
+
+test('reel upload authorization and size limits', async () => {
+  const { createReelUpload } = require('./index');
+  const uid = randomUUID();
+  const admin = db.collection('admins').doc(uid);
+  const request = { auth: { uid, token: {} }, data: {
+    reelId: randomUUID(), contentType: 'video/mp4', size: 50 * 1024 * 1024
+  } };
+  try {
+    await assert.rejects(createReelUpload.run(request), { code: 'permission-denied' });
+    await admin.set({ active: true, isAdmin: true });
+    await assert.rejects(createReelUpload.run(request), { code: 'invalid-argument' });
+    request.data.size = 100;
+    request.data.contentType = 'text/plain';
+    await assert.rejects(createReelUpload.run(request), { code: 'invalid-argument' });
+  } finally {
+    await admin.delete();
+  }
+});
