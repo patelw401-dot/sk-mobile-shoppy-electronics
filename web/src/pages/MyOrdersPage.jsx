@@ -21,11 +21,46 @@ import {
   ShoppingBag
 } from 'lucide-react';
 
-export default function MyOrdersPage({ currentUser, setActivePage, onShowToast, shopInfo = DEFAULT_SHOP_INFO }) {
+function CustomerOrderItemThumbnail({ src, alt }) {
+  const [failed, setFailed] = useState(false);
+  if (src && !failed) {
+    return (
+      <img
+        src={src}
+        alt={alt || 'Product'}
+        onError={() => setFailed(true)}
+        className="w-10 h-10 rounded-lg object-cover bg-[#1C1C1C] border border-[#262626] shrink-0"
+      />
+    );
+  }
+  return (
+    <div className="w-10 h-10 rounded-lg bg-[#1C1C1C] border border-[#262626] flex items-center justify-center text-[#D4AF37] shrink-0">
+      <ShoppingBag size={16} />
+    </div>
+  );
+}
+
+export default function MyOrdersPage({ currentUser, setActivePage, onShowToast, shopInfo = DEFAULT_SHOP_INFO, products = [] }) {
   const info = formatShopInfo(shopInfo);
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
+
+  const resolveItemImage = (it) => {
+    const direct = (it?.imageUrl || it?.primaryImage || it?.image || (Array.isArray(it?.images) && it.images[0]) || '').trim();
+    if (direct) return direct;
+    if (!Array.isArray(products) || products.length === 0) return '';
+    const itemId = (it?.id || '').trim();
+    const itemName = (it?.name || '').trim().toLowerCase();
+    const match = products.find((p) => {
+      if (!p) return false;
+      if (itemId && p.id === itemId) return true;
+      if (itemName && (p.name || '').trim().toLowerCase() === itemName) return true;
+      return false;
+    });
+    if (!match) return '';
+    return (match.imageUrl || match.primaryImage || match.image || (Array.isArray(match.images) && match.images[0]) || '').trim();
+  };
 
   const loadOrders = async () => {
     if (!currentUser) return;
@@ -206,14 +241,17 @@ export default function MyOrdersPage({ currentUser, setActivePage, onShowToast, 
                   <div className="divide-y divide-[#1C1C1C]">
                     {ord.items?.map((it, i) => (
                       <div key={i} className="py-2 flex items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-3">
-                          <span className="text-white font-bold">{it.name}</span>
-                          <span className="text-[10px] text-gray-500 px-1.5 py-0.5 rounded bg-[#1C1C1C]">
-                            Qty: {it.quantity}
-                          </span>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <CustomerOrderItemThumbnail src={resolveItemImage(it)} alt={it.name} />
+                          <div className="min-w-0">
+                            <span className="text-white font-bold block truncate">{it.name}</span>
+                            <span className="text-[11px] text-gray-500">
+                              Qty: {it.quantity} × ₹{(it.price || 0).toLocaleString('en-IN')}
+                            </span>
+                          </div>
                         </div>
-                        <span className="font-bold text-gray-200">
-                          ₹{(it.price * it.quantity).toLocaleString('en-IN')}
+                        <span className="font-bold text-gray-200 shrink-0">
+                          ₹{((it.price || 0) * (it.quantity || 1)).toLocaleString('en-IN')}
                         </span>
                       </div>
                     ))}

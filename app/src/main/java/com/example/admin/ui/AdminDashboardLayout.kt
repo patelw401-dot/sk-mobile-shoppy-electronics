@@ -271,6 +271,7 @@ fun AdminDashboardLayout(
                     AdminTab.ORDERS -> {
                         AdminOrdersScreen(
                             orders = uiState.orders,
+                            products = uiState.products,
                             onUpdateOrderStatus = { id, status, note -> adminViewModel.updateOrderStatus(id, status, note) }
                         )
                     }

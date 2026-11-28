@@ -24,13 +24,48 @@ import {
   Layers
 } from 'lucide-react';
 
-export default function OrdersManagementTab({ currentUser, onShowToast }) {
+function OrderProductThumbnail({ src, alt }) {
+  const [failed, setFailed] = useState(false);
+  if (src && !failed) {
+    return (
+      <img
+        src={src}
+        alt={alt || 'Product'}
+        onError={() => setFailed(true)}
+        className="w-10 h-10 rounded-lg object-cover bg-[#181818] border border-[#262626] shrink-0"
+      />
+    );
+  }
+  return (
+    <div className="w-10 h-10 rounded-lg bg-[#181818] border border-[#262626] flex items-center justify-center text-gray-500 shrink-0">
+      <Package size={16} />
+    </div>
+  );
+}
+
+export default function OrdersManagementTab({ currentUser, onShowToast, products = [] }) {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedOrder, setSelectedOrder] = useState(null);
+
+  const resolveItemImage = (it) => {
+    const direct = (it?.imageUrl || it?.primaryImage || it?.image || (Array.isArray(it?.images) && it.images[0]) || '').trim();
+    if (direct) return direct;
+    if (!Array.isArray(products) || products.length === 0) return '';
+    const itemId = (it?.id || '').trim();
+    const itemName = (it?.name || '').trim().toLowerCase();
+    const match = products.find((p) => {
+      if (!p) return false;
+      if (itemId && p.id === itemId) return true;
+      if (itemName && (p.name || '').trim().toLowerCase() === itemName) return true;
+      return false;
+    });
+    if (!match) return '';
+    return (match.imageUrl || match.primaryImage || match.image || (Array.isArray(match.images) && match.images[0]) || '').trim();
+  };
 
   const loadOrders = async () => {
     setIsLoading(true);
@@ -85,8 +120,8 @@ export default function OrdersManagementTab({ currentUser, onShowToast }) {
   // Quick KPI Counters
   const countPending = orders.filter(o => o.orderStatus === 'Pending' || o.orderStatus === 'Order Placed').length;
   const countConfirmed = orders.filter(o => o.orderStatus === 'Confirmed' || o.orderStatus === 'Order Confirmed').length;
-  const countProcessing = orders.filter(o => o.orderStatus === 'Processing').length;
-  const countShipped = orders.filter(o => o.orderStatus === 'Shipped').length;
+  const countProcessing = orders.filter(o => o.orderStatus === 'Processing' || o.orderStatus === 'Preparing / Packed').length;
+  const countShipped = orders.filter(o => o.orderStatus === 'Shipped' || o.orderStatus === 'Shipped / Out for Delivery').length;
   const countDelivered = orders.filter(o => o.orderStatus === 'Delivered').length;
   const countCancelled = orders.filter(o => o.orderStatus === 'Cancelled').length;
 
@@ -103,8 +138,10 @@ export default function OrdersManagementTab({ currentUser, onShowToast }) {
       case 'Confirmed':
         return <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/40 text-[11px]">Confirmed</span>;
       case 'Processing':
+      case 'Preparing / Packed':
         return <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold border border-purple-500/40 text-[11px]">Processing</span>;
       case 'Shipped':
+      case 'Shipped / Out for Delivery':
         return <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40 text-[11px]">Shipped</span>;
       case 'Delivered':
         return <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40 text-[11px]">Delivered</span>;
@@ -292,17 +329,20 @@ export default function OrdersManagementTab({ currentUser, onShowToast }) {
                         Ordered Products ({ord.items?.length || 0})
                       </span>
 
-                      <div className="divide-y divide-[#1C1C1C] max-h-40 overflow-y-auto pr-1">
+                      <div className="divide-y divide-[#1C1C1C] max-h-52 overflow-y-auto pr-1">
                         {ord.items?.map((it, idx) => (
-                          <div key={idx} className="py-1.5 flex items-center justify-between gap-2 text-xs">
-                            <div className="min-w-0">
-                              <span className="text-white font-bold block truncate">{it.name}</span>
-                              <span className="text-gray-500 text-[11px]">
-                                Qty: {it.quantity} × ₹{it.price.toLocaleString('en-IN')}
-                              </span>
+                          <div key={idx} className="py-2 flex items-center justify-between gap-2.5 text-xs">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <OrderProductThumbnail src={resolveItemImage(it)} alt={it.name} />
+                              <div className="min-w-0">
+                                <span className="text-white font-bold block truncate">{it.name}</span>
+                                <span className="text-gray-500 text-[11px]">
+                                  Qty: {it.quantity} × ₹{(it.price || 0).toLocaleString('en-IN')}
+                                </span>
+                              </div>
                             </div>
                             <span className="font-mono text-gray-200 font-bold shrink-0">
-                              ₹{(it.price * it.quantity).toLocaleString('en-IN')}
+                              ₹{((it.price || 0) * (it.quantity || 1)).toLocaleString('en-IN')}
                             </span>
                           </div>
                         ))}

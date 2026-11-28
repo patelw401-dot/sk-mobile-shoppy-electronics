@@ -787,7 +787,7 @@ export async function createCustomerOrderInFirestore(orderData, currentUser) {
     category: item.category || 'smartphones',
     price: Math.round(Number(item.price) || 0),
     quantity: parseInt(item.quantity, 10) || 1,
-    imageUrl: item.imageUrl || item.image || '',
+    imageUrl: item.imageUrl || item.primaryImage || item.image || (Array.isArray(item.images) && item.images[0]) || '',
     subtotal: Math.round((Number(item.price) || 0) * (parseInt(item.quantity, 10) || 1))
   }));
 

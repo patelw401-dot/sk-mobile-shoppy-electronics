@@ -149,7 +149,7 @@ export default function App() {
           category: product.category || 'smartphones',
           price: product.price,
           originalPrice: product.originalPrice,
-          imageUrl: product.imageUrl || product.image || '',
+          imageUrl: product.imageUrl || product.primaryImage || product.image || (Array.isArray(product.images) && product.images[0]) || '',
           quantity: qty,
           stock: product.stock,
           inStock: product.inStock
@@ -204,7 +204,7 @@ export default function App() {
           category: product.category || 'smartphones',
           price: product.price,
           originalPrice: product.originalPrice,
-          imageUrl: product.imageUrl || product.image || '',
+          imageUrl: product.imageUrl || product.primaryImage || product.image || (Array.isArray(product.images) && product.images[0]) || '',
           quantity: qty || 1,
           stock: product.stock,
           inStock: product.inStock
@@ -289,6 +289,7 @@ export default function App() {
             setActivePage={setActivePage} 
             onShowToast={showToast} 
             shopInfo={shopInfo}
+            products={allStoreProducts}
           />
         );
       case 'app-download':
@@ -345,6 +346,7 @@ export default function App() {
             onShowToast={showToast}
             repairServices={repairServices}
             shopInfo={shopInfo}
+            products={allStoreProducts}
           />
         );
       default:

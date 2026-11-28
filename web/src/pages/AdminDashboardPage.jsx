@@ -65,7 +65,8 @@ export default function AdminDashboardPage({
   setActivePage,
   onShowToast,
   repairServices = DEFAULT_REPAIR_PRICING,
-  shopInfo = DEFAULT_SHOP_INFO
+  shopInfo = DEFAULT_SHOP_INFO,
+  products = []
 }) {
   const normalizedShopInfo = formatShopInfo(shopInfo);
   const [activeTab, setActiveTab] = useState('repairs'); // 'repairs' | 'old-phones' | 'orders' | 'products' | 'categories' | 'shop-info' | 'system'
@@ -1141,6 +1142,7 @@ export default function AdminDashboardPage({
         <OrdersManagementTab
           currentUser={currentUser}
           onShowToast={onShowToast}
+          products={products}
         />
       )}
 

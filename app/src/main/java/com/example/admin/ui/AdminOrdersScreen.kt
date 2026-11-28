@@ -50,14 +50,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.OrderTrackingStage
+import com.example.model.Product
 import com.example.model.ShopOrder
+import com.example.ui.components.OrderItemThumbnail
 import com.example.ui.components.formatInr
+import com.example.ui.components.resolveOrderItemImageUrl
 import com.example.ui.theme.LightInputBorder
 import com.example.ui.theme.LightTextPrimary
 import com.example.ui.theme.LightTextSecondary
@@ -70,6 +75,7 @@ import java.util.Locale
 @Composable
 fun AdminOrdersScreen(
     orders: List<ShopOrder>,
+    products: List<Product> = emptyList(),
     onUpdateOrderStatus: (orderId: String, newStatus: String, note: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -88,9 +94,11 @@ fun AdminOrdersScreen(
     if (orderToUpdateStatus != null) {
         val targetOrder = orderToUpdateStatus!!
         val permittedStatuses = OrderTrackingStage.getPermittedNextStatuses(targetOrder.status)
-        var selectedNextStatus by remember { mutableStateOf(permittedStatuses.firstOrNull() ?: "") }
-        var updateNote by remember { mutableStateOf("") }
-        var errorText by remember { mutableStateOf<String?>(null) }
+        var selectedNextStatus by remember(targetOrder.orderId, targetOrder.status) {
+            mutableStateOf(permittedStatuses.firstOrNull() ?: "")
+        }
+        var updateNote by remember(targetOrder.orderId, targetOrder.status) { mutableStateOf("") }
+        var errorText by remember(targetOrder.orderId, targetOrder.status) { mutableStateOf<String?>(null) }
 
         AlertDialog(
             onDismissRequest = { orderToUpdateStatus = null },
@@ -251,8 +259,47 @@ fun AdminOrdersScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(text = "Items Ordered (${o.items.size}):", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = LightTextPrimary)
+                    Spacer(modifier = Modifier.height(6.dp))
                     o.items.forEach { item ->
-                        Text(text = "• ${item.quantity}x ${item.product.name} (${formatInr(item.product.price)})", fontSize = 12.sp, color = LightTextPrimary)
+                        val thumbUrl = resolveOrderItemImageUrl(item, products)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OrderItemThumbnail(
+                                imageSrc = thumbUrl,
+                                contentDescription = item.product.name,
+                                size = 44.dp,
+                                cornerRadius = 8.dp,
+                                containerColor = Color(0xFFF1F5F9),
+                                fallbackIconTint = ShopPrimaryBlue
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = item.product.name,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = LightTextPrimary,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "Qty: ${item.quantity} × ${formatInr(item.product.price)}",
+                                    fontSize = 11.sp,
+                                    color = LightTextSecondary
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = formatInr(item.product.price * item.quantity),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = LightTextPrimary
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -448,6 +495,66 @@ fun AdminOrdersScreen(
                             fontSize = 11.sp,
                             color = Color(0xFF64748B)
                         )
+
+                        if (order.items.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFF8FAFC))
+                                    .padding(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                order.items.take(3).forEach { item ->
+                                    val thumbUrl = resolveOrderItemImageUrl(item, products)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        OrderItemThumbnail(
+                                            imageSrc = thumbUrl,
+                                            contentDescription = item.product.name,
+                                            size = 40.dp,
+                                            cornerRadius = 8.dp,
+                                            containerColor = Color(0xFFE2E8F0),
+                                            fallbackIconTint = ShopPrimaryBlue
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = item.product.name,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color(0xFF0F172A),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = "Qty: ${item.quantity} × ${formatInr(item.product.price)}",
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF64748B)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = formatInr(item.product.price * item.quantity),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0F172A)
+                                        )
+                                    }
+                                }
+                                if (order.items.size > 3) {
+                                    Text(
+                                        text = "+${order.items.size - 3} more item(s) • Tap Details to view all",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = ShopPrimaryBlue
+                                    )
+                                }
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(8.dp))
                         HorizontalDivider(color = Color(0xFFF1F5F9))

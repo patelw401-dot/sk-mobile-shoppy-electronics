@@ -58,14 +58,14 @@ enum class OrderTrackingStage(
 
         /**
          * Validates whether an admin status transition is permitted.
-         * Prevents skipping directly to Delivered without packaging or shipping,
-         * and prevents cancelling already delivered orders.
+         * Allows direct Delivered transition from Order Confirmed and Preparing / Packed,
+         * while preventing jumping straight from Order Placed to Delivered or modifying final states.
          */
         fun getPermittedNextStatuses(currentStatus: String): List<String> {
             val currentStage = fromStatus(currentStatus)
             return when (currentStage) {
                 ORDER_PLACED -> listOf("Order Confirmed", "Preparing / Packed", "Cancelled")
-                ORDER_CONFIRMED -> listOf("Preparing / Packed", "Shipped / Out for Delivery", "Cancelled")
+                ORDER_CONFIRMED -> listOf("Preparing / Packed", "Shipped / Out for Delivery", "Delivered", "Cancelled")
                 PREPARING -> listOf("Shipped / Out for Delivery", "Delivered", "Cancelled")
                 OUT_FOR_DELIVERY -> listOf("Delivered", "Cancelled")
                 DELIVERED -> emptyList() // Final state

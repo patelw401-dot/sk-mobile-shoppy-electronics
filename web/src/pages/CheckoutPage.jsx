@@ -212,12 +212,25 @@ export default function CheckoutPage({
               <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Ordered Items</span>
               <div className="divide-y divide-[#1F1F1F]">
                 {placedOrder.items?.map((item, idx) => (
-                  <div key={idx} className="py-2 flex items-center justify-between gap-2">
-                    <div>
-                      <span className="font-bold text-white block">{item.name}</span>
-                      <span className="text-gray-500 text-[11px]">Qty: {item.quantity} × ₹{item.price.toLocaleString('en-IN')}</span>
+                  <div key={idx} className="py-2 flex items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-9 h-9 rounded-lg object-cover bg-[#181818] border border-[#262626] shrink-0"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg bg-[#181818] border border-[#262626] flex items-center justify-center text-[#D4AF37] shrink-0">
+                          <ShoppingBag size={14} />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <span className="font-bold text-white block truncate">{item.name}</span>
+                        <span className="text-gray-500 text-[11px]">Qty: {item.quantity} × ₹{item.price.toLocaleString('en-IN')}</span>
+                      </div>
                     </div>
-                    <span className="font-black text-gray-200">
+                    <span className="font-black text-gray-200 shrink-0">
                       ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                     </span>
                   </div>
@@ -605,11 +618,25 @@ export default function CheckoutPage({
               {cart.map((item) => {
                 const p = typeof item.price === 'number' ? item.price : (parseFloat(item.price) || 0);
                 const q = typeof item.quantity === 'number' ? item.quantity : 1;
+                const thumb = item.imageUrl || item.primaryImage || item.image || '';
                 return (
                   <div key={item.id} className="pt-3 first:pt-0 flex items-center justify-between gap-3 text-xs">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-white truncate">{item.name}</h4>
-                      <span className="text-[11px] text-gray-500">Qty: {q} × ₹{p.toLocaleString('en-IN')}</span>
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      {thumb ? (
+                        <img
+                          src={thumb}
+                          alt={item.name}
+                          className="w-9 h-9 rounded-lg object-cover bg-[#181818] border border-[#262626] shrink-0"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg bg-[#181818] border border-[#262626] flex items-center justify-center text-[#D4AF37] shrink-0">
+                          <ShoppingBag size={14} />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-white truncate">{item.name}</h4>
+                        <span className="text-[11px] text-gray-500">Qty: {q} × ₹{p.toLocaleString('en-IN')}</span>
+                      </div>
                     </div>
                     <span className="font-black text-[#D4AF37] shrink-0">
                       ₹{(p * q).toLocaleString('en-IN')}

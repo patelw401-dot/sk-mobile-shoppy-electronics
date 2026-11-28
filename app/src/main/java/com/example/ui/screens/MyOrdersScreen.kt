@@ -62,9 +62,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.OrderTrackingStage
+import com.example.model.Product
 import com.example.model.ShopOrder
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.OrderItemThumbnail
 import com.example.ui.components.formatInr
+import com.example.ui.components.resolveOrderItemImageUrl
 import com.example.ui.theme.BlackBackground
 import com.example.ui.theme.BlackBorder
 import com.example.ui.theme.BlackSurface
@@ -99,6 +102,7 @@ fun MyOrdersScreen(
     onRefresh: () -> Unit,
     onBrowseShop: () -> Unit,
     onBack: () -> Unit,
+    products: List<Product> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     BackHandler(onBack = onBack)
@@ -322,6 +326,7 @@ fun MyOrdersScreen(
                         items(filteredOrders, key = { it.orderId }) { order ->
                             CustomerOrderCard(
                                 order = order,
+                                products = products,
                                 onClick = { onSelectOrder(order) }
                             )
                         }
@@ -335,6 +340,7 @@ fun MyOrdersScreen(
 @Composable
 private fun CustomerOrderCard(
     order: ShopOrder,
+    products: List<Product>,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -432,24 +438,19 @@ private fun CustomerOrderCard(
             // Items Summary
             val itemsCount = order.items.sumOf { it.quantity }
             val firstItem = order.items.firstOrNull()
+            val firstImageUrl = firstItem?.let { resolveOrderItemImageUrl(it, products) }.orEmpty()
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(BlackSurfaceSecondary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ShoppingBag,
-                        contentDescription = "Item",
-                        tint = GoldPrimary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+                OrderItemThumbnail(
+                    imageSrc = firstImageUrl,
+                    contentDescription = firstItem?.product?.name ?: "Order item",
+                    size = 42.dp,
+                    cornerRadius = 8.dp,
+                    containerColor = BlackSurfaceSecondary,
+                    fallbackIconTint = GoldPrimary
+                )
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(

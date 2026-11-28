@@ -383,7 +383,8 @@ private fun SKMobileMainContent(
                             onSelectOrder = { order -> shopViewModel.selectOrderForDetail(order) },
                             onRefresh = { shopViewModel.refreshCustomerOrders() },
                             onBrowseShop = { shopViewModel.navigateTo(AppScreen.PRODUCTS) },
-                            onBack = { shopViewModel.navigateBack() }
+                            onBack = { shopViewModel.navigateBack() },
+                            products = shopUiState.products
                         )
                     }
 
@@ -391,6 +392,7 @@ private fun SKMobileMainContent(
                         OrderDetailScreen(
                             order = shopUiState.selectedOrder ?: shopUiState.lastConfirmedOrder,
                             shopInfo = shopUiState.shopInfo,
+                            products = shopUiState.products,
                             onCancelOrder = { orderId, reason ->
                                 shopViewModel.cancelCustomerOrder(orderId, reason)
                             },

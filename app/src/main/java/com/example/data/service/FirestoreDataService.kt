@@ -631,20 +631,36 @@ class FirestoreDataService(
                 val pName = itemMap["name"] as? String ?: return@mapNotNull null
                 val pPrice = (itemMap["price"] as? Number)?.toInt() ?: 0
                 val qty = (itemMap["quantity"] as? Number)?.toInt() ?: 1
-                val pId = itemMap["id"] as? String ?: "PROD-GEN"
-                val prod = _productsFlow.value.find { it.id == pId } ?: Product(
-                    id = pId,
-                    name = pName,
-                    brand = "SK Mobile",
-                    category = ProductCategory.MOBILE_PHONES,
-                    price = pPrice,
-                    originalPrice = pPrice,
-                    rating = 4.5f,
-                    reviewCount = 0,
-                    description = "",
-                    specifications = emptyMap()
-                )
-                CartItem(product = prod, quantity = qty)
+                val pId = (itemMap["id"] as? String).orEmpty()
+                val storedImageUrl = (itemMap["imageUrl"] as? String)?.trim().orEmpty()
+                val pBrand = (itemMap["brand"] as? String)?.trim().orEmpty().ifBlank { "SK Mobile" }
+                val matchedProd = _productsFlow.value.find { p ->
+                    (pId.isNotBlank() && p.id == pId) ||
+                        p.name.trim().equals(pName.trim(), ignoreCase = true)
+                }
+                val prod = if (matchedProd != null) {
+                    val effectiveImage = storedImageUrl.ifBlank { matchedProd.primaryImage }
+                    matchedProd.copy(
+                        price = if (pPrice > 0) pPrice else matchedProd.price,
+                        imageUrl = if (matchedProd.imageUrl.isNotBlank()) matchedProd.imageUrl else effectiveImage
+                    )
+                } else {
+                    Product(
+                        id = pId.ifBlank { "PROD-GEN" },
+                        name = pName,
+                        brand = pBrand,
+                        category = ProductCategory.MOBILE_PHONES,
+                        price = pPrice,
+                        originalPrice = pPrice,
+                        rating = 4.5f,
+                        reviewCount = 0,
+                        description = "",
+                        specifications = emptyMap(),
+                        imageUrl = storedImageUrl
+                    )
+                }
+                val color = (itemMap["color"] as? String)?.ifBlank { "Default" } ?: "Default"
+                CartItem(product = prod, quantity = qty, selectedColor = color)
             } ?: emptyList()
 
             val pGatewayRef = doc.getString("paymentGatewayRef").orEmpty()
@@ -766,7 +782,8 @@ class FirestoreDataService(
                     "name" to item.product.name,
                     "price" to item.product.price,
                     "quantity" to item.quantity,
-                    "color" to item.selectedColor
+                    "color" to item.selectedColor,
+                    "imageUrl" to item.product.primaryImage
                 )
             }
 

@@ -64,8 +64,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.admin.model.ShopSettings
 import com.example.model.OrderTrackingStage
+import com.example.model.Product
 import com.example.model.ShopOrder
+import com.example.ui.components.OrderItemThumbnail
 import com.example.ui.components.formatInr
+import com.example.ui.components.resolveOrderItemImageUrl
 import com.example.ui.theme.BlackBackground
 import com.example.ui.theme.BlackBorder
 import com.example.ui.theme.BlackSurface
@@ -89,6 +92,7 @@ import java.util.Locale
 fun OrderDetailScreen(
     order: ShopOrder?,
     shopInfo: ShopSettings = ShopSettings(),
+    products: List<Product> = emptyList(),
     onCancelOrder: (orderId: String, reason: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -372,20 +376,14 @@ fun OrderDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(42.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(BlackSurfaceSecondary),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.ShoppingBag,
-                                            contentDescription = null,
-                                            tint = GoldPrimary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
+                                    OrderItemThumbnail(
+                                        imageSrc = resolveOrderItemImageUrl(cartItem, products),
+                                        contentDescription = cartItem.product.name,
+                                        size = 44.dp,
+                                        cornerRadius = 8.dp,
+                                        containerColor = BlackSurfaceSecondary,
+                                        fallbackIconTint = GoldPrimary
+                                    )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column {
                                         Text(

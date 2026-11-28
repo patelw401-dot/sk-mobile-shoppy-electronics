@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Power
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.VolumeUp
@@ -32,6 +33,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,9 +48,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.model.CartItem
 import com.example.model.Product
 import com.example.model.ProductCategory
 import com.example.ui.theme.BlackBorder
@@ -430,3 +437,69 @@ fun getCategoryStyling(category: ProductCategory): Pair<List<Color>, ImageVector
         )
     }
 }
+
+fun resolveOrderItemImageUrl(item: CartItem, products: List<Product>): String {
+    val direct = item.product.primaryImage.trim()
+    if (direct.isNotBlank()) return direct
+    val pId = item.product.id.trim()
+    val pName = item.product.name.trim()
+    val matched = products.find { prod ->
+        (pId.isNotBlank() && prod.id == pId) ||
+            (pName.isNotBlank() && prod.name.trim().equals(pName, ignoreCase = true))
+    }
+    return matched?.primaryImage?.trim().orEmpty()
+}
+
+@Composable
+fun OrderItemThumbnail(
+    imageSrc: String,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    size: Dp = 44.dp,
+    cornerRadius: Dp = 8.dp,
+    containerColor: Color = BlackSurfaceSecondary,
+    fallbackIconTint: Color = GoldPrimary
+) {
+    val trimmed = imageSrc.trim()
+    var loadFailed by remember(trimmed) { mutableStateOf(false) }
+    val imageModel: Any? = remember(trimmed) {
+        when {
+            trimmed.isBlank() -> null
+            trimmed.startsWith("data:image/", ignoreCase = true) && trimmed.contains("base64,", ignoreCase = true) -> {
+                try {
+                    val base64Part = trimmed.substringAfter("base64,")
+                    android.util.Base64.decode(base64Part, android.util.Base64.DEFAULT)
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            else -> trimmed
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(containerColor),
+        contentAlignment = Alignment.Center
+    ) {
+        if (imageModel != null && !loadFailed) {
+            AsyncImage(
+                model = imageModel,
+                contentDescription = contentDescription,
+                contentScale = ContentScale.Crop,
+                onError = { loadFailed = true },
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.ShoppingBag,
+                contentDescription = contentDescription,
+                tint = fallbackIconTint,
+                modifier = Modifier.size(size * 0.48f)
+            )
+        }
+    }
+}
+

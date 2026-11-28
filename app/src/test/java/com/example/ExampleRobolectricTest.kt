@@ -131,9 +131,13 @@ class ExampleRobolectricTest {
     // Transition validation
     assertTrue(com.example.model.OrderTrackingStage.canTransition("Order Placed", "Order Confirmed"))
     assertTrue(com.example.model.OrderTrackingStage.canTransition("Order Confirmed", "Preparing / Packed"))
+    assertTrue(com.example.model.OrderTrackingStage.canTransition("Order Confirmed", "Delivered"))
     assertTrue(com.example.model.OrderTrackingStage.canTransition("Preparing / Packed", "Shipped / Out for Delivery"))
+    assertTrue(com.example.model.OrderTrackingStage.canTransition("Preparing / Packed", "Delivered"))
     assertTrue(com.example.model.OrderTrackingStage.canTransition("Shipped / Out for Delivery", "Delivered"))
     assertTrue(com.example.model.OrderTrackingStage.canTransition("Order Placed", "Cancelled"))
+    assertTrue(com.example.model.OrderTrackingStage.getPermittedNextStatuses("Order Confirmed").contains("Delivered"))
+    assertTrue(com.example.model.OrderTrackingStage.getPermittedNextStatuses("Preparing / Packed").contains("Delivered"))
     // Cannot jump directly from placed to delivered
     assertFalse(com.example.model.OrderTrackingStage.canTransition("Order Placed", "Delivered"))
     // Final states cannot transition further
