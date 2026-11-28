@@ -24,11 +24,17 @@ export async function createOrder(db,uid,input){
   return {writes,result:order};
  });
 }
-export async function cancelOrder(db,uid,input){
+export async function cancelOrder(db,uid,input,claims={}){
  const key=id(input.orderId),reason=text(input.reason,500);
  return db.transaction(async get=>{
   const doc=await get("orders",key),o=unpack(doc);
-  if(!doc||o.customerId!==uid)throw new Error("Order unavailable");
+  if(!doc)throw new Error("Order unavailable");
+  let admin=false;
+  if(o.customerId!==uid){
+   const active=d=>{const a=unpack(d);return !!d && a.active!==false && (a.isAdmin ?? ["admin","superadmin"].includes(a.role))===true};
+   admin=claims.email_verified===true && (active(await get("admins",uid)) || (typeof claims.email==="string" && /^[^/]{1,254}$/.test(claims.email) && active(await get("admins",claims.email))));
+   if(!admin)throw new Error("Order unavailable");
+  }
   const status=o.orderStatus||o.status;
   if(status==="Cancelled")return {writes:[],result:{cancelled:true}};
   if(status==="Delivered")throw new Error("Delivered order");
@@ -37,7 +43,7 @@ export async function cancelOrder(db,uid,input){
    for(const i of o.items){const k=id(i.id);if(!Number.isSafeInteger(i.quantity)||i.quantity<1)throw new Error("Invalid stored quantity");quantities.set(k,(quantities.get(k)||0)+i.quantity)}
    for(const [k,q] of quantities){const p=await get("products",k);if(!p)throw new Error("Missing product");const stock=unpack(p).stock;if(!Number.isSafeInteger(stock)||stock<0||!Number.isSafeInteger(stock+q))throw new Error("Invalid stock");writes.push(patch(db.name("products",k),{stock:stock+q,inStock:true}))}
   }
-  const now=Date.now();writes.push(patch(db.name("orders",key),{orderStatus:"Cancelled",status:"Cancelled",cancellationReason:reason,updatedAt:now,stockDeducted:false,statusHistory:[...(o.statusHistory||[]),{status:"Cancelled",timestamp:now,note:reason,updatedBy:"Customer"}]}));
+  const now=Date.now();writes.push(patch(db.name("orders",key),{orderStatus:"Cancelled",status:"Cancelled",cancellationReason:reason,updatedAt:now,stockDeducted:false,statusHistory:[...(o.statusHistory||[]),{status:"Cancelled",timestamp:now,note:reason,updatedBy:admin?"Admin":"Customer"}]}));
   return {writes,result:{cancelled:true}};
  });
 }
