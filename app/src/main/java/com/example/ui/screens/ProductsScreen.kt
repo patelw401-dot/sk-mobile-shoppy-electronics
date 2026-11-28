@@ -88,33 +88,35 @@ fun ProductsScreen(
 ) {
     var showSortMenu by remember { mutableStateOf(false) }
 
-    // Filter by Category
-    val filteredByCategory = if (selectedCategorySlug == "all" && selectedCategory == ProductCategory.ALL) {
-        products
-    } else {
-        products.filter { it.categoryMatches(selectedCategorySlug) || it.category == selectedCategory }
-    }
-
-    // Filter by Search Query
-    val filteredBySearch = if (searchQuery.isBlank()) {
-        filteredByCategory
-    } else {
-        val query = searchQuery.trim().lowercase()
-        filteredByCategory.filter {
-            it.name.lowercase().contains(query) ||
-            it.brand.lowercase().contains(query) ||
-            it.description.lowercase().contains(query) ||
-            it.category.displayName.lowercase().contains(query)
+    val sortedProducts = remember(products, selectedCategory, selectedCategorySlug, searchQuery, sortOption) {
+        val filteredByCategory = if (selectedCategorySlug == "all" || selectedCategory == ProductCategory.ALL) {
+            products
+        } else {
+            products.filter { it.categoryMatches(selectedCategorySlug) || it.category == selectedCategory }
         }
-    }
 
-    // Sort Products
-    val sortedProducts = when (sortOption) {
-        SortOption.RECOMMENDED -> filteredBySearch.sortedByDescending { it.reviewCount }
-        SortOption.PRICE_LOW_HIGH -> filteredBySearch.sortedBy { it.price }
-        SortOption.PRICE_HIGH_LOW -> filteredBySearch.sortedByDescending { it.price }
-        SortOption.HIGHEST_RATED -> filteredBySearch.sortedByDescending { it.rating }
-        SortOption.NEWEST -> filteredBySearch.sortedByDescending { it.releaseOrder }
+        val filteredBySearch = if (searchQuery.isBlank()) {
+            filteredByCategory
+        } else {
+            val query = searchQuery.trim().lowercase()
+            filteredByCategory.filter {
+                it.name.lowercase().contains(query) ||
+                it.brand.lowercase().contains(query) ||
+                it.category.displayName.lowercase().contains(query) ||
+                it.category.name.lowercase().contains(query) ||
+                it.categorySlug.lowercase().contains(query) ||
+                it.description.lowercase().contains(query) ||
+                it.sku.lowercase().contains(query)
+            }
+        }
+
+        when (sortOption) {
+            SortOption.RECOMMENDED -> filteredBySearch.sortedByDescending { it.reviewCount }
+            SortOption.PRICE_LOW_HIGH -> filteredBySearch.sortedBy { it.price }
+            SortOption.PRICE_HIGH_LOW -> filteredBySearch.sortedByDescending { it.price }
+            SortOption.HIGHEST_RATED -> filteredBySearch.sortedByDescending { it.rating }
+            SortOption.NEWEST -> filteredBySearch.sortedByDescending { it.releaseOrder }
+        }
     }
 
     val defaultCategories = listOf(
@@ -128,7 +130,7 @@ fun ProductsScreen(
         ProductCategory.ACCESSORIES
     )
 
-    val currentTitle = if (selectedCategorySlug == "all" && selectedCategory == ProductCategory.ALL) {
+    val currentTitle = if (selectedCategorySlug == "all" || selectedCategory == ProductCategory.ALL) {
         "All Products"
     } else {
         activeCategories.find { it.slug.equals(selectedCategorySlug, true) }?.name ?: selectedCategory.displayName
@@ -298,7 +300,7 @@ fun ProductsScreen(
                         }
 
                         // Each active Category Chip
-                        items(activeCategories) { cat ->
+                        items(activeCategories, key = { it.id }) { cat ->
                             val isSelected = cat.slug.equals(selectedCategorySlug, ignoreCase = true) || cat.category == selectedCategory
                             FilterChip(
                                 selected = isSelected,
@@ -332,7 +334,7 @@ fun ProductsScreen(
                             )
                         }
                     } else {
-                        items(defaultCategories) { category ->
+                        items(defaultCategories, key = { it.name }) { category ->
                             val isSelected = category == selectedCategory
                             FilterChip(
                                 selected = isSelected,
@@ -424,7 +426,7 @@ fun ProductsScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(sortedProducts) { product ->
+                items(sortedProducts, key = { it.id }) { product ->
                     ProductCard(
                         product = product,
                         onClick = { onSelectProduct(product) },

@@ -156,6 +156,7 @@ data class ShopUiState(
                     it.name.lowercase().contains(q) ||
                     it.brand.lowercase().contains(q) ||
                     it.category.displayName.lowercase().contains(q) ||
+                    it.category.name.lowercase().contains(q) ||
                     it.categorySlug.lowercase().contains(q) ||
                     it.sku.lowercase().contains(q) ||
                     it.description.lowercase().contains(q) ||
@@ -494,6 +495,20 @@ class ShopViewModel(
 
     fun updateSearchQuery(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
+    }
+
+    fun submitSearch() {
+        _uiState.update { state ->
+            val isOnProducts = state.currentScreen == AppScreen.PRODUCTS
+            val newStack = if (isOnProducts) state.screenStack else state.screenStack + AppScreen.PRODUCTS
+            state.copy(
+                selectedCategory = if (isOnProducts) state.selectedCategory else ProductCategory.ALL,
+                selectedCategorySlug = if (isOnProducts) state.selectedCategorySlug else "all",
+                currentScreen = AppScreen.PRODUCTS,
+                screenStack = newStack,
+                isMobileMenuOpen = false
+            )
+        }
     }
 
     fun updateSortOption(sortOption: SortOption) {

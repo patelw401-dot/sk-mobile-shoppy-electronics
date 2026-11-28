@@ -493,39 +493,43 @@ export default function ProductDetailsModal({
           )}
 
           {/* 9 & 10. Warranty & Return Policy Grid */}
-          <div className={`grid grid-cols-1 ${product.hasWarranty ? 'sm:grid-cols-2' : ''} gap-4`}>
-            
-            {/* 9. Warranty Section */}
-            {product.hasWarranty && (
-              <div className="p-4 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 space-y-2">
-                <div className="flex items-center gap-2 text-[#D4AF37] font-bold text-sm">
-                  <ShieldCheck size={18} />
-                  <span>
-                    {product.warrantyDuration
-                      ? `${product.warrantyDuration} Store / Brand Warranty`
-                      : (typeof product.warranty === 'string' && product.warranty.trim()
-                          ? product.warranty 
-                          : '1 Year Store & Brand Warranty')}
-                  </span>
+          {(product.hasWarranty || (product.hasReturnPolicy !== undefined ? Boolean(product.hasReturnPolicy) : true)) && (
+            <div className={`grid grid-cols-1 ${(product.hasWarranty && (product.hasReturnPolicy !== undefined ? Boolean(product.hasReturnPolicy) : true)) ? 'sm:grid-cols-2' : ''} gap-4`}>
+              
+              {/* 9. Warranty Section */}
+              {product.hasWarranty && (
+                <div className="p-4 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 space-y-2">
+                  <div className="flex items-center gap-2 text-[#D4AF37] font-bold text-sm">
+                    <ShieldCheck size={18} />
+                    <span>
+                      {product.warrantyDuration
+                        ? `${product.warrantyDuration} Store / Brand Warranty`
+                        : (typeof product.warranty === 'string' && product.warranty.trim()
+                            ? product.warranty 
+                            : '1 Year Store & Brand Warranty')}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-300 leading-relaxed">
+                    {product.warrantyDescription || 
+                     `100% genuine guaranteed with repair and replacement assistance at ${info.shopName}, ${info.fullAddress}.`}
+                  </p>
                 </div>
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  {product.warrantyDescription || 
-                   `100% genuine guaranteed with repair and replacement assistance at ${info.shopName}, ${info.fullAddress}.`}
-                </p>
-              </div>
-            )}
+              )}
 
-            {/* 10. Return / Refund Policy */}
-            <div className="p-4 rounded-xl bg-[#141414] border border-[#262626] space-y-2">
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-                <RotateCcw size={18} />
-                <span>7-Day Replacement Policy</span>
-              </div>
-              <p className="text-xs text-gray-300 leading-relaxed">
-                Hassle-free replacement for any technical defect or mismatch at our Udgir counter. Verified billing invoice provided with every order.
-              </p>
+              {/* 10. Return / Refund Policy */}
+              {(product.hasReturnPolicy !== undefined ? Boolean(product.hasReturnPolicy) : true) && (
+                <div className="p-4 rounded-xl bg-[#141414] border border-[#262626] space-y-2">
+                  <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                    <RotateCcw size={18} />
+                    <span>{product.returnTitle || '7-Day Return'}</span>
+                  </div>
+                  <p className="text-xs text-gray-300 leading-relaxed">
+                    {product.returnDescription || 'Hassle-free replacement at Udgir counter'}
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           {/* 12. Customer Reviews */}
           <div className="p-5 rounded-2xl bg-[#141414] border border-[#242424] space-y-4">

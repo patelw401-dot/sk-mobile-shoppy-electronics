@@ -17,8 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
@@ -34,6 +34,12 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -278,79 +284,94 @@ fun AppHeader(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Sticky Search Bar with Instant Querying and Clear/Submit Action
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("main_search_input"),
-                placeholder = {
-                    Text(
-                        text = "Search mobiles, accessories, repair services...",
-                        fontSize = 13.sp,
-                        color = TextMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search Icon",
-                        tint = GoldPrimary,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clickable(onClick = onSearchSubmit)
-                    )
-                },
-                trailingIcon = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (searchQuery.isNotEmpty()) {
+            // Sticky Search Bar with stable key & synchronous local text state to prevent IME focus loss
+            var localSearchQuery by remember { mutableStateOf(searchQuery) }
+            LaunchedEffect(searchQuery) {
+                if (searchQuery != localSearchQuery) {
+                    localSearchQuery = searchQuery
+                }
+            }
+
+            key("search_bar") {
+                OutlinedTextField(
+                    value = localSearchQuery,
+                    onValueChange = { newValue ->
+                        localSearchQuery = newValue
+                        onSearchChange(newValue)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("main_search_input"),
+                    placeholder = {
+                        Text(
+                            text = "Search mobiles, accessories, repair services...",
+                            fontSize = 13.sp,
+                            color = TextMuted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search Icon",
+                            tint = GoldPrimary,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable(onClick = onSearchSubmit)
+                        )
+                    },
+                    trailingIcon = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (localSearchQuery.isNotEmpty()) {
+                                IconButton(
+                                    onClick = {
+                                        localSearchQuery = ""
+                                        onSearchChange("")
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear Search",
+                                        tint = TextSecondary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+
                             IconButton(
-                                onClick = { onSearchChange("") },
-                                modifier = Modifier.size(32.dp)
+                                onClick = onSearchSubmit,
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .testTag("search_submit_btn")
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Clear Search",
-                                    tint = TextSecondary,
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = "Search Now",
+                                    tint = GoldPrimary,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
-
-                        IconButton(
-                            onClick = onSearchSubmit,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .testTag("search_submit_btn")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowForward,
-                                contentDescription = "Search Now",
-                                tint = GoldPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                },
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = BlackSurfaceSecondary,
-                    unfocusedContainerColor = BlackSurfaceSecondary,
-                    focusedBorderColor = GoldPrimary,
-                    unfocusedBorderColor = BlackBorder,
-                    focusedTextColor = TextMain,
-                    unfocusedTextColor = TextMain,
-                    focusedPlaceholderColor = TextMuted,
-                    unfocusedPlaceholderColor = TextMuted,
-                    cursorColor = GoldPrimary
-                ),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onSearchSubmit() })
-            )
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = BlackSurfaceSecondary,
+                        unfocusedContainerColor = BlackSurfaceSecondary,
+                        focusedBorderColor = GoldPrimary,
+                        unfocusedBorderColor = BlackBorder,
+                        focusedTextColor = TextMain,
+                        unfocusedTextColor = TextMain,
+                        focusedPlaceholderColor = TextMuted,
+                        unfocusedPlaceholderColor = TextMuted,
+                        cursorColor = GoldPrimary
+                    ),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSearchSubmit() })
+                )
+            }
         }
     }
 }

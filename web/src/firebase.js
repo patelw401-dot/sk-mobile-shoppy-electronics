@@ -175,6 +175,13 @@ export async function fetchFirestoreProducts() {
         hasWarranty: Boolean(data.hasWarranty),
         warrantyDuration: data.hasWarranty ? (data.warrantyDuration || '') : '',
         warrantyDescription: data.hasWarranty ? (data.warrantyDescription || '') : '',
+        hasReturnPolicy: data.hasReturnPolicy !== undefined ? Boolean(data.hasReturnPolicy) : true,
+        returnTitle: (data.hasReturnPolicy !== undefined ? Boolean(data.hasReturnPolicy) : true)
+          ? (data.returnTitle || '7-Day Return')
+          : '',
+        returnDescription: (data.hasReturnPolicy !== undefined ? Boolean(data.hasReturnPolicy) : true)
+          ? (data.returnDescription || 'Hassle-free replacement at Udgir counter')
+          : '',
         specs: data.specifications || data.specs || {},
         createdAt: data.createdAt || null,
         updatedAt: data.updatedAt || null
@@ -245,6 +252,13 @@ export function subscribeToFirestoreProducts(onSuccess, onError) {
         hasWarranty: Boolean(data.hasWarranty),
         warrantyDuration: data.hasWarranty ? (data.warrantyDuration || data.warranty || '') : '',
         warrantyDescription: data.hasWarranty ? (data.warrantyDescription || '') : '',
+        hasReturnPolicy: data.hasReturnPolicy !== undefined ? Boolean(data.hasReturnPolicy) : true,
+        returnTitle: (data.hasReturnPolicy !== undefined ? Boolean(data.hasReturnPolicy) : true)
+          ? (data.returnTitle || '7-Day Return')
+          : '',
+        returnDescription: (data.hasReturnPolicy !== undefined ? Boolean(data.hasReturnPolicy) : true)
+          ? (data.returnDescription || 'Hassle-free replacement at Udgir counter')
+          : '',
         specs: data.specifications || data.specs || {},
         specifications: data.specifications || data.specs || {},
         createdAt: data.createdAt || null,
@@ -534,6 +548,13 @@ export async function fetchAdminProducts() {
         hasWarranty: Boolean(data.hasWarranty),
         warrantyDuration: data.hasWarranty ? (data.warrantyDuration || '') : '',
         warrantyDescription: data.hasWarranty ? (data.warrantyDescription || '') : '',
+        hasReturnPolicy: data.hasReturnPolicy !== undefined ? Boolean(data.hasReturnPolicy) : true,
+        returnTitle: (data.hasReturnPolicy !== undefined ? Boolean(data.hasReturnPolicy) : true)
+          ? (data.returnTitle || '7-Day Return')
+          : '',
+        returnDescription: (data.hasReturnPolicy !== undefined ? Boolean(data.hasReturnPolicy) : true)
+          ? (data.returnDescription || 'Hassle-free replacement at Udgir counter')
+          : '',
         specs: data.specs || data.specifications || {},
         createdAt: data.createdAt || null,
         updatedAt: data.updatedAt || null
@@ -573,6 +594,9 @@ export async function saveAdminProductToFirestore(productData, currentUser) {
   const hasWarranty = Boolean(productData.hasWarranty);
   const warrantyDuration = hasWarranty ? (productData.warrantyDuration || '').trim() : '';
   const warrantyDescription = hasWarranty ? (productData.warrantyDescription || '').trim() : '';
+  const hasReturnPolicy = productData.hasReturnPolicy !== undefined ? Boolean(productData.hasReturnPolicy) : true;
+  const returnTitle = hasReturnPolicy ? ((productData.returnTitle || '').trim() || '7-Day Return') : '';
+  const returnDescription = hasReturnPolicy ? ((productData.returnDescription || '').trim() || 'Hassle-free replacement at Udgir counter') : '';
 
   const catSlug = (productData.category || productData.categorySlug || 'smartphones').toLowerCase();
   const singleImage = (productData.imageUrl || productData.image || '').trim();
@@ -600,6 +624,9 @@ export async function saveAdminProductToFirestore(productData, currentUser) {
     warrantyDuration,
     warrantyDescription,
     warranty: hasWarranty ? (warrantyDuration || '1 Year Brand Warranty') : 'No Warranty',
+    hasReturnPolicy,
+    returnTitle,
+    returnDescription,
     rating: productData.rating || 4.7,
     reviewCount: productData.reviewCount || 10,
     specs: productData.specs || productData.specifications || {},

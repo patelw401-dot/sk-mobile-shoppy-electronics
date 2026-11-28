@@ -586,73 +586,77 @@ fun ProductDetailScreen(
             }
 
             // Warranty & Replacement Policy Card
-            item {
-                Spacer(modifier = Modifier.height(14.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    if (product.hasWarranty) {
-                        Card(
-                            modifier = Modifier.weight(1f),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Security,
-                                        contentDescription = "Warranty",
-                                        tint = Color(0xFFD97706),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
+            if (product.hasWarranty || product.hasReturnPolicy) {
+                item {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (product.hasWarranty) {
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF3C7)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Security,
+                                            contentDescription = "Warranty",
+                                            tint = Color(0xFFD97706),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Warranty",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = Color(0xFF92400E)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "Warranty",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = Color(0xFF92400E)
+                                        text = product.warrantyDuration.ifBlank { product.warranty },
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF78350F),
+                                        fontWeight = FontWeight.Medium
                                     )
                                 }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = product.warrantyDuration.ifBlank { product.warranty },
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF78350F),
-                                    fontWeight = FontWeight.Medium
-                                )
                             }
                         }
-                    }
 
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = "Return Policy",
-                                    tint = ShopSuccessGreen,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "7-Day Return",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    color = Color(0xFF166534)
-                                )
+                        if (product.hasReturnPolicy) {
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = "Return Policy",
+                                            tint = ShopSuccessGreen,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = product.returnTitle.ifBlank { "7-Day Return" },
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = Color(0xFF166534)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = product.returnDescription.ifBlank { "Hassle-free replacement at Udgir counter" },
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF15803D),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Hassle-free replacement at Udgir counter",
-                                fontSize = 11.sp,
-                                color = Color(0xFF15803D),
-                                fontWeight = FontWeight.Medium
-                            )
                         }
                     }
                 }

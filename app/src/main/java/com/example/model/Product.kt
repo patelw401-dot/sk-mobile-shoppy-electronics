@@ -73,6 +73,9 @@ data class Product(
     val hasWarranty: Boolean = false,
     val warrantyDuration: String = "",
     val warrantyDescription: String = "",
+    val hasReturnPolicy: Boolean = true,
+    val returnTitle: String = "7-Day Return",
+    val returnDescription: String = "Hassle-free replacement at Udgir counter",
     val deliveryInfo: String = "Free Delivery in Udgir (Same Day)",
     val highlightBadge: String? = null,
     val releaseOrder: Int = 100, // Higher number = newer

@@ -471,6 +471,9 @@ class LocalStorageManager(private val context: Context? = null) {
         obj.put("hasWarranty", p.hasWarranty)
         obj.put("warrantyDuration", p.warrantyDuration)
         obj.put("warrantyDescription", p.warrantyDescription)
+        obj.put("hasReturnPolicy", p.hasReturnPolicy)
+        obj.put("returnTitle", p.returnTitle)
+        obj.put("returnDescription", p.returnDescription)
         obj.put("deliveryInfo", p.deliveryInfo)
         p.highlightBadge?.let { obj.put("highlightBadge", it) }
         obj.put("releaseOrder", p.releaseOrder)
@@ -542,6 +545,9 @@ class LocalStorageManager(private val context: Context? = null) {
             hasWarranty = obj.optBoolean("hasWarranty", false),
             warrantyDuration = obj.optString("warrantyDuration", ""),
             warrantyDescription = obj.optString("warrantyDescription", ""),
+            hasReturnPolicy = obj.optBoolean("hasReturnPolicy", true),
+            returnTitle = obj.optString("returnTitle", "7-Day Return").ifBlank { "7-Day Return" },
+            returnDescription = obj.optString("returnDescription", "Hassle-free replacement at Udgir counter").ifBlank { "Hassle-free replacement at Udgir counter" },
             deliveryInfo = obj.optString("deliveryInfo", "Free Delivery in Udgir"),
             highlightBadge = if (obj.has("highlightBadge")) obj.getString("highlightBadge") else null,
             releaseOrder = obj.optInt("releaseOrder", 100),

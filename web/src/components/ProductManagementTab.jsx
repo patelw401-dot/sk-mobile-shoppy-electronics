@@ -31,7 +31,8 @@ import {
   ArrowRight,
   Shield,
   ShieldCheck,
-  ShieldOff
+  ShieldOff,
+  RotateCcw
 } from 'lucide-react';
 
 const WARRANTY_PRESETS = ['7 Days', '30 Days', '3 Months', '6 Months', '1 Year', '2 Years', 'Custom'];
@@ -174,6 +175,9 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
     customDuration: '',
     warrantyDuration: '',
     warrantyDescription: '',
+    hasReturnPolicy: true,
+    returnTitle: '7-Day Return',
+    returnDescription: 'Hassle-free replacement at Udgir counter',
     specsList: [],
     specsText: ''
   });
@@ -303,6 +307,9 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
       customDuration: '',
       warrantyDuration: '',
       warrantyDescription: '',
+      hasReturnPolicy: true,
+      returnTitle: '7-Day Return',
+      returnDescription: 'Hassle-free replacement at Udgir counter',
       specsList: [],
       specsText: ''
     });
@@ -350,6 +357,9 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
       customDuration: custom,
       warrantyDuration: prod.warrantyDuration || '',
       warrantyDescription: prod.warrantyDescription || '',
+      hasReturnPolicy: prod.hasReturnPolicy !== undefined ? Boolean(prod.hasReturnPolicy) : true,
+      returnTitle: prod.returnTitle || '7-Day Return',
+      returnDescription: prod.returnDescription || 'Hassle-free replacement at Udgir counter',
       specsList: list,
       specsText: specsStr
     });
@@ -469,6 +479,9 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
         hasWarranty: Boolean(formData.hasWarranty),
         warrantyDuration: effectiveWarrantyDuration,
         warrantyDescription: formData.hasWarranty ? (formData.warrantyDescription || '').trim() : '',
+        hasReturnPolicy: Boolean(formData.hasReturnPolicy),
+        returnTitle: formData.hasReturnPolicy ? ((formData.returnTitle || '').trim() || '7-Day Return') : '',
+        returnDescription: formData.hasReturnPolicy ? ((formData.returnDescription || '').trim() || 'Hassle-free replacement at Udgir counter') : '',
         specs: finalSpecs
       };
 
@@ -1313,6 +1326,84 @@ export default function ProductManagementTab({ currentUser, onShowToast, setActi
                     >
                       <Plus size={13} />
                       <span>Add Warranty</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Return / Replacement Policy Management Section */}
+              <div className="p-4 rounded-xl bg-[#0E0E0E] border border-[#2E2E2E] space-y-3">
+                <div className="flex items-center justify-between border-b border-[#1E1E1E] pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <RotateCcw size={16} className="text-emerald-400" />
+                    <span className="text-xs font-bold text-white">Has Return / Replacement Policy</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        hasReturnPolicy: !prev.hasReturnPolicy,
+                        returnTitle: prev.returnTitle || '7-Day Return',
+                        returnDescription: prev.returnDescription || 'Hassle-free replacement at Udgir counter'
+                      }));
+                    }}
+                    className={`text-xs font-semibold px-3 py-1 rounded-lg border transition flex items-center gap-1.5 ${
+                      formData.hasReturnPolicy
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                        : 'bg-[#1C1C1C] border-[#333333] text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <RotateCcw size={13} />
+                    <span>{formData.hasReturnPolicy ? 'Return Policy: Enabled' : 'Return Policy: Disabled'}</span>
+                  </button>
+                </div>
+
+                {formData.hasReturnPolicy ? (
+                  <div className="space-y-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-300 mb-1">
+                        Return Title *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 7-Day Return"
+                        value={formData.returnTitle}
+                        onChange={(e) => setFormData({ ...formData, returnTitle: e.target.value })}
+                        className="w-full bg-[#141414] border border-[#2E2E2E] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-gray-300 mb-1">
+                        Return Description *
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="e.g. Hassle-free replacement at Udgir counter"
+                        value={formData.returnDescription}
+                        onChange={(e) => setFormData({ ...formData, returnDescription: e.target.value })}
+                        className="w-full bg-[#141414] border border-[#2E2E2E] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-400"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#141414] border border-[#222222]">
+                    <span className="text-[11px] text-gray-400">
+                      Return policy disabled. No return card will appear on customer product details.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        hasReturnPolicy: true,
+                        returnTitle: prev.returnTitle || '7-Day Return',
+                        returnDescription: prev.returnDescription || 'Hassle-free replacement at Udgir counter'
+                      }))}
+                      className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 shrink-0"
+                    >
+                      <Plus size={13} />
+                      <span>Enable Return Policy</span>
                     </button>
                   </div>
                 )}

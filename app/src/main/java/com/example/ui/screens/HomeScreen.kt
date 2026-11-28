@@ -169,7 +169,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (categories.isNotEmpty()) {
-                        items(categories) { cat ->
+                        items(categories, key = { it.id }) { cat ->
                             com.example.ui.components.DynamicCategoryCardItem(
                                 category = cat,
                                 onClick = {
@@ -182,7 +182,7 @@ fun HomeScreen(
                             )
                         }
                     } else {
-                        items(CategoryData.items) { meta ->
+                        items(CategoryData.items, key = { it.category.name }) { meta ->
                             com.example.ui.components.CategoryCardItem(
                                 categoryMeta = meta,
                                 onClick = { onCategoryClick(meta.category) }
@@ -283,7 +283,7 @@ fun HomeScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(mobileProducts) { product ->
+                items(mobileProducts, key = { it.id }) { product ->
                     Box(modifier = Modifier.width(220.dp)) {
                         ProductCard(
                             product = product,
@@ -317,7 +317,7 @@ fun HomeScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(bestSellers) { product ->
+                items(bestSellers, key = { it.id }) { product ->
                     Box(modifier = Modifier.width(210.dp)) {
                         ProductCard(
                             product = product,
@@ -377,7 +377,7 @@ fun HomeScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(accessoryProducts) { product ->
+                items(accessoryProducts, key = { it.id }) { product ->
                     Box(modifier = Modifier.width(200.dp)) {
                         ProductCard(
                             product = product,

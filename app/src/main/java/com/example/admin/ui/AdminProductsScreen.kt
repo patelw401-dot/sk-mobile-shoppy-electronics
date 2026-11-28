@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -54,6 +55,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -66,6 +68,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -101,12 +104,19 @@ fun AdminProductsScreen(
     var productToEdit by remember { mutableStateOf<Product?>(null) }
     var productToView by remember { mutableStateOf<Product?>(null) }
 
-    val filteredList = products.filter { product ->
-        val matchesCategory = selectedCategoryFilter == ProductCategory.ALL || product.category == selectedCategoryFilter
-        val matchesSearch = searchQuery.isBlank() ||
-                product.name.contains(searchQuery, ignoreCase = true) ||
-                product.brand.contains(searchQuery, ignoreCase = true)
-        matchesCategory && matchesSearch
+    val filteredList = remember(products, selectedCategoryFilter, searchQuery) {
+        val q = searchQuery.trim()
+        products.filter { product ->
+            val matchesCategory = selectedCategoryFilter == ProductCategory.ALL || product.category == selectedCategoryFilter
+            val matchesSearch = q.isBlank() ||
+                    product.name.contains(q, ignoreCase = true) ||
+                    product.brand.contains(q, ignoreCase = true) ||
+                    product.category.displayName.contains(q, ignoreCase = true) ||
+                    product.category.name.contains(q, ignoreCase = true) ||
+                    product.categorySlug.contains(q, ignoreCase = true) ||
+                    product.description.contains(q, ignoreCase = true)
+            matchesCategory && matchesSearch
+        }
     }
 
     // Add or Edit Product Dialog
@@ -163,79 +173,79 @@ fun AdminProductsScreen(
         )
     }
 
-    LazyColumn(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFFF1F5F9))
-            .testTag("admin_products_screen"),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .testTag("admin_products_screen")
     ) {
-        // Scrollable Compact Header & Search Card
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Product Inventory (${filteredList.size})",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF0F172A),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "Manage store catalog, pricing & stock",
-                                fontSize = 11.sp,
-                                color = Color(0xFF64748B),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Button(
-                            onClick = { showAddDialog = true },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = ShopPrimaryBlue,
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            modifier = Modifier
-                                .heightIn(min = 40.dp)
-                                .testTag("admin_add_product_btn")
-                        ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = "Add", tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Add",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                        }
+        // Fixed Non-Recycling Header & Search Card (prevents keyboard auto-dismiss while typing)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Product Inventory (${filteredList.size})",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0F172A),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "Manage store catalog, pricing & stock",
+                            fontSize = 11.sp,
+                            color = Color(0xFF64748B),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                    // Search Box
+                    Button(
+                        onClick = { showAddDialog = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ShopPrimaryBlue,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        modifier = Modifier
+                            .heightIn(min = 40.dp)
+                            .testTag("admin_add_product_btn")
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add", tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Add",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Search Box inside stable key outside LazyColumn
+                key("search_bar") {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search product name or brand...", fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        placeholder = { Text("Search name, brand, category...", fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search", tint = LightTextSecondary, modifier = Modifier.size(18.dp)) },
                         trailingIcon = if (searchQuery.isNotEmpty()) {
                             {
@@ -250,29 +260,38 @@ fun AdminProductsScreen(
                             .heightIn(min = 48.dp)
                             .testTag("admin_product_search"),
                         shape = RoundedCornerShape(10.dp),
-                        singleLine = true
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { /* live search results stay visible without clearing focus */ })
                     )
                 }
             }
         }
 
-        // Products List or Empty State
-        if (filteredList.isEmpty()) {
-            item {
-                com.example.ui.components.EmptyStateView(
-                    icon = Icons.Default.Inventory2,
-                    title = "No Products Found",
-                    message = if (searchQuery.isNotBlank()) "No products match '$searchQuery'." else "No products found in this category.",
-                    actionLabel = "Add New Product",
-                    onAction = { showAddDialog = true },
-                    isDarkSurface = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 32.dp)
-                )
-            }
-        } else {
-            items(filteredList) { product ->
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Products List or Empty State
+            if (filteredList.isEmpty()) {
+                item(key = "empty_products_state") {
+                    com.example.ui.components.EmptyStateView(
+                        icon = Icons.Default.Inventory2,
+                        title = "No Products Found",
+                        message = if (searchQuery.isNotBlank()) "No products match '$searchQuery'." else "No products found in this category.",
+                        actionLabel = "Add New Product",
+                        onAction = { showAddDialog = true },
+                        isDarkSurface = false,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp)
+                    )
+                }
+            } else {
+                items(filteredList, key = { it.id }) { product ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -451,6 +470,7 @@ fun AdminProductsScreen(
                 }
             }
         }
+        }
     }
 }
 
@@ -484,6 +504,17 @@ fun ProductFormDialog(
     var warrantyDuration by remember(initialProduct?.id) {
         mutableStateOf(
             if (initialProduct?.warrantyDuration.isNullOrBlank()) (initialProduct?.warranty ?: "1 Year Brand Warranty") else initialProduct.warrantyDuration
+        )
+    }
+    var hasReturnPolicy by remember(initialProduct?.id) { mutableStateOf(initialProduct?.hasReturnPolicy ?: true) }
+    var returnTitle by remember(initialProduct?.id) {
+        mutableStateOf(
+            initialProduct?.returnTitle?.takeIf { it.isNotBlank() } ?: "7-Day Return"
+        )
+    }
+    var returnDescription by remember(initialProduct?.id) {
+        mutableStateOf(
+            initialProduct?.returnDescription?.takeIf { it.isNotBlank() } ?: "Hassle-free replacement at Udgir counter"
         )
     }
     var isCompressingImage by remember { mutableStateOf(false) }
@@ -825,6 +856,37 @@ fun ProductFormDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Text("Has Return / Replacement Policy", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
+                    Switch(
+                        checked = hasReturnPolicy,
+                        onCheckedChange = { hasReturnPolicy = it },
+                        modifier = Modifier.testTag("product_form_return_policy_switch")
+                    )
+                }
+                if (hasReturnPolicy) {
+                    OutlinedTextField(
+                        value = returnTitle,
+                        onValueChange = { returnTitle = it },
+                        label = { Text("Return Title (e.g. 7-Day Return)") },
+                        colors = lightOutlinedTextFieldColors(),
+                        modifier = Modifier.fillMaxWidth().testTag("product_form_return_title"),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = returnDescription,
+                        onValueChange = { returnDescription = it },
+                        label = { Text("Return Description (e.g. Hassle-free replacement at Udgir counter)") },
+                        colors = lightOutlinedTextFieldColors(),
+                        modifier = Modifier.fillMaxWidth().testTag("product_form_return_description"),
+                        minLines = 2,
+                        maxLines = 3
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text("Active & In Stock", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LightTextPrimary)
                     Switch(checked = inStock, onCheckedChange = { inStock = it })
                 }
@@ -876,6 +938,9 @@ fun ProductFormDialog(
                         warrantyDuration = if (hasWarranty) warrantyDuration.trim() else "",
                         warrantyDescription = if (hasWarranty) "Official warranty backed with GST invoice" else "",
                         warranty = if (hasWarranty) (warrantyDuration.trim().ifBlank { "1 Year Brand Warranty" }) else "No Warranty",
+                        hasReturnPolicy = hasReturnPolicy,
+                        returnTitle = if (hasReturnPolicy) returnTitle.trim().ifBlank { "7-Day Return" } else "",
+                        returnDescription = if (hasReturnPolicy) returnDescription.trim().ifBlank { "Hassle-free replacement at Udgir counter" } else "",
                         active = effectiveInStock,
                         inStock = effectiveInStock,
                         stockStatus = if (effectiveInStock) "In Stock ($parsedStock units)" else "Out of Stock",

@@ -213,7 +213,7 @@ private fun SKMobileMainContent(
                         searchQuery = shopUiState.searchQuery,
                         shopInfo = shopUiState.shopInfo,
                         onSearchChange = { shopViewModel.updateSearchQuery(it) },
-                        onSearchSubmit = { shopViewModel.navigateTo(AppScreen.PRODUCTS) },
+                        onSearchSubmit = { shopViewModel.submitSearch() },
                         onCartClick = { shopViewModel.navigateTo(AppScreen.CART) },
                         onProfileClick = { shopViewModel.setLoginSheetVisible(true) },
                         onLogoClick = { shopViewModel.navigateTo(AppScreen.HOME) },
@@ -270,7 +270,7 @@ private fun SKMobileMainContent(
 
                     AppScreen.PRODUCTS -> {
                         ProductsScreen(
-                            products = shopUiState.filteredProducts,
+                            products = shopUiState.products,
                             selectedCategory = shopUiState.selectedCategory,
                             selectedCategorySlug = shopUiState.selectedCategorySlug,
                             activeCategories = shopUiState.activeCategories,

@@ -341,6 +341,13 @@ class FirestoreDataService(
             val warrantyDuration = doc.getString("warrantyDuration") ?: doc.getString("warranty") ?: ""
             val warrantyDescription = doc.getString("warrantyDescription") ?: ""
 
+            // Return Policy
+            val hasReturnPolicy = extractBoolean(doc, "hasReturnPolicy", true)
+            val returnTitle = doc.getString("returnTitle")?.takeIf { it.isNotBlank() }
+                ?: if (hasReturnPolicy) "7-Day Return" else ""
+            val returnDescription = doc.getString("returnDescription")?.takeIf { it.isNotBlank() }
+                ?: if (hasReturnPolicy) "Hassle-free replacement at Udgir counter" else ""
+
             // Specifications
             val specs = extractSpecifications(doc)
 
@@ -366,6 +373,9 @@ class FirestoreDataService(
                 hasWarranty = hasWarranty,
                 warrantyDuration = warrantyDuration,
                 warrantyDescription = warrantyDescription,
+                hasReturnPolicy = hasReturnPolicy,
+                returnTitle = returnTitle,
+                returnDescription = returnDescription,
                 highlightBadge = highlightBadge,
                 releaseOrder = releaseOrder,
                 stock = stock,
@@ -502,6 +512,9 @@ class FirestoreDataService(
                 "hasWarranty" to product.hasWarranty,
                 "warrantyDuration" to product.warrantyDuration,
                 "warrantyDescription" to product.warrantyDescription,
+                "hasReturnPolicy" to product.hasReturnPolicy,
+                "returnTitle" to product.returnTitle,
+                "returnDescription" to product.returnDescription,
                 "specifications" to product.specifications,
                 "specs" to product.specifications,
                 "createdAt" to System.currentTimeMillis(),
@@ -546,6 +559,9 @@ class FirestoreDataService(
                 "hasWarranty" to product.hasWarranty,
                 "warrantyDuration" to product.warrantyDuration,
                 "warrantyDescription" to product.warrantyDescription,
+                "hasReturnPolicy" to product.hasReturnPolicy,
+                "returnTitle" to product.returnTitle,
+                "returnDescription" to product.returnDescription,
                 "specifications" to product.specifications,
                 "specs" to product.specifications,
                 "updatedAt" to System.currentTimeMillis()
