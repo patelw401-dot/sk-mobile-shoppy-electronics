@@ -136,11 +136,11 @@ export default function ProductsPage({
     }
 
     if (selectedBrand !== 'All') {
-      result = result.filter(p => p.brand.toLowerCase() === selectedBrand.toLowerCase());
+      result = result.filter(p => (p.brand || '').toLowerCase() === selectedBrand.toLowerCase());
     }
 
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.trim().toLowerCase();
       result = result.filter(p => {
         const nameMatch = (p.name || '').toLowerCase().includes(q);
         const brandMatch = (p.brand || '').toLowerCase().includes(q);
@@ -166,7 +166,7 @@ export default function ProductsPage({
     }
 
     return result;
-  }, [rawProducts, selectedBrand, searchQuery, sortBy]);
+  }, [rawProducts, activeCategory, selectedBrand, searchQuery, sortBy]);
 
   return (
     <div className="container py-8 space-y-8">
