@@ -266,7 +266,7 @@ test("Admin user can read and manage orders, repair bookings, and catalog", asyn
 
 test("Google-Only Auth: Authorized Gmail allowlist grants admin; normal customer Google login denied admin", async () => {
   // Authorized Gmail allowlist user: patelw401@gmail.com
-  const authorizedGoogleAdminDb = testEnv.authenticatedContext("patel_uid", { email: "patelw401@gmail.com" }).firestore();
+  const authorizedGoogleAdminDb = testEnv.authenticatedContext("patel_uid", { email: "patelw401@gmail.com", email_verified: true }).firestore();
   await assertSucceeds(authorizedGoogleAdminDb.collection("orders").doc("order_alice").get());
   await assertSucceeds(
     authorizedGoogleAdminDb.collection("products").doc("prod_patel").set({
@@ -277,7 +277,7 @@ test("Google-Only Auth: Authorized Gmail allowlist grants admin; normal customer
   );
 
   // Authorized Store Owner account: skmobileshoppyandelectronics@gmail.com
-  const storeOwnerDb = testEnv.authenticatedContext("owner_uid", { email: "skmobileshoppyandelectronics@gmail.com" }).firestore();
+  const storeOwnerDb = testEnv.authenticatedContext("owner_uid", { email: "skmobileshoppyandelectronics@gmail.com", email_verified: true }).firestore();
   await assertSucceeds(storeOwnerDb.collection("orders").doc("order_alice").get());
   await assertSucceeds(
     storeOwnerDb.collection("products").doc("prod_owner").set({
@@ -451,4 +451,23 @@ test("Customer cannot change notification ownership or message", async () => {
   await assertFails(doc.update({customerId: BOB_UID}));
   await assertFails(doc.update({message: "Changed"}));
   await assertSucceeds(doc.update({isRead: true}));
+});
+
+
+test("Unverified allowlisted email cannot write products", async () => {
+  const db = testEnv.authenticatedContext("unverified", {email: "admin@skmobile.com", email_verified: false}).firestore();
+  await assertFails(db.collection("products").doc("forged").set({name: "Fake"}));
+});
+test("Inactive admin registry record cannot write products", async () => {
+  await testEnv.withSecurityRulesDisabled(async c => { await c.firestore().collection("admins").doc("inactive").set({isAdmin:true,active:false}); });
+  const db = testEnv.authenticatedContext("inactive").firestore();
+  await assertFails(db.collection("products").doc("forged").set({name:"Fake"}));
+});
+test("Reel counters allow single increments but reject arbitrary changes", async () => {
+  await testEnv.withSecurityRulesDisabled(async c => { await c.firestore().collection("reels").doc("r1").set({likesCount:0,sharesCount:0,viewsCount:0}); });
+  const doc = testEnv.authenticatedContext(ALICE_UID).firestore().collection("reels").doc("r1");
+  await assertSucceeds(doc.update({likesCount:1}));
+  await assertFails(doc.update({likesCount:1000}));
+  await assertFails(doc.update({sharesCount:-1}));
+  await assertSucceeds(doc.update({likesCount:0}));
 });
