@@ -6,7 +6,8 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.getValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -15,9 +16,10 @@ import kotlin.math.roundToInt
 
 @Composable
 fun rememberImageModel(src: String): Any {
-    return remember(src) {
-        resolveImageModel(src)
+    val model by produceState<Any>(initialValue = src, key1 = src) {
+        value = withContext(Dispatchers.Default) { resolveImageModel(src) }
     }
+    return model
 }
 
 fun resolveImageModel(src: String): Any {
@@ -57,7 +59,7 @@ suspend fun compressUriToDataUri(
         }
 
         var inSampleSize = 1
-        while ((rawWidth / inSampleSize) >= maxDimension * 2 && (rawHeight / inSampleSize) >= maxDimension * 2) {
+        while (max(rawWidth, rawHeight) / inSampleSize >= maxDimension * 2) {
             inSampleSize *= 2
         }
 
