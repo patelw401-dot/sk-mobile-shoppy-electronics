@@ -1116,47 +1116,85 @@ export const DEFAULT_REPAIR_PRICING = [
   }
 ];
 
+function extractNumericPriceFallback(rawText, fallback = 0) {
+  const cleaned = String(rawText ?? '').replace(/,/g, '').trim();
+  const match = cleaned.match(/\d+/);
+  if (match) {
+    const num = Number.parseInt(match[0], 10);
+    if (Number.isFinite(num) && num >= 0) return num;
+  }
+  const fb = Number.parseInt(fallback, 10);
+  return Number.isFinite(fb) && fb >= 0 ? fb : 0;
+}
+
+export function formatRepairPriceDisplay(service) {
+  if (!service) return 'Quote on Diagnosis';
+  const raw = String(service.priceText ?? '').trim();
+  if (!raw) {
+    const num = Number(service.estimatedStartingPrice || 0);
+    return `From ₹${Number.isFinite(num) ? num.toLocaleString('en-IN') : '0'}`;
+  }
+  if (/^\d+$/.test(raw)) {
+    const num = Number.parseInt(raw, 10);
+    return `From ₹${num.toLocaleString('en-IN')}`;
+  }
+  return raw;
+}
+
 function mergeRepairPricingData(docData) {
   if (!docData || typeof docData !== 'object') {
-    return DEFAULT_REPAIR_PRICING;
+    return DEFAULT_REPAIR_PRICING.map((d) => ({
+      ...d,
+      priceText: String(d.estimatedStartingPrice ?? 0)
+    }));
   }
   const pricesById = (docData.pricesById && typeof docData.pricesById === 'object') ? docData.pricesById : {};
-  const rawServices = Array.isArray(docData.services) ? docData.services : [];
-  const parsedById = new Map();
+  const priceTextById = (docData.priceTextById && typeof docData.priceTextById === 'object') ? docData.priceTextById : {};
+  const hasServicesList = Array.isArray(docData.services);
 
-  rawServices.forEach((entry) => {
-    if (!entry || !entry.id) return;
-    const def = DEFAULT_REPAIR_PRICING.find((d) => d.id === entry.id);
-    const rawPrice = entry.estimatedStartingPrice ?? pricesById[entry.id] ?? def?.estimatedStartingPrice ?? 499;
-    const parsedPrice = Math.max(0, Number.parseInt(rawPrice, 10) || 0);
-    parsedById.set(entry.id, {
-      id: entry.id,
-      title: (entry.title && String(entry.title).trim()) || def?.title || entry.id,
-      estimatedStartingPrice: parsedPrice,
-      turnaroundTime: (entry.turnaroundTime && String(entry.turnaroundTime).trim()) || def?.turnaroundTime || '30 - 60 Minutes',
-      description: (entry.description && String(entry.description).trim()) || def?.description || '',
-      iconType: (entry.iconType && String(entry.iconType).trim()) || def?.iconType || 'repair'
-    });
+  if (hasServicesList) {
+    return docData.services
+      .filter((entry) => entry && entry.id && String(entry.id).trim())
+      .map((entry) => {
+        const id = String(entry.id).trim();
+        const def = DEFAULT_REPAIR_PRICING.find((d) => d.id === id);
+        const rawPrice = entry.estimatedStartingPrice ?? pricesById[id] ?? def?.estimatedStartingPrice ?? 0;
+        const rawText = String(
+          (entry.priceText !== undefined && entry.priceText !== null && String(entry.priceText).trim() !== '')
+            ? entry.priceText
+            : (priceTextById[id] !== undefined && priceTextById[id] !== null && String(priceTextById[id]).trim() !== '')
+              ? priceTextById[id]
+              : rawPrice
+        ).trim();
+        const parsedPrice = extractNumericPriceFallback(rawText, rawPrice);
+        return {
+          id,
+          title: (entry.title && String(entry.title).trim()) || def?.title || id,
+          estimatedStartingPrice: parsedPrice,
+          priceText: rawText,
+          turnaroundTime: (entry.turnaroundTime && String(entry.turnaroundTime).trim()) || def?.turnaroundTime || '30 - 60 Minutes',
+          warrantyDays: Number.isFinite(Number(entry.warrantyDays)) ? Number(entry.warrantyDays) : (def?.warrantyDays ?? 90),
+          description: (entry.description && String(entry.description).trim()) || def?.description || '',
+          iconType: (entry.iconType && String(entry.iconType).trim()) || def?.iconType || 'repair'
+        };
+      });
+  }
+
+  return DEFAULT_REPAIR_PRICING.map((def) => {
+    const rawNum = pricesById[def.id] !== undefined && pricesById[def.id] !== null
+      ? pricesById[def.id]
+      : def.estimatedStartingPrice;
+    const rawText = String(
+      priceTextById[def.id] !== undefined && priceTextById[def.id] !== null && String(priceTextById[def.id]).trim() !== ''
+        ? priceTextById[def.id]
+        : rawNum
+    ).trim();
+    return {
+      ...def,
+      estimatedStartingPrice: extractNumericPriceFallback(rawText, rawNum),
+      priceText: rawText
+    };
   });
-
-  const merged = DEFAULT_REPAIR_PRICING.map((def) => {
-    if (parsedById.has(def.id)) {
-      return parsedById.get(def.id);
-    }
-    if (pricesById[def.id] !== undefined && pricesById[def.id] !== null) {
-      const override = Math.max(0, Number.parseInt(pricesById[def.id], 10) || 0);
-      return { ...def, estimatedStartingPrice: override };
-    }
-    return def;
-  });
-
-  parsedById.forEach((svc, id) => {
-    if (!DEFAULT_REPAIR_PRICING.some((d) => d.id === id)) {
-      merged.push(svc);
-    }
-  });
-
-  return merged;
 }
 
 /**
@@ -1172,7 +1210,7 @@ export function subscribeToRepairPricing(onUpdate, onError) {
         if (snapshot.exists()) {
           onUpdate?.(mergeRepairPricingData(snapshot.data()));
         } else {
-          onUpdate?.(DEFAULT_REPAIR_PRICING);
+          onUpdate?.(DEFAULT_REPAIR_PRICING.map((d) => ({ ...d, priceText: String(d.estimatedStartingPrice ?? 0) })));
         }
       },
       (err) => {
@@ -1188,23 +1226,35 @@ export function subscribeToRepairPricing(onUpdate, onError) {
 }
 
 /**
- * Save repair service starting prices to Firestore settings/repair_pricing (Admin only).
+ * Save repair service starting prices & categories to Firestore settings/repair_pricing (Admin only).
  */
 export async function saveAdminRepairPricingToFirestore(services, currentUser) {
   if (!isUserAdmin(currentUser)) {
     throw new Error('Unauthorized: Store administrator privileges are required to update repair prices.');
   }
-  const normalized = (Array.isArray(services) ? services : DEFAULT_REPAIR_PRICING).map((s) => ({
-    id: s.id,
-    title: s.title,
-    estimatedStartingPrice: Math.max(0, Number.parseInt(s.estimatedStartingPrice, 10) || 0),
-    turnaroundTime: s.turnaroundTime || '30 - 60 Minutes',
-    description: s.description || '',
-    iconType: s.iconType || 'repair'
-  }));
+  const normalized = (Array.isArray(services) ? services : DEFAULT_REPAIR_PRICING).map((s) => {
+    const priceText = String(
+      s.priceText !== undefined && s.priceText !== null && String(s.priceText).trim() !== ''
+        ? s.priceText
+        : (s.estimatedStartingPrice ?? 0)
+    ).trim();
+    const numericPrice = extractNumericPriceFallback(priceText, s.estimatedStartingPrice ?? 0);
+    return {
+      id: String(s.id || `rep-${Date.now()}`).trim(),
+      title: String(s.title || 'Repair Service').trim(),
+      estimatedStartingPrice: numericPrice,
+      priceText,
+      turnaroundTime: String(s.turnaroundTime || '30 - 60 Minutes').trim(),
+      warrantyDays: Number.isFinite(Number(s.warrantyDays)) ? Number(s.warrantyDays) : 90,
+      description: String(s.description || '').trim(),
+      iconType: String(s.iconType || 'repair').trim()
+    };
+  });
   const pricesById = {};
+  const priceTextById = {};
   normalized.forEach((s) => {
     pricesById[s.id] = s.estimatedStartingPrice;
+    priceTextById[s.id] = s.priceText;
   });
 
   const docRef = doc(db, 'settings', 'repair_pricing');
@@ -1213,6 +1263,7 @@ export async function saveAdminRepairPricingToFirestore(services, currentUser) {
     {
       services: normalized,
       pricesById,
+      priceTextById,
       lastUpdatedBy: currentUser?.email || 'Store Admin',
       updatedAt: serverTimestamp()
     },

@@ -95,7 +95,7 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = subscribeToRepairPricing((services) => {
-      if (Array.isArray(services) && services.length > 0) {
+      if (Array.isArray(services)) {
         setRepairServices(services);
       }
     }, (err) => {

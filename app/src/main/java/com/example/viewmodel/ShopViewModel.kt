@@ -648,9 +648,7 @@ class ShopViewModel(
                         svc.title.contains(trimmedProblem, ignoreCase = true) ||
                         trimmedProblem.contains(svc.title.substringBefore(" &").trim(), ignoreCase = true)
                 }
-                val liveEstimate = matchedService?.let {
-                    "From ₹${java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "IN")).format(it.estimatedStartingPrice)}"
-                } ?: "Quote on Diagnosis"
+                val liveEstimate = matchedService?.formattedPriceDisplay ?: "Quote on Diagnosis"
 
                 val booking = RepairBooking(
                     bookingId = bookingId,

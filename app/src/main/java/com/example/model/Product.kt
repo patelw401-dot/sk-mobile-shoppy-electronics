@@ -141,11 +141,40 @@ data class RepairService(
     val id: String,
     val title: String,
     val estimatedStartingPrice: Int,
+    val priceText: String = "",
     val turnaroundTime: String,
-    val warrantyDays: Int,
-    val description: String,
-    val iconType: String
-)
+    val warrantyDays: Int = 0,
+    val description: String = "",
+    val iconType: String = "repair"
+) {
+    val effectivePriceInput: String
+        get() = priceText.trim().ifBlank { estimatedStartingPrice.toString() }
+
+    val formattedPriceDisplay: String
+        get() {
+            val raw = priceText.trim()
+            if (raw.isEmpty()) {
+                val formatted = java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "IN")).format(estimatedStartingPrice)
+                return "From ₹$formatted"
+            }
+            if (raw.all { it.isDigit() }) {
+                val num = raw.toIntOrNull()
+                if (num != null) {
+                    val formatted = java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "IN")).format(num)
+                    return "From ₹$formatted"
+                }
+            }
+            return raw
+        }
+
+    companion object {
+        fun extractNumericFallback(rawText: String, fallback: Int = 0): Int {
+            val cleaned = rawText.replace(",", "").trim()
+            val match = Regex("\\d+").find(cleaned)
+            return match?.value?.toIntOrNull()?.coerceAtLeast(0) ?: fallback.coerceAtLeast(0)
+        }
+    }
+}
 
 data class RepairBooking(
     val bookingId: String,

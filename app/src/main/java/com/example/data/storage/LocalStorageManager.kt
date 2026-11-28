@@ -388,29 +388,30 @@ class LocalStorageManager(private val context: Context? = null) {
         if (!jsonString.isNullOrEmpty()) {
             try {
                 val array = JSONArray(jsonString)
-                val parsed = mutableMapOf<String, RepairService>()
+                val parsedList = mutableListOf<RepairService>()
                 for (i in 0 until array.length()) {
                     val obj = array.getJSONObject(i)
                     val id = obj.optString("id")
                     if (id.isNotBlank()) {
                         val defaultSvc = MockData.repairServices.find { it.id == id }
-                        parsed[id] = RepairService(
-                            id = id,
-                            title = obj.optString("title").ifBlank { defaultSvc?.title ?: id },
-                            estimatedStartingPrice = obj.optInt("estimatedStartingPrice", defaultSvc?.estimatedStartingPrice ?: 499),
-                            turnaroundTime = obj.optString("turnaroundTime").ifBlank { defaultSvc?.turnaroundTime ?: "30 - 60 Minutes" },
-                            warrantyDays = obj.optInt("warrantyDays", defaultSvc?.warrantyDays ?: 0),
-                            description = obj.optString("description").ifBlank { defaultSvc?.description ?: "" },
-                            iconType = obj.optString("iconType").ifBlank { defaultSvc?.iconType ?: "repair" }
+                        val numPrice = obj.optInt("estimatedStartingPrice", defaultSvc?.estimatedStartingPrice ?: 499)
+                        val rawPriceText = obj.optString("priceText", "").trim()
+                        parsedList.add(
+                            RepairService(
+                                id = id,
+                                title = obj.optString("title").ifBlank { defaultSvc?.title ?: id },
+                                estimatedStartingPrice = numPrice,
+                                priceText = rawPriceText.ifBlank { numPrice.toString() },
+                                turnaroundTime = obj.optString("turnaroundTime").ifBlank { defaultSvc?.turnaroundTime ?: "30 - 60 Minutes" },
+                                warrantyDays = obj.optInt("warrantyDays", defaultSvc?.warrantyDays ?: 0),
+                                description = obj.optString("description").ifBlank { defaultSvc?.description ?: "" },
+                                iconType = obj.optString("iconType").ifBlank { defaultSvc?.iconType ?: "repair" }
+                            )
                         )
                     }
                 }
-                if (parsed.isNotEmpty()) {
-                    val merged = MockData.repairServices.map { def -> parsed[def.id] ?: def } +
-                        parsed.values.filter { svc -> MockData.repairServices.none { it.id == svc.id } }
-                    cachedRepairServices = merged.toMutableList()
-                    return merged
-                }
+                cachedRepairServices = parsedList.toMutableList()
+                return parsedList
             } catch (e: Exception) {
                 Log.e(TAG, "Error deserializing repair services: ${e.message}")
             }
@@ -431,6 +432,7 @@ class LocalStorageManager(private val context: Context? = null) {
                 obj.put("id", s.id)
                 obj.put("title", s.title)
                 obj.put("estimatedStartingPrice", s.estimatedStartingPrice)
+                obj.put("priceText", s.effectivePriceInput)
                 obj.put("turnaroundTime", s.turnaroundTime)
                 obj.put("warrantyDays", s.warrantyDays)
                 obj.put("description", s.description)

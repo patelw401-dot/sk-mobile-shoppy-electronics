@@ -129,15 +129,14 @@ fun RepairBookingScreen(
         }
     }
 
-    val problemOptions: List<Pair<String, Int?>> = remember(repairServices) {
-        val dynamicItems = repairServices.map { it.title to it.estimatedStartingPrice }
-        val extraItems = listOf(
-            "Camera / Glass" to null,
-            "Dead / Motherboard" to null
-        ).filter { (extraTitle, _) ->
-            dynamicItems.none { it.first.equals(extraTitle, ignoreCase = true) }
+    LaunchedEffect(repairServices) {
+        if (selectedProblem.isBlank() && repairServices.isNotEmpty()) {
+            selectedProblem = repairServices.first().title
         }
-        dynamicItems + extraItems
+    }
+
+    val problemOptions: List<Pair<String, String>> = remember(repairServices) {
+        repairServices.map { it.title to it.formattedPriceDisplay }
     }
 
     val matchedSelectedService = remember(selectedProblem, repairServices) {
@@ -446,47 +445,58 @@ fun RepairBookingScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        val chunkedProblems = problemOptions.chunked(2)
-                        chunkedProblems.forEach { row ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                row.forEach { (problem, startingPrice) ->
-                                    val isSelected = selectedProblem.equals(problem, ignoreCase = true) ||
-                                        problem.contains(selectedProblem, ignoreCase = true)
-                                    Surface(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .padding(vertical = 4.dp)
-                                            .clickable { selectedProblem = problem },
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = if (isSelected) BlackSurfaceSecondary else BlackBackground,
-                                        border = BorderStroke(
-                                            width = if (isSelected) 1.5.dp else 1.dp,
-                                            color = if (isSelected) ShopPrimaryBlue else BlackBorder
-                                        )
-                                    ) {
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 6.dp)
+                        if (problemOptions.isEmpty()) {
+                            Text(
+                                text = "Describe your device fault in the details box below.",
+                                fontSize = 12.sp,
+                                color = TextSecondary
+                            )
+                        } else {
+                            val chunkedProblems = problemOptions.chunked(2)
+                            chunkedProblems.forEach { row ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    row.forEach { (problem, priceLabel) ->
+                                        val isSelected = selectedProblem.equals(problem, ignoreCase = true) ||
+                                            (selectedProblem.isNotBlank() && problem.contains(selectedProblem, ignoreCase = true))
+                                        Surface(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .padding(vertical = 4.dp)
+                                                .clickable { selectedProblem = problem },
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = if (isSelected) BlackSurfaceSecondary else BlackBackground,
+                                            border = BorderStroke(
+                                                width = if (isSelected) 1.5.dp else 1.dp,
+                                                color = if (isSelected) ShopPrimaryBlue else BlackBorder
+                                            )
                                         ) {
-                                            Text(
-                                                text = problem,
-                                                fontSize = 12.sp,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (isSelected) GoldHighlight else TextMain,
-                                                textAlign = TextAlign.Center
-                                            )
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Text(
-                                                text = if (startingPrice != null) "From ${formatInr(startingPrice)}" else "Quote on Diagnosis",
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (startingPrice != null) LightBlueAccentOnDark else TextSecondary,
-                                                textAlign = TextAlign.Center
-                                            )
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                modifier = Modifier.padding(vertical = 8.dp, horizontal = 6.dp)
+                                            ) {
+                                                Text(
+                                                    text = problem,
+                                                    fontSize = 12.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = if (isSelected) GoldHighlight else TextMain,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = priceLabel,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = LightBlueAccentOnDark,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
                                         }
+                                    }
+                                    if (row.size == 1) {
+                                        Spacer(modifier = Modifier.weight(1f))
                                     }
                                 }
                             }
@@ -519,7 +529,7 @@ fun RepairBookingScreen(
                                         )
                                     }
                                     Text(
-                                        text = "From ${formatInr(matchedSelectedService.estimatedStartingPrice)}",
+                                        text = matchedSelectedService.formattedPriceDisplay,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = GoldHighlight

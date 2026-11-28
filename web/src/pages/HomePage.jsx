@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { REAL_PRODUCTS, PRE_OWNED_PHONES, DEFAULT_CATEGORIES } from '../data/storeData';
-import { fetchCategoriesFromFirestore, DEFAULT_REPAIR_PRICING, DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
+import { fetchCategoriesFromFirestore, DEFAULT_REPAIR_PRICING, DEFAULT_SHOP_INFO, formatShopInfo, formatRepairPriceDisplay } from '../firebase';
 import ProductCard from '../components/ProductCard';
 import { 
   Smartphone, 
@@ -32,7 +32,7 @@ export default function HomePage({
   shopInfo = DEFAULT_SHOP_INFO
 }) {
   const info = formatShopInfo(shopInfo);
-  const activeRepairServices = Array.isArray(repairServices) && repairServices.length > 0
+  const activeRepairServices = Array.isArray(repairServices)
     ? repairServices
     : DEFAULT_REPAIR_PRICING;
   const handleSelectProduct = onSelectProduct || setSelectedProduct;
@@ -273,11 +273,11 @@ export default function HomePage({
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-              {activeRepairServices.slice(0, 6).map((service) => (
+              {activeRepairServices.map((service) => (
                 <div key={service.id} className="p-3 rounded-lg bg-[#0E0E0E]/80 border border-[#262626]">
                   <div className="text-xs font-bold text-white mb-0.5">{service.title}</div>
                   <div className="text-[11px] text-[#D4AF37] font-semibold">
-                    From ₹{Number(service.estimatedStartingPrice || 0).toLocaleString('en-IN')}
+                    {formatRepairPriceDisplay(service)}
                   </div>
                 </div>
               ))}

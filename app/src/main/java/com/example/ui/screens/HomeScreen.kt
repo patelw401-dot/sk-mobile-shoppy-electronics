@@ -670,22 +670,33 @@ fun RepairSectionCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 6 Repair problem cards in grid layout (2 rows x 3 columns)
-            val chunked = services.chunked(3)
-            chunked.forEach { rowServices ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    rowServices.forEach { service ->
-                        RepairGridItem(
-                            service = service,
-                            onClick = { onServiceClick(service.title) },
-                            modifier = Modifier.weight(1f)
-                        )
+            // Dynamic Repair service cards in 3-column grid layout (no item cap)
+            if (services.isEmpty()) {
+                Text(
+                    text = "Contact store for instant repair diagnostics and custom quotes.",
+                    fontSize = 12.sp,
+                    color = LightTextSecondary
+                )
+            } else {
+                val chunked = services.chunked(3)
+                chunked.forEach { rowServices ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        rowServices.forEach { service ->
+                            RepairGridItem(
+                                service = service,
+                                onClick = { onServiceClick(service.title) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        repeat(3 - rowServices.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -780,10 +791,14 @@ fun RepairGridItem(
             Spacer(modifier = Modifier.height(2.dp))
 
             Text(
-                text = "From ${formatInr(service.estimatedStartingPrice)}",
+                text = service.formattedPriceDisplay,
                 fontSize = 10.sp,
                 color = LightBlueAccentOnDark,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 12.sp
             )
         }
     }

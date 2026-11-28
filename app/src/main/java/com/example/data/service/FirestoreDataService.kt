@@ -1644,41 +1644,50 @@ class FirestoreDataService(
                 if (snapshot != null && snapshot.exists()) {
                     try {
                         val rawPrices = snapshot.get("pricesById") as? Map<*, *>
+                        val rawPriceTexts = snapshot.get("priceTextById") as? Map<*, *>
+                        val hasServicesList = snapshot.contains("services") && snapshot.get("services") is List<*>
                         val rawServices = snapshot.get("services") as? List<*>
-                        val parsedById = mutableMapOf<String, RepairService>()
 
-                        rawServices?.forEach { entry ->
-                            val map = entry as? Map<*, *> ?: return@forEach
-                            val id = map["id"]?.toString()?.takeIf { it.isNotBlank() } ?: return@forEach
-                            val defaultSvc = MockData.repairServices.find { it.id == id }
-                            val price = (map["estimatedStartingPrice"] as? Number)?.toInt()
-                                ?: (rawPrices?.get(id) as? Number)?.toInt()
-                                ?: defaultSvc?.estimatedStartingPrice
-                                ?: 499
-                            parsedById[id] = RepairService(
-                                id = id,
-                                title = map["title"]?.toString()?.takeIf { it.isNotBlank() } ?: (defaultSvc?.title ?: id),
-                                estimatedStartingPrice = price.coerceAtLeast(0),
-                                turnaroundTime = map["turnaroundTime"]?.toString()?.takeIf { it.isNotBlank() } ?: (defaultSvc?.turnaroundTime ?: "30 - 60 Minutes"),
-                                warrantyDays = (map["warrantyDays"] as? Number)?.toInt() ?: (defaultSvc?.warrantyDays ?: 0),
-                                description = map["description"]?.toString()?.takeIf { it.isNotBlank() } ?: (defaultSvc?.description ?: ""),
-                                iconType = map["iconType"]?.toString()?.takeIf { it.isNotBlank() } ?: (defaultSvc?.iconType ?: "repair")
-                            )
+                        val finalServices = if (hasServicesList && rawServices != null) {
+                            rawServices.mapNotNull { entry ->
+                                val map = entry as? Map<*, *> ?: return@mapNotNull null
+                                val id = map["id"]?.toString()?.trim()?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                                val defaultSvc = MockData.repairServices.find { it.id == id }
+                                val numPrice = (map["estimatedStartingPrice"] as? Number)?.toInt()
+                                    ?: (rawPrices?.get(id) as? Number)?.toInt()
+                                    ?: defaultSvc?.estimatedStartingPrice
+                                    ?: 0
+                                val rawText = map["priceText"]?.toString()?.trim()
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?: rawPriceTexts?.get(id)?.toString()?.trim()?.takeIf { it.isNotBlank() }
+                                    ?: numPrice.coerceAtLeast(0).toString()
+                                val resolvedNumeric = RepairService.extractNumericFallback(rawText, numPrice)
+                                RepairService(
+                                    id = id,
+                                    title = map["title"]?.toString()?.trim()?.takeIf { it.isNotBlank() } ?: (defaultSvc?.title ?: id),
+                                    estimatedStartingPrice = resolvedNumeric,
+                                    priceText = rawText,
+                                    turnaroundTime = map["turnaroundTime"]?.toString()?.trim()?.takeIf { it.isNotBlank() } ?: (defaultSvc?.turnaroundTime ?: "30 - 60 Minutes"),
+                                    warrantyDays = (map["warrantyDays"] as? Number)?.toInt() ?: (defaultSvc?.warrantyDays ?: 0),
+                                    description = map["description"]?.toString()?.trim()?.takeIf { it.isNotBlank() } ?: (defaultSvc?.description ?: ""),
+                                    iconType = map["iconType"]?.toString()?.trim()?.takeIf { it.isNotBlank() } ?: (defaultSvc?.iconType ?: "repair")
+                                )
+                            }
+                        } else {
+                            MockData.repairServices.map { def ->
+                                val priceOverride = (rawPrices?.get(def.id) as? Number)?.toInt()
+                                val textOverride = rawPriceTexts?.get(def.id)?.toString()?.trim()?.takeIf { it.isNotBlank() }
+                                val effectiveNum = priceOverride?.coerceAtLeast(0) ?: def.estimatedStartingPrice
+                                val effectiveText = textOverride ?: effectiveNum.toString()
+                                def.copy(
+                                    estimatedStartingPrice = RepairService.extractNumericFallback(effectiveText, effectiveNum),
+                                    priceText = effectiveText
+                                )
+                            }
                         }
 
-                        // Also apply any pricesById overrides onto defaults if services array was omitted or partial
-                        val merged = MockData.repairServices.map { def ->
-                            val fromServices = parsedById[def.id]
-                            val priceOverride = (rawPrices?.get(def.id) as? Number)?.toInt()
-                            when {
-                                fromServices != null -> fromServices
-                                priceOverride != null -> def.copy(estimatedStartingPrice = priceOverride.coerceAtLeast(0))
-                                else -> def
-                            }
-                        } + parsedById.values.filter { svc -> MockData.repairServices.none { it.id == svc.id } }
-
-                        _repairServicesFlow.value = merged
-                        localStorage.saveRepairServices(merged)
+                        _repairServicesFlow.value = finalServices
+                        localStorage.saveRepairServices(finalServices)
                     } catch (e: Exception) {
                         Log.w(TAG, "Error parsing repair_pricing doc: ${e.message}", e)
                     }
@@ -1692,20 +1701,32 @@ class FirestoreDataService(
 
     override suspend fun saveRepairServices(services: List<RepairService>): Result<List<RepairService>> {
         return try {
-            val serializedServices = services.map { s ->
+            val normalizedServices = services.map { s ->
+                val text = s.effectivePriceInput
+                val num = RepairService.extractNumericFallback(text, s.estimatedStartingPrice)
+                s.copy(
+                    estimatedStartingPrice = num,
+                    priceText = text
+                )
+            }
+            val serializedServices = normalizedServices.map { s ->
                 mapOf(
                     "id" to s.id,
                     "title" to s.title,
                     "estimatedStartingPrice" to s.estimatedStartingPrice,
+                    "priceText" to s.priceText,
                     "turnaroundTime" to s.turnaroundTime,
+                    "warrantyDays" to s.warrantyDays,
                     "description" to s.description,
                     "iconType" to s.iconType
                 )
             }
-            val pricesById = services.associate { it.id to it.estimatedStartingPrice }
+            val pricesById = normalizedServices.associate { it.id to it.estimatedStartingPrice }
+            val priceTextById = normalizedServices.associate { it.id to it.priceText }
             val payload = hashMapOf<String, Any>(
                 "services" to serializedServices,
                 "pricesById" to pricesById,
+                "priceTextById" to priceTextById,
                 "updatedAt" to FieldValue.serverTimestamp()
             )
             firestore.collection(COLLECTION_SETTINGS)
@@ -1713,9 +1734,9 @@ class FirestoreDataService(
                 .set(payload, SetOptions.merge())
                 .await()
 
-            _repairServicesFlow.value = services
-            localStorage.saveRepairServices(services)
-            Result.success(services)
+            _repairServicesFlow.value = normalizedServices
+            localStorage.saveRepairServices(normalizedServices)
+            Result.success(normalizedServices)
         } catch (e: Exception) {
             Log.e(TAG, "saveRepairServices failed: ${e.message}", e)
             Result.failure(e)

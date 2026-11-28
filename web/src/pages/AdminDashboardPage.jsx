@@ -13,6 +13,7 @@ import {
   logoutUser,
   DEFAULT_REPAIR_PRICING,
   saveAdminRepairPricingToFirestore,
+  formatRepairPriceDisplay,
   DEFAULT_SHOP_INFO,
   formatShopInfo,
   saveAdminShopInfoToFirestore
@@ -49,7 +50,11 @@ import {
   MessageCircle,
   Globe,
   Eye,
-  EyeOff
+  EyeOff,
+  Plus,
+  Edit3,
+  Trash2,
+  X
 } from 'lucide-react';
 import ProductManagementTab from '../components/ProductManagementTab';
 import OrdersManagementTab from '../components/OrdersManagementTab';
@@ -76,12 +81,16 @@ export default function AdminDashboardPage({
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [adminAuthError, setAdminAuthError] = useState(null);
   const [repairPriceInputs, setRepairPriceInputs] = useState(() =>
-    (Array.isArray(repairServices) && repairServices.length > 0 ? repairServices : DEFAULT_REPAIR_PRICING).reduce((acc, s) => {
-      acc[s.id] = String(s.estimatedStartingPrice ?? 0);
+    (Array.isArray(repairServices) ? repairServices : DEFAULT_REPAIR_PRICING).reduce((acc, s) => {
+      acc[s.id] = (s.priceText !== undefined && s.priceText !== null && String(s.priceText).trim() !== '')
+        ? String(s.priceText)
+        : String(s.estimatedStartingPrice ?? 0);
       return acc;
     }, {})
   );
   const [isSavingRepairPrices, setIsSavingRepairPrices] = useState(false);
+  const [repairServiceModal, setRepairServiceModal] = useState(null); // null | { mode: 'add'|'edit', id, title, turnaroundTime, priceText, description, iconType }
+  const [repairServiceToDelete, setRepairServiceToDelete] = useState(null);
 
   const [shopInfoForm, setShopInfoForm] = useState(() => ({
     ...normalizedShopInfo,
@@ -107,10 +116,12 @@ export default function AdminDashboardPage({
 
   // Sync editable price fields when live Firestore repairServices updates
   useEffect(() => {
-    const source = Array.isArray(repairServices) && repairServices.length > 0 ? repairServices : DEFAULT_REPAIR_PRICING;
+    const source = Array.isArray(repairServices) ? repairServices : DEFAULT_REPAIR_PRICING;
     setRepairPriceInputs(
       source.reduce((acc, s) => {
-        acc[s.id] = String(s.estimatedStartingPrice ?? 0);
+        acc[s.id] = (s.priceText !== undefined && s.priceText !== null && String(s.priceText).trim() !== '')
+          ? String(s.priceText)
+          : String(s.estimatedStartingPrice ?? 0);
         return acc;
       }, {})
     );
@@ -231,17 +242,17 @@ export default function AdminDashboardPage({
 
   const handleSaveRepairPrices = async () => {
     if (isSavingRepairPrices) return;
-    const source = Array.isArray(repairServices) && repairServices.length > 0 ? repairServices : DEFAULT_REPAIR_PRICING;
+    const source = Array.isArray(repairServices) ? repairServices : DEFAULT_REPAIR_PRICING;
     const updatedList = [];
     for (const service of source) {
-      const parsed = Number.parseInt(repairPriceInputs[service.id], 10);
-      if (Number.isNaN(parsed) || parsed < 0) {
-        onShowToast?.(`Enter a valid ₹ price for ${service.title}`, 'error');
+      const rawText = String(repairPriceInputs[service.id] ?? '').trim();
+      if (!rawText) {
+        onShowToast?.(`Enter a price or custom rate text for ${service.title}`, 'error');
         return;
       }
       updatedList.push({
         ...service,
-        estimatedStartingPrice: parsed
+        priceText: rawText
       });
     }
 
@@ -256,6 +267,107 @@ export default function AdminDashboardPage({
       setIsSavingRepairPrices(false);
     }
   };
+
+  const handleOpenAddRepairService = () => {
+    setRepairServiceModal({
+      mode: 'add',
+      id: `rep-${Date.now()}`,
+      title: '',
+      turnaroundTime: '30 - 45 Minutes',
+      priceText: '',
+      description: '',
+      iconType: 'repair'
+    });
+  };
+
+  const handleOpenEditRepairService = (service) => {
+    const currentPriceText = String(
+      repairPriceInputs[service.id] ?? service.priceText ?? service.estimatedStartingPrice ?? ''
+    ).trim();
+    setRepairServiceModal({
+      mode: 'edit',
+      id: service.id,
+      title: service.title || '',
+      turnaroundTime: service.turnaroundTime || '30 - 45 Minutes',
+      priceText: currentPriceText,
+      description: service.description || '',
+      iconType: service.iconType || 'repair',
+      warrantyDays: service.warrantyDays ?? 90
+    });
+  };
+
+  const handleSaveRepairServiceModal = async (e) => {
+    e.preventDefault();
+    if (!repairServiceModal || isSavingRepairPrices) return;
+    const trimmedTitle = repairServiceModal.title.trim();
+    const trimmedPrice = repairServiceModal.priceText.trim();
+    const trimmedTime = repairServiceModal.turnaroundTime.trim() || '30 - 60 Minutes';
+    if (!trimmedTitle) {
+      onShowToast?.('Please enter a repair service name.', 'error');
+      return;
+    }
+    if (!trimmedPrice) {
+      onShowToast?.('Please enter a price or custom rate text.', 'error');
+      return;
+    }
+
+    const source = Array.isArray(repairServices) ? repairServices : DEFAULT_REPAIR_PRICING;
+    const nextService = {
+      id: repairServiceModal.id,
+      title: trimmedTitle,
+      priceText: trimmedPrice,
+      estimatedStartingPrice: serviceNumericFallback(trimmedPrice),
+      turnaroundTime: trimmedTime,
+      description: repairServiceModal.description.trim(),
+      iconType: repairServiceModal.iconType || 'repair',
+      warrantyDays: repairServiceModal.warrantyDays ?? 90
+    };
+
+    const updatedList = repairServiceModal.mode === 'add'
+      ? [...source, nextService]
+      : source.map((s) => (s.id === nextService.id ? nextService : s));
+
+    setIsSavingRepairPrices(true);
+    try {
+      await saveAdminRepairPricingToFirestore(updatedList, currentUser);
+      setRepairServiceModal(null);
+      onShowToast?.(
+        repairServiceModal.mode === 'add'
+          ? `Added "${trimmedTitle}" and synced to Firestore!`
+          : `Updated "${trimmedTitle}" and synced to Firestore!`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Failed to save repair category:', err);
+      onShowToast?.(err.message || 'Failed to save repair category.', 'error');
+    } finally {
+      setIsSavingRepairPrices(false);
+    }
+  };
+
+  const handleConfirmDeleteRepairService = async () => {
+    if (!repairServiceToDelete || isSavingRepairPrices) return;
+    const source = Array.isArray(repairServices) ? repairServices : DEFAULT_REPAIR_PRICING;
+    const updatedList = source.filter((s) => s.id !== repairServiceToDelete.id);
+
+    setIsSavingRepairPrices(true);
+    try {
+      await saveAdminRepairPricingToFirestore(updatedList, currentUser);
+      onShowToast?.(`Deleted "${repairServiceToDelete.title}" from repair categories.`, 'success');
+      setRepairServiceToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete repair category:', err);
+      onShowToast?.(err.message || 'Failed to delete repair category.', 'error');
+    } finally {
+      setIsSavingRepairPrices(false);
+    }
+  };
+
+  function serviceNumericFallback(rawText) {
+    const cleaned = String(rawText || '').replace(/,/g, '').trim();
+    const match = cleaned.match(/\d+/);
+    return match ? Math.max(0, Number.parseInt(match[0], 10) || 0) : 0;
+  }
 
   const handleUpdateOldPhoneStatus = async (requestId, newStatus) => {
     setIsUpdating(true);
@@ -737,50 +849,96 @@ export default function AdminDashboardPage({
         <div className="space-y-4">
           {/* Repair Price Management Card */}
           <div className="bg-[#141414] border border-[#D4AF37]/30 rounded-2xl p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-black text-white flex items-center gap-2">
                   <DollarSign size={16} className="text-[#D4AF37]" />
-                  <span>Repair Price Management</span>
+                  <span>Repair Price Management ({(Array.isArray(repairServices) ? repairServices : DEFAULT_REPAIR_PRICING).length})</span>
                 </h3>
                 <p className="text-[11px] text-gray-400 mt-0.5">
-                  Edit starting ₹ prices shown in Home &amp; Repair Booking across both Web and Android in real time.
+                  Add, edit, or delete repair categories and enter numbers or custom text (e.g. 1499, Free Checkup, As per model).
                 </p>
               </div>
-              <button
-                type="button"
-                disabled={isSavingRepairPrices}
-                onClick={handleSaveRepairPrices}
-                className="gold-btn !text-xs !py-2 !px-4 self-start sm:self-auto disabled:opacity-50"
-              >
-                {isSavingRepairPrices ? 'Saving...' : 'Save Repair Prices'}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={isSavingRepairPrices}
+                  onClick={handleOpenAddRepairService}
+                  className="outline-gold-btn !text-xs !py-2 !px-3.5 disabled:opacity-50"
+                >
+                  <Plus size={14} />
+                  <span>+ Add Repair Service / Category</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingRepairPrices}
+                  onClick={handleSaveRepairPrices}
+                  className="gold-btn !text-xs !py-2 !px-4 disabled:opacity-50"
+                >
+                  <Save size={14} />
+                  <span>{isSavingRepairPrices ? 'Saving...' : 'Save Repair Prices'}</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {(Array.isArray(repairServices) && repairServices.length > 0 ? repairServices : DEFAULT_REPAIR_PRICING).map((service) => (
-                <div key={service.id} className="p-3 rounded-xl bg-[#0E0E0E] border border-[#262626] space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-white truncate">{service.title}</span>
-                    <span className="text-[10px] text-gray-500 shrink-0">{service.turnaroundTime}</span>
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#D4AF37]">₹</span>
-                    <input
-                      type="number"
-                      min="0"
-                      value={repairPriceInputs[service.id] ?? ''}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^0-9]/g, '');
-                        setRepairPriceInputs((prev) => ({ ...prev, [service.id]: val }));
-                      }}
-                      className="w-full bg-[#141414] border border-[#2E2E2E] rounded-lg pl-7 pr-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-[#D4AF37]"
-                      placeholder="Starting ₹"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            {(Array.isArray(repairServices) ? repairServices : DEFAULT_REPAIR_PRICING).length === 0 ? (
+              <div className="p-6 text-center rounded-xl bg-[#0E0E0E] border border-[#262626] text-xs text-gray-400">
+                No repair categories configured yet. Click <span className="text-[#D4AF37] font-semibold">+ Add Repair Service / Category</span> to create one.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {(Array.isArray(repairServices) ? repairServices : DEFAULT_REPAIR_PRICING).map((service) => {
+                  const currentInput = repairPriceInputs[service.id] ?? '';
+                  const previewDisplay = formatRepairPriceDisplay({
+                    ...service,
+                    priceText: currentInput
+                  });
+                  return (
+                    <div key={service.id} className="p-3.5 rounded-xl bg-[#0E0E0E] border border-[#262626] space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-white truncate">{service.title}</div>
+                          <div className="text-[10px] text-gray-400">{service.turnaroundTime}</div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditRepairService(service)}
+                            title={`Edit ${service.title}`}
+                            className="p-1.5 rounded-lg bg-[#1A1A1A] hover:bg-[#252525] text-[#D4AF37] transition"
+                          >
+                            <Edit3 size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRepairServiceToDelete(service)}
+                            title={`Delete ${service.title}`}
+                            className="p-1.5 rounded-lg bg-[#1A1A1A] hover:bg-red-500/20 text-red-400 transition"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <input
+                        type="text"
+                        value={currentInput}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setRepairPriceInputs((prev) => ({ ...prev, [service.id]: val }));
+                        }}
+                        className="w-full bg-[#141414] border border-[#2E2E2E] rounded-lg px-3 py-1.5 text-xs font-semibold text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37]"
+                        placeholder="e.g. 1499, Free Checkup, As per model"
+                      />
+
+                      <div className="text-[10px] text-[#D4AF37]/90 font-medium truncate">
+                        Displays as: {previewDisplay}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {isLoadingData ? (
@@ -1288,6 +1446,142 @@ export default function AdminDashboardPage({
                 className="text-red-400 hover:text-red-300 transition"
               >
                 Sign Out Admin
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Repair Service Modal */}
+      {repairServiceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#141414] border border-[#D4AF37]/50 rounded-2xl max-w-md w-full p-6 text-white shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#222222] pb-3">
+              <h3 className="text-base font-black text-white">
+                {repairServiceModal.mode === 'add' ? 'Add Repair Service / Category' : 'Edit Repair Category'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRepairServiceModal(null)}
+                className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-[#222222]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRepairServiceModal} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">Service Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={repairServiceModal.title}
+                  onChange={(e) => setRepairServiceModal((prev) => ({ ...prev, title: e.target.value }))}
+                  placeholder="e.g. Back Glass Replacement"
+                  className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">Estimated Time</label>
+                <input
+                  type="text"
+                  value={repairServiceModal.turnaroundTime}
+                  onChange={(e) => setRepairServiceModal((prev) => ({ ...prev, turnaroundTime: e.target.value }))}
+                  placeholder="e.g. 30 - 45 Minutes"
+                  className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">Price / Custom Text *</label>
+                <input
+                  type="text"
+                  required
+                  value={repairServiceModal.priceText}
+                  onChange={(e) => setRepairServiceModal((prev) => ({ ...prev, priceText: e.target.value }))}
+                  placeholder="e.g. 1499, Free Checkup, As per model, ₹500 - ₹1500"
+                  className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37]"
+                />
+                {repairServiceModal.priceText.trim() && (
+                  <p className="text-[11px] text-[#D4AF37] mt-1">
+                    Preview: {formatRepairPriceDisplay({ priceText: repairServiceModal.priceText })}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">Icon Category</label>
+                <select
+                  value={repairServiceModal.iconType}
+                  onChange={(e) => setRepairServiceModal((prev) => ({ ...prev, iconType: e.target.value }))}
+                  className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF37]"
+                >
+                  <option value="display">Display</option>
+                  <option value="battery">Battery</option>
+                  <option value="charging">Charging</option>
+                  <option value="audio">Speaker / Mic</option>
+                  <option value="software">Software</option>
+                  <option value="water">Water Damage</option>
+                  <option value="repair">General Repair</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-300 mb-1">Description (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={repairServiceModal.description}
+                  onChange={(e) => setRepairServiceModal((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="Short details about parts or repair quality..."
+                  className="w-full bg-[#0E0E0E] border border-[#2E2E2E] rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRepairServiceModal(null)}
+                  className="px-4 py-2 rounded-lg border border-[#2E2E2E] text-xs font-semibold text-gray-300 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingRepairPrices}
+                  className="gold-btn !text-xs !py-2 !px-4 disabled:opacity-50"
+                >
+                  {isSavingRepairPrices ? 'Saving...' : repairServiceModal.mode === 'add' ? 'Add Service' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Repair Service Confirmation Modal */}
+      {repairServiceToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#141414] border border-red-500/40 rounded-2xl max-w-sm w-full p-6 text-white shadow-2xl space-y-4">
+            <h3 className="text-base font-black text-white">Delete Repair Category?</h3>
+            <p className="text-xs text-gray-300 leading-relaxed">
+              Remove <span className="font-bold text-white">&ldquo;{repairServiceToDelete.title}&rdquo;</span> from Repair Price Management, Home Screen, and Repair Booking?
+            </p>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setRepairServiceToDelete(null)}
+                className="px-4 py-2 rounded-lg border border-[#2E2E2E] text-xs font-semibold text-gray-300 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSavingRepairPrices}
+                onClick={handleConfirmDeleteRepairService}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-xs font-bold text-white disabled:opacity-50"
+              >
+                {isSavingRepairPrices ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>

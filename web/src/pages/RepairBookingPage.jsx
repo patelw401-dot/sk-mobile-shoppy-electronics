@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { REPAIR_BRANDS } from '../data/storeData';
-import { saveRepairBookingToFirestore, signInWithGooglePopup, DEFAULT_REPAIR_PRICING, DEFAULT_SHOP_INFO, formatShopInfo } from '../firebase';
+import { saveRepairBookingToFirestore, signInWithGooglePopup, DEFAULT_REPAIR_PRICING, DEFAULT_SHOP_INFO, formatShopInfo, formatRepairPriceDisplay } from '../firebase';
 import { 
   Wrench, 
   ShieldCheck, 
@@ -27,7 +27,7 @@ export default function RepairBookingPage({
   shopInfo = DEFAULT_SHOP_INFO
 }) {
   const info = formatShopInfo(shopInfo);
-  const activeRepairServices = Array.isArray(repairServices) && repairServices.length > 0
+  const activeRepairServices = Array.isArray(repairServices)
     ? repairServices
     : DEFAULT_REPAIR_PRICING;
   const [customerName, setCustomerName] = useState(currentUser?.displayName || '');
@@ -52,6 +52,13 @@ export default function RepairBookingPage({
       setCustomerName(currentUser.displayName);
     }
   }, [currentUser]);
+
+  // Keep selectedProblem valid if admin adds/renames/deletes repair categories
+  useEffect(() => {
+    if (activeRepairServices.length > 0 && !activeRepairServices.some((s) => s.title === selectedProblem)) {
+      setSelectedProblem(activeRepairServices[0].title);
+    }
+  }, [activeRepairServices, selectedProblem]);
 
   const timeSlots = [
     'Today / Earliest Slot',
@@ -116,7 +123,7 @@ export default function RepairBookingPage({
       const bookingId = `SKM-REP-${Date.now().toString().slice(-6)}`;
       const matchedService = activeRepairServices.find((s) => s.title === selectedProblem);
       const dynamicEstimate = matchedService
-        ? `From ₹${Number(matchedService.estimatedStartingPrice || 0).toLocaleString('en-IN')} (Final quote on diagnosis)`
+        ? `${formatRepairPriceDisplay(matchedService)} (Final quote on diagnosis)`
         : 'Quote on diagnosis';
       const bookingPayload = {
         bookingId,
@@ -349,7 +356,7 @@ export default function RepairBookingPage({
               >
                 {activeRepairServices.map((s) => (
                   <option key={s.id} value={s.title}>
-                    {s.title} (From ₹{Number(s.estimatedStartingPrice || 0).toLocaleString('en-IN')})
+                    {s.title} ({formatRepairPriceDisplay(s)})
                   </option>
                 ))}
               </select>
@@ -528,7 +535,7 @@ export default function RepairBookingPage({
                     <span className="text-[10px] text-gray-500">{item.turnaroundTime || item.timeEstimate || '30 - 60 Minutes'}</span>
                   </div>
                   <span className="font-bold text-[#D4AF37]">
-                    From ₹{Number(item.estimatedStartingPrice || 0).toLocaleString('en-IN')}
+                    {formatRepairPriceDisplay(item)}
                   </span>
                 </div>
               ))}
