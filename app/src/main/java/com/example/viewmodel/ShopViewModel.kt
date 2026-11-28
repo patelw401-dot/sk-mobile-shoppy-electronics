@@ -348,7 +348,7 @@ class ShopViewModel(
         try {
             CustomerAuthService.getFirebaseAuth()?.addAuthStateListener { fbAuth ->
                 val user = fbAuth.currentUser
-                if (user != null) {
+                if (user != null && (user.isEmailVerified || user.providerData.none { it.providerId == EmailAuthProvider.PROVIDER_ID } || user.providerData.any { it.providerId == PhoneAuthProvider.PROVIDER_ID })) {
                     val isGoogle = user.providerData.any { it.providerId == GoogleAuthProvider.PROVIDER_ID }
                     val isPhone = user.providerData.any { it.providerId == PhoneAuthProvider.PROVIDER_ID }
                     val isEmail = user.providerData.any { it.providerId == EmailAuthProvider.PROVIDER_ID }
