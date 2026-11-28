@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -280,6 +281,7 @@ fun AdminLoginScreen(
         modifier = modifier
             .fillMaxSize()
             .background(BlackBackground)
+            .safeDrawingPadding()
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -428,7 +430,67 @@ fun AdminLoginScreen(
                     }
                 }
 
+                // Primary Google Sign-In Button
+                Button(
+                    onClick = { handleGoogleSignIn() },
+                    enabled = !isLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .testTag("admin_google_signin_btn"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (onEmailPasswordSignIn != null) BlackSurfaceSecondary else GoldPrimary,
+                        contentColor = if (onEmailPasswordSignIn != null) GoldHighlight else Color(0xFF0B0B0B)
+                    ),
+                    border = if (onEmailPasswordSignIn != null) BorderStroke(1.2.dp, GoldPrimary) else null
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = if (onEmailPasswordSignIn != null) GoldPrimary else Color(0xFF0B0B0B),
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            "Verifying Administrator...",
+                            color = if (onEmailPasswordSignIn != null) GoldHighlight else Color(0xFF0B0B0B),
+                            fontSize = 13.sp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Email,
+                            contentDescription = "Google",
+                            tint = if (onEmailPasswordSignIn != null) GoldPrimary else Color(0xFF0B0B0B),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Sign in with Authorized Google Account",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (onEmailPasswordSignIn != null) GoldHighlight else Color(0xFF0B0B0B)
+                        )
+                    }
+                }
+
                 if (onEmailPasswordSignIn != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = BlackBorder)
+                        Text(
+                            text = "  OR WITH EMAIL  ",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextSecondary
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = BlackBorder)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = emailInput,
                         onValueChange = { emailInput = it },
@@ -498,7 +560,7 @@ fun AdminLoginScreen(
                                 }
                             }
                         },
-                        enabled = !isLoading,
+                        enabled = !isLoading && emailInput.isNotBlank() && passwordInput.isNotEmpty(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
@@ -533,65 +595,6 @@ fun AdminLoginScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = BlackBorder)
-                        Text(
-                            text = "  OR WITH GOOGLE  ",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextSecondary
-                        )
-                        HorizontalDivider(modifier = Modifier.weight(1f), color = BlackBorder)
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                // Primary Google Sign-In Button
-                Button(
-                    onClick = { handleGoogleSignIn() },
-                    enabled = !isLoading,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .testTag("admin_google_signin_btn"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (onEmailPasswordSignIn != null) BlackSurfaceSecondary else GoldPrimary,
-                        contentColor = if (onEmailPasswordSignIn != null) GoldHighlight else Color(0xFF0B0B0B)
-                    ),
-                    border = if (onEmailPasswordSignIn != null) BorderStroke(1.2.dp, GoldPrimary) else null
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            color = if (onEmailPasswordSignIn != null) GoldPrimary else Color(0xFF0B0B0B),
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            "Verifying Administrator...",
-                            color = if (onEmailPasswordSignIn != null) GoldHighlight else Color(0xFF0B0B0B),
-                            fontSize = 13.sp
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Email,
-                            contentDescription = "Google",
-                            tint = if (onEmailPasswordSignIn != null) GoldPrimary else Color(0xFF0B0B0B),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Sign in with Authorized Google Account",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (onEmailPasswordSignIn != null) GoldHighlight else Color(0xFF0B0B0B)
-                        )
-                    }
                 }
 
                 if (onGoogleSignInProvider != null) {
