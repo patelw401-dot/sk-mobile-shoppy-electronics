@@ -308,7 +308,7 @@ class FirestoreDataService(
             val rating = extractFloat(doc, "rating", 4.5f)
             val reviewCount = extractInt(doc, "reviewCount", 0)
             val description = doc.getString("description") ?: ""
-            val stock = extractInt(doc, "stock", 10)
+            val stock = extractInt(doc, "stock", 0)
             val sku = doc.getString("sku")?.takeIf { it.isNotBlank() } ?: "SKM-$id"
             val inStock = extractBoolean(doc, "inStock", stock > 0)
             val active = extractBoolean(doc, "active", true)
@@ -502,7 +502,7 @@ class FirestoreDataService(
                 "reviewCount" to product.reviewCount,
                 "description" to product.description,
                 "stock" to product.stock,
-                "inStock" to (product.stock > 0),
+                "inStock" to (product.inStock && product.stock > 0),
                 "sku" to product.sku,
                 "active" to product.active,
                 "featured" to product.isFeatured,
@@ -549,7 +549,7 @@ class FirestoreDataService(
                 "originalPrice" to product.originalPrice,
                 "description" to product.description,
                 "stock" to product.stock,
-                "inStock" to (product.stock > 0),
+                "inStock" to (product.inStock && product.stock > 0),
                 "sku" to product.sku,
                 "active" to product.active,
                 "featured" to product.isFeatured,
